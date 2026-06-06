@@ -1,0 +1,108 @@
+name: Neon Preview Database
+
+on:
+  pull_request:
+    types: [opened, reopened, closed]
+    branches: [main]
+
+env:
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+
+jobs:
+  create-preview-db:
+    name: Create preview DB
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Neon branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Set branch-scoped DATABASE_URL env vars on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+          DB_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
+          DB_URL_UNPOOLED: ${{ steps.neon.outputs.db_url }}
+        run: |
+          # Remove any stale branch-scoped DATABASE_URL vars (idempotent for reopened PRs)
+          EXISTING=$(curl -sf \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?gitBranch=${GIT_BRANCH}&teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r '.envs[] | select(.key | test("^DATABASE_URL")) | .id' || true)
+          for id in $EXISTING; do
+            curl -sf -X DELETE \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/${id}?teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" > /dev/null || true
+          done
+
+          # Create DATABASE_URL (pooled — used by the app at runtime)
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"DATABASE_URL\",\"value\":\"${DB_URL}\",\"type\":\"encrypted\",\"target\":[\"preview\"],\"gitBranch\":\"${GIT_BRANCH}\"}"
+
+          # Create DATABASE_URL_UNPOOLED (direct — used by db:migrate during build)
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"key\":\"DATABASE_URL_UNPOOLED\",\"value\":\"${DB_URL_UNPOOLED}\",\"type\":\"encrypted\",\"target\":[\"preview\"],\"gitBranch\":\"${GIT_BRANCH}\"}"
+
+      - name: Redeploy Vercel preview to pick up new env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+        run: |
+          # Find the latest deployment for this branch (may not exist yet on first open — that's fine)
+          DEPLOY_ID=$(curl -sf \
+            "https://api.vercel.com/v6/deployments?limit=10&teamId=$VERCEL_ORG_ID&projectId=$VERCEL_PROJECT_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r ".deployments[] | select(.meta.githubCommitRef==\"${GIT_BRANCH}\") | .uid" \
+            | head -1)
+
+          if [ -n "$DEPLOY_ID" ]; then
+            echo "Redeploying $DEPLOY_ID with updated env vars..."
+            curl -sf -X POST \
+              "https://api.vercel.com/v13/deployments?forceNew=1&teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "{\"deploymentId\":\"${DEPLOY_ID}\",\"name\":\"la-cour-de-haut\",\"target\":\"preview\"}" > /dev/null
+            echo "Redeploy triggered."
+          else
+            echo "No existing deployment found for ${GIT_BRANCH} — Vercel will use the env vars on its next build."
+          fi
+
+  delete-preview-db:
+    name: Delete preview DB
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Remove branch-scoped DATABASE_URL env vars from Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+        run: |
+          EXISTING=$(curl -sf \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?gitBranch=${GIT_BRANCH}&teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r '.envs[] | select(.key | test("^DATABASE_URL")) | .id' || true)
+          for id in $EXISTING; do
+            curl -sf -X DELETE \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/${id}?teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" > /dev/null
+            echo "Deleted env var $id"
+          done
