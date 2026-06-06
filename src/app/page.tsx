@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-const _ciTypeTest: number = "intentional type error";
+var _ciLintTest = "intentional lint error";
 
 export default function Home() {
   return (
