@@ -1,0 +1,132 @@
+name: Neon Preview Database
+
+on:
+  pull_request:
+    types: [opened, reopened, closed]
+    branches: [main]
+
+env:
+  VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+  VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+
+jobs:
+  create-preview-db:
+    name: Create preview DB
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Neon branch
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch_name: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Set branch-scoped DATABASE_URL env vars on Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+          DB_URL: ${{ steps.neon.outputs.db_url_with_pooler }}
+          DB_URL_UNPOOLED: ${{ steps.neon.outputs.db_url }}
+        run: |
+          # Validate branch name to prevent injection via crafted branch names
+          echo "$GIT_BRANCH" | grep -qE '^[-A-Za-z0-9._/]+$' || { echo "Invalid branch name: $GIT_BRANCH"; exit 1; }
+
+          # URL-encode the branch name for query parameters
+          GIT_BRANCH_ENC=$(jq -rn --arg b "$GIT_BRANCH" '$b | @uri')
+
+          # Remove any stale branch-scoped DATABASE_URL vars (idempotent for reopened PRs)
+          EXISTING=$(curl -sf \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?gitBranch=${GIT_BRANCH_ENC}&teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r '.envs[] | select(.key | test("^DATABASE_URL")) | .id' || true)
+          for id in $EXISTING; do
+            curl -sf -X DELETE \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/${id}?teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" > /dev/null || true
+          done
+
+          # Build JSON bodies safely with jq (prevents branch name injection into JSON)
+          BODY_URL=$(jq -nc \
+            --arg val "$DB_URL" \
+            --arg br "$GIT_BRANCH" \
+            '{key:"DATABASE_URL",value:$val,type:"encrypted",target:["preview"],gitBranch:$br}')
+          BODY_UNPOOLED=$(jq -nc \
+            --arg val "$DB_URL_UNPOOLED" \
+            --arg br "$GIT_BRANCH" \
+            '{key:"DATABASE_URL_UNPOOLED",value:$val,type:"encrypted",target:["preview"],gitBranch:$br}')
+
+          # Create DATABASE_URL (pooled — used by the app at runtime)
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$BODY_URL"
+
+          # Create DATABASE_URL_UNPOOLED (direct — used by db:migrate during build)
+          curl -sf -X POST \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "$BODY_UNPOOLED"
+
+      - name: Redeploy Vercel preview to pick up new env vars
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+        run: |
+          echo "$GIT_BRANCH" | grep -qE '^[-A-Za-z0-9._/]+$' || { echo "Invalid branch name: $GIT_BRANCH"; exit 1; }
+
+          # Find the latest deployment for this branch — use --arg to avoid jq filter injection
+          DEPLOY_ID=$(curl -sf \
+            "https://api.vercel.com/v6/deployments?limit=10&teamId=$VERCEL_ORG_ID&projectId=$VERCEL_PROJECT_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r --arg br "$GIT_BRANCH" '.deployments[] | select(.meta.githubCommitRef==$br) | .uid' \
+            | head -1)
+
+          if [ -n "$DEPLOY_ID" ]; then
+            echo "Redeploying $DEPLOY_ID with updated env vars..."
+            BODY=$(jq -nc --arg id "$DEPLOY_ID" \
+              '{deploymentId:$id,name:"la-cour-de-haut"}')
+            curl -sf -X POST \
+              "https://api.vercel.com/v13/deployments?forceNew=1&teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$BODY" > /dev/null
+            echo "Redeploy triggered."
+          else
+            echo "No existing deployment for ${GIT_BRANCH} — Vercel will use the env vars on next build."
+          fi
+
+  delete-preview-db:
+    name: Delete preview DB
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Neon branch
+        uses: neondatabase/delete-branch-action@v3
+        with:
+          project_id: ${{ vars.NEON_PROJECT_ID }}
+          branch: preview/pr-${{ github.event.pull_request.number }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Remove branch-scoped DATABASE_URL env vars from Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          GIT_BRANCH: ${{ github.head_ref }}
+        run: |
+          echo "$GIT_BRANCH" | grep -qE '^[-A-Za-z0-9._/]+$' || { echo "Invalid branch name: $GIT_BRANCH"; exit 1; }
+
+          GIT_BRANCH_ENC=$(jq -rn --arg b "$GIT_BRANCH" '$b | @uri')
+
+          EXISTING=$(curl -sf \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env?gitBranch=${GIT_BRANCH_ENC}&teamId=$VERCEL_ORG_ID" \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            | jq -r '.envs[] | select(.key | test("^DATABASE_URL")) | .id' || true)
+          for id in $EXISTING; do
+            curl -sf -X DELETE \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/${id}?teamId=$VERCEL_ORG_ID" \
+              -H "Authorization: Bearer $VERCEL_TOKEN" > /dev/null
+            echo "Deleted env var $id"
+          done
