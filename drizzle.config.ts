@@ -10,6 +10,10 @@ export default defineConfig({
   out: './drizzle',
   dbCredentials: {
     // Migrations require a direct (unpooled) connection — PgBouncer blocks DDL
-    url: (process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL)!,
+    url: (() => {
+      const url = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL;
+      if (!url) throw new Error("DATABASE_URL_UNPOOLED or DATABASE_URL must be set");
+      return url;
+    })(),
   },
 });

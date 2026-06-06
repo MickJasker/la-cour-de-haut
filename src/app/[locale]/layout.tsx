@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
+import { routing } from "@/i18n/routing";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -15,12 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export function generateStaticParams() {
-  return [
-    { locale: "nl" },
-    { locale: "en" },
-    { locale: "fr" },
-    { locale: "de" },
-  ];
+  return routing.locales.map((locale) => ({ locale }));
 }
 
 interface Props {
