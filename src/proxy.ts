@@ -6,7 +6,7 @@ export const proxy = createMiddleware(routing);
 
 export const config = {
   matcher: [
-    // Match all pathnames except static files and internals
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Match all pathnames except static files, internals, and API routes
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

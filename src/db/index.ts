@@ -8,7 +8,9 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 export function getDb() {
   if (!_db) {
-    _db = drizzle({ client: neon(process.env.DATABASE_URL!), schema });
+    const url = process.env.DATABASE_URL;
+    if (!url) throw new Error("DATABASE_URL is not set");
+    _db = drizzle({ client: neon(url), schema });
   }
   return _db;
 }
