@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 import { getDb } from "@/db";
 
 const secret = process.env.BETTER_AUTH_SECRET;
@@ -17,6 +18,7 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: true,
   },
+  plugins: [admin()],
 });
 
 export type Session = typeof auth.$Infer.Session;
