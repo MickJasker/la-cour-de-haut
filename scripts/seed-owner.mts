@@ -18,9 +18,9 @@ if (!email || !password) {
 }
 
 // Dynamic import so env is populated before auth.ts module-level validation runs
-const { auth } = await import("../src/lib/auth.js");
+const { getAuth } = await import("../src/lib/auth.js");
 
-const result = await auth.api.createUser({
+const result = await getAuth().api.createUser({
   body: { email, password, name, role: "admin" },
 });
 
