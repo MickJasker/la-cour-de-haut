@@ -1,7 +1,5 @@
 import { test as setup } from "@playwright/test";
-import path from "path";
-
-export const authFile = path.join(__dirname, ".auth/owner.json");
+import { authFile } from "./constants";
 
 setup("acquire owner session", async ({ request }) => {
   const email = process.env.OWNER_EMAIL;

@@ -1,7 +1,5 @@
 import { test, expect } from "@playwright/test";
-import path from "path";
-
-const authFile = path.join(__dirname, ".auth/owner.json");
+import { authFile } from "./constants";
 
 test("unauthenticated visit to /admin redirects to /admin/login", async ({
   page,

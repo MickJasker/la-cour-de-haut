@@ -137,10 +137,13 @@ jobs:
             -H "Content-Type: application/json" \
             --data "$(jq -nc --arg run "$RUN_ID" '{"branch":{"name":"e2e-\($run)"},"endpoints":[{"type":"read_write"}]}')")
           BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
-          DB_URL=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
+          # Direct (unpooled) URL — required for DDL migrations (PgBouncer blocks DDL)
+          DB_URL_DIRECT=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
+          # Pooled URL — insert -pooler into endpoint hostname, matching the repo convention
+          DB_URL_POOLED=$(echo "$DB_URL_DIRECT" | sed 's|@\([^.]*\)\.|@\1-pooler.|')
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          echo "DATABASE_URL=$DB_URL" >> "$GITHUB_ENV"
-          echo "DATABASE_URL_UNPOOLED=$DB_URL" >> "$GITHUB_ENV"
+          echo "DATABASE_URL=$DB_URL_POOLED" >> "$GITHUB_ENV"
+          echo "DATABASE_URL_UNPOOLED=$DB_URL_DIRECT" >> "$GITHUB_ENV"
 
       - uses: actions/cache@v4
         id: playwright-cache
