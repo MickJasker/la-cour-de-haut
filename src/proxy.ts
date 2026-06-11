@@ -14,10 +14,6 @@ export function proxy(request: NextRequest) {
     );
 
     if (pathname === "/admin/login") {
-      // Already authenticated → skip login page
-      if (hasSession) {
-        return NextResponse.redirect(new URL("/admin", request.url));
-      }
       return NextResponse.next();
     }
 

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
-import { routing } from "@/i18n/routing";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -12,10 +11,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-
-export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
-}
 
 interface Props {
   children: ReactNode;
