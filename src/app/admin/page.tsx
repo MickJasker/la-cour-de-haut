@@ -1,6 +1,8 @@
 import { verifySession } from "@/lib/dal";
 import { LogoutButton } from "./logout-button";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   const session = await verifySession();
 
