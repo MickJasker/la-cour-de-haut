@@ -9,11 +9,14 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "seed-owner": "tsx scripts/seed-owner.mts"
   },
   "dependencies": {
     "@marsidev/react-turnstile": "^1.5.2",
     "@neondatabase/serverless": "^1.1.0",
+    "@radix-ui/react-label": "^2.1.9",
+    "@radix-ui/react-slot": "^1.2.5",
     "@tanstack/react-form": "^1.33.0",
     "better-auth": "^1.6.14",
     "class-variance-authority": "^0.7.1",
@@ -41,6 +44,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5"
   }
 }
