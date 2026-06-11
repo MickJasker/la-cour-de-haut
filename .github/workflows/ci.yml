@@ -124,6 +124,27 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Create Neon E2E branch
+        id: neon-e2e-branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          RESPONSE=$(curl -sf -X POST \
+            "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches" \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            -H "Content-Type: application/json" \
+            --data "$(jq -nc --arg run "$RUN_ID" '{"branch":{"name":"e2e-\($run)"},"endpoints":[{"type":"read_write"}]}')")
+          BRANCH_ID=$(echo "$RESPONSE" | jq -r '.branch.id')
+          # Direct (unpooled) URL — required for DDL migrations (PgBouncer blocks DDL)
+          DB_URL_DIRECT=$(echo "$RESPONSE" | jq -r '.connection_uris[0].connection_uri')
+          # Pooled URL — insert -pooler into endpoint hostname, matching the repo convention
+          DB_URL_POOLED=$(echo "$DB_URL_DIRECT" | sed 's|@\([^.]*\)\.|@\1-pooler.|')
+          echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
+          echo "DATABASE_URL=$DB_URL_POOLED" >> "$GITHUB_ENV"
+          echo "DATABASE_URL_UNPOOLED=$DB_URL_DIRECT" >> "$GITHUB_ENV"
+
       - uses: actions/cache@v4
         id: playwright-cache
         with:
@@ -134,3 +155,22 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
       - run: pnpm test:e2e
+        env:
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:3000
+          OWNER_EMAIL: admin@lacourdehaut.fr
+          OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+      - name: Delete Neon E2E branch
+        if: always()
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          BRANCH_ID: ${{ steps.neon-e2e-branch.outputs.branch_id }}
+        run: |
+          if [ -n "$BRANCH_ID" ]; then
+            curl -sf -X DELETE \
+              "https://console.neon.tech/api/v2/projects/$NEON_PROJECT_ID/branches/$BRANCH_ID" \
+              -H "Authorization: Bearer $NEON_API_KEY" || true
+          fi
