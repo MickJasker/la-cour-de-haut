@@ -10,6 +10,26 @@ Issues and PRDs for this repo live as GitHub issues. Use the `gh` CLI for all op
 - **Comment on an issue**: `gh issue comment <number> --body "..."`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
+- **Set blocked-by relationship** (use this instead of writing "Blocked by" in the issue body): use the native GitHub GraphQL `addBlockedBy` mutation:
+
+  ```bash
+  # Get node IDs first
+  gh api repos/{owner}/{repo}/issues/{number} --jq '.node_id'
+
+  # Then set the relationship — issueId = the blocked issue, blockingIssueId = the blocker
+  gh api graphql -f query='
+  mutation {
+    addBlockedBy(input: {
+      issueId: "<blocked-issue-node-id>",
+      blockingIssueId: "<blocking-issue-node-id>"
+    }) {
+      issue { number }
+      blockingIssue { number }
+    }
+  }'
+  ```
+
+  To remove: use `removeBlockedBy` with the same input shape. Never write "Blocked by" as plain text in the issue body — use this relationship instead.
 
 Infer the repo from `git remote -v` — `gh` does this automatically when run inside a clone.
 
