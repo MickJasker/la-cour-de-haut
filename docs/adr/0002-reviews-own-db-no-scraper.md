@@ -7,6 +7,7 @@
 Reviews exist on Airbnb and Natuurhuisje. Automated scraping is the only way to fetch them programmatically — neither platform provides a public API for host reviews. The site requires all content in four languages (NL/EN/FR/DE), and the budget is €0.
 
 Options considered:
+
 - **Scraper** — requires headless browser + proxies on a persistent worker; violates platform ToS; fragile to bot-detection; incompatible with Vercel's free serverless tier.
 - **Third-party embed** (Revyoos, EmbedSocial) — single language only; paid tier likely; adds an external data processor (GDPR complication).
 - **Own DB, owner-managed** — owner pastes review text from platform notification emails; auto-translate fills EN/FR/DE.

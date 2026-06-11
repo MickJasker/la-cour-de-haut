@@ -16,6 +16,7 @@ Add Prettier to the project for consistent code formatting, integrated into the 
 **`.prettierrc`** — Prettier 3 defaults. Only explicit override: `"trailingComma": "all"` (already Prettier 3's default, made explicit for clarity).
 
 **`.prettierignore`** — Excludes:
+
 - `.next/`
 - `node_modules/`
 - `drizzle/` (generated migration files)
@@ -43,5 +44,6 @@ Add a `format` job (parallel to `typecheck` and `lint`) running `pnpm prettier -
 ## Scripts
 
 Add to `package.json`:
+
 - `"format": "prettier --write ."` — manual full-repo format
 - `"format:check": "prettier --check ."` — used by CI

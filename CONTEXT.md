@@ -13,6 +13,7 @@ A vacation rental property in Normandy (France). The site is an **inquiry-and-co
 ## The owner
 
 A single person who manages the property. They:
+
 - Review booking requests in the **inbox**
 - Confirm requests and send **bank-transfer instructions** manually via email
 - Manage content (description, POIs, reviews, settings) in the backoffice
@@ -50,6 +51,7 @@ Two distinct layers:
 **Dynamic content** — owner-managed records stored in the DB, translatable per field. Owner writes in Dutch (primary), then clicks **Auto-translate** to fill EN/FR/DE via DeepL. Fields the owner edits manually are marked **human-edited** and protected from being overwritten by a later re-translate. Fields filled by DeepL are marked **machine**.
 
 Storage pattern per translatable field:
+
 ```
 title:        { nl: "...", en: "...", fr: "...", de: "..." }
 title_source: { nl: "human", en: "machine", fr: "human", de: "machine" }
@@ -61,17 +63,17 @@ title_source: { nl: "human", en: "machine", fr: "human", de: "machine" }
 
 ## Key domain terms
 
-| Term | Meaning |
-|---|---|
-| **Booking request** | A guest's availability inquiry, submitted via the public form |
-| **On hold** | Status after owner confirmation, before payment; dates are blocked in the export feed |
-| **Payment deadline** | The date by which the guest must pay, or the hold expires automatically |
-| **Busy intervals** | Merged unavailable date ranges from all inbound iCal feeds |
-| **Export feed** | The site's own outbound `.ics` file, subscribed to by Airbnb and Natuurhuisje |
-| **Inbox** | The backoffice view listing all booking requests by status |
-| **POI** | Point of Interest — a card in the "Discover the area" section |
-| **Content block** | A keyed singleton content unit (e.g. `hero_subtitle`, `description`) |
-| **Auto-translate** | The DeepL-powered server action that fills EN/FR/DE from a Dutch source field |
-| **Human-edited** | A field manually edited by the owner; protected from auto-translate overwrite |
-| **Machine** | A field filled by auto-translate; can be overwritten by a later re-translate |
-| **Bank-transfer instructions** | The payment details emailed to the guest on hold confirmation |
+| Term                           | Meaning                                                                               |
+| ------------------------------ | ------------------------------------------------------------------------------------- |
+| **Booking request**            | A guest's availability inquiry, submitted via the public form                         |
+| **On hold**                    | Status after owner confirmation, before payment; dates are blocked in the export feed |
+| **Payment deadline**           | The date by which the guest must pay, or the hold expires automatically               |
+| **Busy intervals**             | Merged unavailable date ranges from all inbound iCal feeds                            |
+| **Export feed**                | The site's own outbound `.ics` file, subscribed to by Airbnb and Natuurhuisje         |
+| **Inbox**                      | The backoffice view listing all booking requests by status                            |
+| **POI**                        | Point of Interest — a card in the "Discover the area" section                         |
+| **Content block**              | A keyed singleton content unit (e.g. `hero_subtitle`, `description`)                  |
+| **Auto-translate**             | The DeepL-powered server action that fills EN/FR/DE from a Dutch source field         |
+| **Human-edited**               | A field manually edited by the owner; protected from auto-translate overwrite         |
+| **Machine**                    | A field filled by auto-translate; can be overwritten by a later re-translate          |
+| **Bank-transfer instructions** | The payment details emailed to the guest on hold confirmation                         |

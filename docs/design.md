@@ -1,6 +1,6 @@
 # Gîte La Cour de Haut — Design Document
 
-*Single public marketing page + owner backoffice, for a vacation rental in Normandy.*
+_Single public marketing page + owner backoffice, for a vacation rental in Normandy._
 
 ---
 
@@ -27,20 +27,20 @@ Three surfaces, despite the "single page" brief:
 
 ## 2. Architecture overview
 
-| Concern | Choice | Why |
-|---|---|---|
-| Framework | **Next.js (App Router)** | Required; SSR/ISR fits the iCal caching model |
-| Styling / UI | **TailwindCSS + shadcn/ui** | Required |
-| Forms | **TanStack Form** | Required; used for the request form + all admin forms |
-| i18n | **next-intl** | App Router standard; locale routing + static UI strings |
-| Hosting | **Vercel** | Free Hobby tier |
-| Database | **Neon (Postgres)** | Generous free tier; serverless |
-| ORM | **Drizzle** | Light cold-start footprint on serverless; clean with Neon |
-| Image storage | **Vercel Blob** | Free tier; feeds `next/image` |
-| Auth | **Better Auth (email/password)** | TypeScript-native; first-class Drizzle adapter → auth tables live in the same Neon DB; trivial for a single owner |
-| Email | **Resend** | Free tier; owner notifications + payment instructions |
-| Spam | **Cloudflare Turnstile + honeypot** | Free; protects the public form |
-| Auto-translate | **DeepL Free API** | Free monthly allowance far exceeds this volume; strong NL/EN/FR/DE quality |
+| Concern        | Choice                              | Why                                                                                                               |
+| -------------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Framework      | **Next.js (App Router)**            | Required; SSR/ISR fits the iCal caching model                                                                     |
+| Styling / UI   | **TailwindCSS + shadcn/ui**         | Required                                                                                                          |
+| Forms          | **TanStack Form**                   | Required; used for the request form + all admin forms                                                             |
+| i18n           | **next-intl**                       | App Router standard; locale routing + static UI strings                                                           |
+| Hosting        | **Vercel**                          | Free Hobby tier                                                                                                   |
+| Database       | **Neon (Postgres)**                 | Generous free tier; serverless                                                                                    |
+| ORM            | **Drizzle**                         | Light cold-start footprint on serverless; clean with Neon                                                         |
+| Image storage  | **Vercel Blob**                     | Free tier; feeds `next/image`                                                                                     |
+| Auth           | **Better Auth (email/password)**    | TypeScript-native; first-class Drizzle adapter → auth tables live in the same Neon DB; trivial for a single owner |
+| Email          | **Resend**                          | Free tier; owner notifications + payment instructions                                                             |
+| Spam           | **Cloudflare Turnstile + honeypot** | Free; protects the public form                                                                                    |
+| Auto-translate | **DeepL Free API**                  | Free monthly allowance far exceeds this volume; strong NL/EN/FR/DE quality                                        |
 
 > The free-tier limits of DeepL, Resend, and Vercel Cron change over time — confirm current allowances at signup. The design below is structured so none of them are load-bearing at this traffic level.
 
@@ -65,7 +65,7 @@ title:        { nl: "...", en: "...", fr: "...", de: "..." }
 title_source: { nl: "human", en: "machine", fr: "human", de: "machine" }
 ```
 
-This keeps tables flat, makes the translate action trivial (only fill keys that are missing or still `machine`), and avoids schema churn. *(Alternative if you prefer strict typing: one column per language. Cleaner types, more verbose, and re-translate logic is the same.)*
+This keeps tables flat, makes the translate action trivial (only fill keys that are missing or still `machine`), and avoids schema churn. _(Alternative if you prefer strict typing: one column per language. Cleaner types, more verbose, and re-translate logic is the same.)_
 
 ---
 
@@ -83,14 +83,16 @@ This keeps tables flat, makes the translate action trivial (only fill keys that 
 
 **Inbound** (read): a server function fetches both platform feeds (client-side is blocked by CORS), parses them with `node-ical`, merges to busy intervals, and caches via **ISR / on-demand revalidation** (e.g. revalidate hourly). Used to render the read-only availability calendar and to prevent the owner from confirming a request that conflicts with an existing platform booking.
 
-**Outbound** (write-back): the site exposes its own feed at a **stable, unguessable URL** containing a long random token, e.g. `/api/ical/{token}.ics`. It lists held + confirmed direct bookings as `VEVENT`s. The owner pastes this URL into Airbnb's and Natuurhuisje's *import calendar* settings **once** during setup.
+**Outbound** (write-back): the site exposes its own feed at a **stable, unguessable URL** containing a long random token, e.g. `/api/ical/{token}.ics`. It lists held + confirmed direct bookings as `VEVENT`s. The owner pastes this URL into Airbnb's and Natuurhuisje's _import calendar_ settings **once** during setup.
 
 ### Caveats to communicate to the owner
+
 - **Setup is manual & one-time** per platform.
 - **Sync is not instant** — Airbnb polls on its own schedule (typically a few hours), so a double-booking window genuinely exists. The human confirmation + bank-transfer step is the real safeguard.
 - The feed is fetched **unauthenticated** by the platforms, so it's effectively public — include **no guest PII** in it (use a generic summary like "Booked"). The token only obscures the URL.
 
 ### No cron strictly required
+
 The free tier doesn't need scheduled jobs: inbound feeds use ISR caching, the outbound feed is generated **on request** when a platform fetches it, and expired holds are released **lazily** (checked on read). If you later want guaranteed hold expiry, a single daily Vercel Cron job covers it.
 
 ---
@@ -110,7 +112,7 @@ requested ──(owner confirms)──► on_hold ──(payment received)──
 - **confirmed** — payment received, owner marks paid; stays in feed.
 - **expired / declined / cancelled** — dates removed from the feed.
 
-> **Decided:** block on *confirm* (dates held the moment the owner confirms), with an auto-expiring hold so unpaid holds release their dates. Safer than block-on-payment given the iCal polling latency.
+> **Decided:** block on _confirm_ (dates held the moment the owner confirms), with an auto-expiring hold so unpaid holds release their dates. Safer than block-on-payment given the iCal polling latency.
 
 ---
 
@@ -152,7 +154,8 @@ Inbound iCal busy-intervals are cached via the Next.js data cache (or a tiny `ic
 ## 7. Routes & components
 
 ### Public — `/[locale]` (nl default; `/en`, `/fr`, `/de`)
-- **Hero** — logo over the big photo. Ship the *Baltica* logo as an **SVG/PNG asset** rather than licensing the webfont.
+
+- **Hero** — logo over the big photo. Ship the _Baltica_ logo as an **SVG/PNG asset** rather than licensing the webfont.
 - **Description** + photo gallery.
 - **Discover the area** — grid of POI cards; click opens a shadcn `Dialog` with the long text. DB-backed, owner-managed.
 - **Availability** — read-only calendar (shadcn `Calendar` / react-day-picker) showing merged busy dates.
@@ -161,6 +164,7 @@ Inbound iCal busy-intervals are cached via the Next.js data cache (or a tiny `ic
 - **Privacy notice** — small standalone page; the form collects PII in the EU, so a basic GDPR notice is effectively required.
 
 ### Backoffice — `/admin`
+
 - `/admin` login (Better Auth)
 - `/admin/inbox` — requests (new / on-hold / confirmed / archived); actions: confirm, decline, mark paid, cancel
 - `/admin/content` — description, hero, contact details
@@ -169,6 +173,7 @@ Inbound iCal busy-intervals are cached via the Next.js data cache (or a tiny `ic
 - `/admin/settings` — IBAN/bank details, contact info, iCal source URLs, export feed URL
 
 ### Server / route handlers
+
 - `ALL  /api/auth/*` — Better Auth handler (login, session, sign-out)
 - `POST /api/booking` — validate, Turnstile check, persist, email owner
 - `GET  /api/ical/{token}.ics` — outbound feed (held + confirmed bookings)
@@ -182,14 +187,16 @@ Inbound iCal busy-intervals are cached via the Next.js data cache (or a tiny `ic
 **Decision: no scraper. Reviews live in our own DB, entered/curated by the owner, auto-translated into all four languages.**
 
 Why not scrape Airbnb / Natuurhuisje:
+
 - **Terms & access.** Airbnb's terms prohibit automated scraping and there is no public reviews API for individual hosts (the partner API is gated to approved companies and excludes reviews). Natuurhuisje exposes no API or review export at all — it's a manual platform. So scraping is the only "automated" route, and it runs against the platforms' rules. (Legality of scraping public data is murky and jurisdiction-dependent — not a foundation to build on.)
 - **Fragility.** Airbnb has active bot-detection; reliable scraping needs a headless browser + proxies + occasional CAPTCHA-solving, and the reverse-engineered internal endpoints break without notice.
 - **Stack fit.** A persistent headless-browser scraper can't run on Vercel's free serverless tier; it would require a separate paid worker, breaking the €0 budget.
 - **Translation.** A scraper or third-party widget yields each review in its original language only — incompatible with the hard 4-language requirement that our DB + auto-translate already satisfies.
 
 Chosen flow:
+
 - **v1 — assisted entry.** Both platforms email the host when a review lands, so the text already arrives in the owner's inbox. Owner pastes it into `/admin/reviews` → auto-translate fills the other three languages → publish. Low effort at this volume (a few per month), full styling control.
-- **Phase 2 (optional) — forwarded-email parsing.** An inbound address (e.g. `reviews@lacourdehaut.fr` via Resend) lets the owner forward a review email; a handler parses it into a *draft* review for one-click approval. Fully terms-compliant (owner-initiated, human-in-the-loop).
+- **Phase 2 (optional) — forwarded-email parsing.** An inbound address (e.g. `reviews@lacourdehaut.fr` via Resend) lets the owner forward a review email; a handler parses it into a _draft_ review for one-click approval. Fully terms-compliant (owner-initiated, human-in-the-loop).
 - **Fallback only.** If the owner ever wants zero data entry, a third-party embed (e.g. Revyoos/EmbedSocial) is possible, accepting the trade-offs: single language, external styling, likely a paid tier, and an added third-party data processor (GDPR).
 
 ---
