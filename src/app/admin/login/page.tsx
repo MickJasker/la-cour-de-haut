@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "@tanstack/react-form";
 import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,13 +44,8 @@ export default function LoginPage() {
           <form.Field name="email">
             {(field) => (
               <div className="space-y-1">
-                <label
-                  htmlFor={field.name}
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Email
-                </label>
-                <input
+                <Label htmlFor={field.name}>Email</Label>
+                <Input
                   id={field.name}
                   type="email"
                   autoComplete="email"
@@ -55,7 +53,6 @@ export default function LoginPage() {
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
             )}
@@ -64,13 +61,8 @@ export default function LoginPage() {
           <form.Field name="password">
             {(field) => (
               <div className="space-y-1">
-                <label
-                  htmlFor={field.name}
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Password
-                </label>
-                <input
+                <Label htmlFor={field.name}>Password</Label>
+                <Input
                   id={field.name}
                   type="password"
                   autoComplete="current-password"
@@ -78,7 +70,6 @@ export default function LoginPage() {
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
             )}
@@ -92,13 +83,9 @@ export default function LoginPage() {
 
           <form.Subscribe selector={(s) => s.isSubmitting}>
             {(isSubmitting) => (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full rounded-md bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-              >
+              <Button type="submit" disabled={isSubmitting} className="w-full">
                 {isSubmitting ? "Signing in…" : "Sign in"}
-              </button>
+              </Button>
             )}
           </form.Subscribe>
         </form>
