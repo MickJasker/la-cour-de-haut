@@ -1,6 +1,6 @@
-import { neon } from '@neondatabase/serverless';
-import { drizzle, type NeonHttpDatabase } from 'drizzle-orm/neon-http';
-import * as schema from './schema';
+import { neon } from "@neondatabase/serverless";
+import { drizzle, type NeonHttpDatabase } from "drizzle-orm/neon-http";
+import * as schema from "./schema";
 
 // neon() throws at module load if DATABASE_URL is unset, crashing next build
 // before env vars are provisioned. Lazy init avoids this.
