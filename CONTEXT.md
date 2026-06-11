@@ -61,6 +61,13 @@ title_source: { nl: "human", en: "machine", fr: "human", de: "machine" }
 
 `nl` (Dutch) is the primary authoring language. `en`, `fr`, `de` are hard launch requirements.
 
+## Testing boundaries
+
+Two test runners, strictly separated by what they can see:
+
+- **Vitest** — utility functions and synchronous client components only. Async Server Components are unsupported by Vitest (React ecosystem limitation). Tests live in `src/**/*.test.ts(x)`, co-located with source.
+- **Playwright** — full request-cycle tests against a running `next dev` server. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`.
+
 ## Key domain terms
 
 | Term                           | Meaning                                                                               |
