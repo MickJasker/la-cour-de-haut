@@ -83,41 +83,41 @@ body {
   /* ── Primitive palette ────────────────────── */
 
   /* Olive */
-  --lcdh-olive-50: #f4f6ea;
-  --lcdh-olive-100: #e6ebce;
-  --lcdh-olive-200: #ccd6a4;
-  --lcdh-olive-300: #b1bf79;
-  --lcdh-olive-400: #98a957;
-  --lcdh-olive-500: #7e8d3c;
-  --lcdh-olive-600: #647230;
-  --lcdh-olive-700: #4b5a23;
-  --lcdh-olive-800: #3a461c;
-  --lcdh-olive-900: #2b3415;
+  --lcdh-olive-50: oklch(0.9684 0.0159 114.53);
+  --lcdh-olive-100: oklch(0.9286 0.0386 115.17);
+  --lcdh-olive-200: oklch(0.8558 0.0673 117.07);
+  --lcdh-olive-300: oklch(0.7773 0.0939 117.89);
+  --lcdh-olive-400: oklch(0.7031 0.1092 118.97);
+  --lcdh-olive-500: oklch(0.6137 0.1077 118.48);
+  --lcdh-olive-600: oklch(0.5253 0.0922 119.69);
+  --lcdh-olive-700: oklch(0.4417 0.0811 122.54);
+  --lcdh-olive-800: oklch(0.3728 0.0656 122.87);
+  --lcdh-olive-900: oklch(0.3081 0.0514 122.83);
 
   /* Sage */
-  --lcdh-sage-100: #e9f2ec;
-  --lcdh-sage-200: #c6dfca;
-  --lcdh-sage-300: #a7cdae;
-  --lcdh-sage-400: #84b58e;
+  --lcdh-sage-100: oklch(0.9527 0.0124 157.37);
+  --lcdh-sage-200: oklch(0.8794 0.039 150.08);
+  --lcdh-sage-300: oklch(0.8122 0.0591 150.4);
+  --lcdh-sage-400: oklch(0.7275 0.0766 150.46);
 
   /* Stone */
-  --lcdh-stone-200: #d8d6d1;
-  --lcdh-stone-300: #bbb9b3;
-  --lcdh-stone-400: #a3a09a;
-  --lcdh-stone-500: #807f7b;
-  --lcdh-stone-600: #66655f;
-  --lcdh-stone-700: #4b4a45;
-  --lcdh-stone-800: #343330;
+  --lcdh-stone-200: oklch(0.8763 0.0071 88.71);
+  --lcdh-stone-300: oklch(0.7856 0.0086 91.57);
+  --lcdh-stone-400: oklch(0.7065 0.0092 84.59);
+  --lcdh-stone-500: oklch(0.5961 0.006 95.26);
+  --lcdh-stone-600: oklch(0.5058 0.0093 99.1);
+  --lcdh-stone-700: oklch(0.4084 0.0082 97.59);
+  --lcdh-stone-800: oklch(0.321 0.0054 91.6);
 
   /* Cream */
-  --lcdh-cream-50: #fffaf0;
-  --lcdh-cream-100: #fbf0da;
-  --lcdh-cream-200: #f1e3c4;
-  --lcdh-cream-300: #e6d3a6;
+  --lcdh-cream-50: oklch(0.9862 0.0141 84.59);
+  --lcdh-cream-100: oklch(0.958 0.0312 84.6);
+  --lcdh-cream-200: oklch(0.9191 0.0435 86.6);
+  --lcdh-cream-300: oklch(0.8714 0.0626 87.82);
 
   /* Base */
-  --lcdh-white: #ffffff;
-  --lcdh-black: #1c2010;
+  --lcdh-white: oklch(1 0 0);
+  --lcdh-black: oklch(0.2343 0.0292 120.17);
 
   /* ── Semantic tokens ──────────────────────── */
 
@@ -157,10 +157,10 @@ body {
   --lcdh-accent-contrast: var(--lcdh-cream-50); /* #fffaf0 */
 
   /* Status */
-  --lcdh-positive: #5b7d3a;
-  --lcdh-warning: #b8862f;
-  --lcdh-danger: #a6492f;
-  --lcdh-star: #c89a3c;
+  --lcdh-positive: oklch(0.5477 0.1026 131.31);
+  --lcdh-warning: oklch(0.6539 0.1177 77.4);
+  --lcdh-danger: oklch(0.5215 0.1294 36.46);
+  --lcdh-star: oklch(0.7124 0.1222 82.1);
 }
 
 /* Tailwind v4 color utilities — generated from LCDH Figma variables.
