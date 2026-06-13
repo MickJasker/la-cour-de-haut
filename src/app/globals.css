@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--lcdh-surface-page);
+  --foreground: var(--lcdh-text-strong);
 }
 
 @theme inline {
@@ -12,80 +12,43 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* shadcn/ui CSS variables — neutral palette, oklch format (Tailwind 4) */
+/* shadcn/ui CSS variables — wired to LCDH design tokens */
 :root {
   --radius: 0.5rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: var(--lcdh-surface-page);
+  --foreground: var(--lcdh-text-strong);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card: var(--lcdh-surface-card);
+  --card-foreground: var(--lcdh-text-strong);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover: var(--lcdh-surface-raised);
+  --popover-foreground: var(--lcdh-text-strong);
 
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--lcdh-accent);
+  --primary-foreground: var(--lcdh-accent-contrast);
 
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary: var(--lcdh-sage-100);
+  --secondary-foreground: var(--lcdh-text-strong);
 
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: var(--lcdh-cream-200);
+  --muted-foreground: var(--lcdh-text-muted);
 
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: var(--lcdh-sage-100);
+  --accent-foreground: var(--lcdh-text-strong);
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: var(--lcdh-danger);
+  --destructive-foreground: var(--lcdh-cream-50);
 
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.556 0 0);
+  --border: var(--lcdh-border-cream);
+  --input: var(--lcdh-border-cream);
+  --ring: var(--lcdh-accent);
 }
 
 /* Map shadcn CSS vars to Tailwind 4 color utilities */
@@ -110,4 +73,150 @@ body {
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius: var(--radius);
+}
+
+/* ═══════════════════════════════════════════════
+   LCDH Design Tokens — sourced from Figma
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* ── Primitive palette ────────────────────── */
+
+  /* Olive */
+  --lcdh-olive-50: #f4f6ea;
+  --lcdh-olive-100: #e6ebce;
+  --lcdh-olive-200: #ccd6a4;
+  --lcdh-olive-300: #b1bf79;
+  --lcdh-olive-400: #98a957;
+  --lcdh-olive-500: #7e8d3c;
+  --lcdh-olive-600: #647230;
+  --lcdh-olive-700: #4b5a23;
+  --lcdh-olive-800: #3a461c;
+  --lcdh-olive-900: #2b3415;
+
+  /* Sage */
+  --lcdh-sage-100: #e9f2ec;
+  --lcdh-sage-200: #c6dfca;
+  --lcdh-sage-300: #a7cdae;
+  --lcdh-sage-400: #84b58e;
+
+  /* Stone */
+  --lcdh-stone-200: #d8d6d1;
+  --lcdh-stone-300: #bbb9b3;
+  --lcdh-stone-400: #a3a09a;
+  --lcdh-stone-500: #807f7b;
+  --lcdh-stone-600: #66655f;
+  --lcdh-stone-700: #4b4a45;
+  --lcdh-stone-800: #343330;
+
+  /* Cream */
+  --lcdh-cream-50: #fffaf0;
+  --lcdh-cream-100: #fbf0da;
+  --lcdh-cream-200: #f1e3c4;
+  --lcdh-cream-300: #e6d3a6;
+
+  /* Base */
+  --lcdh-white: #ffffff;
+  --lcdh-black: #1c2010;
+
+  /* ── Semantic tokens ──────────────────────── */
+
+  /* Brand */
+  --lcdh-brand-forest: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-brand-moss: var(--lcdh-olive-500); /* #7e8d3c */
+  --lcdh-brand-sage: var(--lcdh-sage-200); /* #c6dfca */
+  --lcdh-brand-stone: var(--lcdh-stone-500); /* #807f7b */
+  --lcdh-brand-cream: var(--lcdh-cream-100); /* #fbf0da */
+
+  /* Text */
+  --lcdh-text-strong: var(--lcdh-olive-900); /* #2b3415 */
+  --lcdh-text-body: var(--lcdh-stone-700); /* #4b4a45 */
+  --lcdh-text-muted: var(--lcdh-stone-500); /* #807f7b */
+  --lcdh-text-on-dark: var(--lcdh-cream-50); /* #fffaf0 */
+  --lcdh-text-on-sage: var(--lcdh-olive-800); /* #3a461c */
+  --lcdh-text-link: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-text-link-hover: var(--lcdh-olive-500); /* #7e8d3c */
+
+  /* Surface */
+  --lcdh-surface-page: var(--lcdh-cream-100); /* #fbf0da */
+  --lcdh-surface-raised: var(--lcdh-cream-50); /* #fffaf0 */
+  --lcdh-surface-card: var(--lcdh-white); /* #ffffff */
+  --lcdh-surface-sage: var(--lcdh-sage-200); /* #c6dfca */
+  --lcdh-surface-sage-soft: var(--lcdh-sage-100); /* #e9f2ec */
+  --lcdh-surface-forest: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-surface-moss: var(--lcdh-olive-500); /* #7e8d3c */
+  --lcdh-surface-stone: var(--lcdh-stone-500); /* #807f7b */
+
+  /* Border */
+  --lcdh-border-cream: var(--lcdh-cream-200); /* #f1e3c4 */
+
+  /* Accent */
+  --lcdh-accent: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-accent-hover: var(--lcdh-olive-600); /* #647230 */
+  --lcdh-accent-press: var(--lcdh-olive-800); /* #3a461c */
+  --lcdh-accent-contrast: var(--lcdh-cream-50); /* #fffaf0 */
+
+  /* Status */
+  --lcdh-positive: #5b7d3a;
+  --lcdh-warning: #b8862f;
+  --lcdh-danger: #a6492f;
+  --lcdh-star: #c89a3c;
+}
+
+/* Tailwind v4 color utilities — generated from LCDH Figma variables.
+   Usage examples: bg-olive-700, text-sage-200, border-cream-200,
+   bg-brand-forest, bg-surface-page, text-positive            */
+@theme inline {
+  /* Primitive scales */
+  --color-olive-50: var(--lcdh-olive-50);
+  --color-olive-100: var(--lcdh-olive-100);
+  --color-olive-200: var(--lcdh-olive-200);
+  --color-olive-300: var(--lcdh-olive-300);
+  --color-olive-400: var(--lcdh-olive-400);
+  --color-olive-500: var(--lcdh-olive-500);
+  --color-olive-600: var(--lcdh-olive-600);
+  --color-olive-700: var(--lcdh-olive-700);
+  --color-olive-800: var(--lcdh-olive-800);
+  --color-olive-900: var(--lcdh-olive-900);
+
+  --color-sage-100: var(--lcdh-sage-100);
+  --color-sage-200: var(--lcdh-sage-200);
+  --color-sage-300: var(--lcdh-sage-300);
+  --color-sage-400: var(--lcdh-sage-400);
+
+  --color-stone-200: var(--lcdh-stone-200);
+  --color-stone-300: var(--lcdh-stone-300);
+  --color-stone-400: var(--lcdh-stone-400);
+  --color-stone-500: var(--lcdh-stone-500);
+  --color-stone-600: var(--lcdh-stone-600);
+  --color-stone-700: var(--lcdh-stone-700);
+  --color-stone-800: var(--lcdh-stone-800);
+
+  --color-cream-50: var(--lcdh-cream-50);
+  --color-cream-100: var(--lcdh-cream-100);
+  --color-cream-200: var(--lcdh-cream-200);
+  --color-cream-300: var(--lcdh-cream-300);
+
+  /* Brand */
+  --color-brand-forest: var(--lcdh-brand-forest);
+  --color-brand-moss: var(--lcdh-brand-moss);
+  --color-brand-sage: var(--lcdh-brand-sage);
+  --color-brand-stone: var(--lcdh-brand-stone);
+  --color-brand-cream: var(--lcdh-brand-cream);
+
+  /* Surface */
+  --color-surface-page: var(--lcdh-surface-page);
+  --color-surface-raised: var(--lcdh-surface-raised);
+  --color-surface-card: var(--lcdh-surface-card);
+  --color-surface-sage: var(--lcdh-surface-sage);
+  --color-surface-sage-soft: var(--lcdh-surface-sage-soft);
+  --color-surface-forest: var(--lcdh-surface-forest);
+  --color-surface-moss: var(--lcdh-surface-moss);
+  --color-surface-stone: var(--lcdh-surface-stone);
+
+  /* Status */
+  --color-positive: var(--lcdh-positive);
+  --color-warning: var(--lcdh-warning);
+  --color-danger: var(--lcdh-danger);
+  --color-star: var(--lcdh-star);
 }
