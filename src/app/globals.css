@@ -8,14 +8,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-mulish);
+  --font-display: var(--font-pt-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* shadcn/ui CSS variables — wired to LCDH design tokens */
@@ -219,4 +219,83 @@ body {
   --color-warning: var(--lcdh-warning);
   --color-danger: var(--lcdh-danger);
   --color-star: var(--lcdh-star);
+
+  /* Font sizes (with line-height where Figma defines it)
+     Usage: text-display-large, text-body-medium, etc.    */
+  --text-display-large: 4rem / 1.1; /* 64px */
+  --text-display-medium: 2.25rem / 1.1; /* 36px */
+  --text-eyebrow-large: 1.375rem; /* 22px — line-height AUTO */
+  --text-body-large: 1.125rem / 1.1; /* 18px */
+  --text-eyebrow-medium: 1.125rem; /* 18px — line-height AUTO */
+  --text-body-medium: 0.875rem / 1.1; /* 14px */
+  --text-eyebrow-small: 0.875rem; /* 14px — line-height AUTO */
+  --text-body-small: 0.625rem / 1.1; /* 10px */
+}
+
+/* ── LCDH composite text styles ──────────────────────────────────────
+   Combine font-family, size, weight, tracking, and transform in one class.
+   Prefix: text-style-* to avoid collision with Tailwind's text-* utilities.
+   ──────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-style-display-large {
+    font-family: var(--font-pt-serif);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .text-style-display-medium {
+    font-family: var(--font-pt-serif);
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .text-style-body-large {
+    font-family: var(--font-mulish);
+    font-size: 1.125rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .text-style-body-medium {
+    font-family: var(--font-mulish);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .text-style-body-small {
+    font-family: var(--font-mulish);
+    font-size: 0.625rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  /* Eyebrow: uppercase + wide tracking, no explicit line-height */
+  .text-style-eyebrow-large {
+    font-family: var(--font-mulish);
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .text-style-eyebrow-medium {
+    font-family: var(--font-mulish);
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .text-style-eyebrow-small {
+    font-family: var(--font-mulish);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 }

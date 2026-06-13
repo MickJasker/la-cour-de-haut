@@ -32,7 +32,7 @@ export function LoginForm() {
   return (
     <main className="min-h-screen flex items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-2xl font-semibold text-center">Admin login</h1>
+        <h1 className="text-style-display-medium text-center">Admin login</h1>
 
         <form
           onSubmit={(e) => {
