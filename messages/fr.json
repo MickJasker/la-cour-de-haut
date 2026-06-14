@@ -1,5 +1,8 @@
 {
   "sections": {
+    "header": {
+      "bookNow": "Réservez votre séjour maintenant"
+    },
     "hero": {
       "description": "Une introduction captivante du site web, avec une image visuellement frappante et un titre accrocheur qui attire immédiatement l'attention du visiteur.",
       "callToAction": "Réservez votre séjour maintenant"
