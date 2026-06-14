@@ -220,16 +220,21 @@ body {
   --color-danger: var(--lcdh-danger);
   --color-star: var(--lcdh-star);
 
-  /* Font sizes (with line-height where Figma defines it)
-     Usage: text-display-large, text-body-medium, etc.    */
-  --text-display-large: 4rem / 1.1; /* 64px */
-  --text-display-medium: 2.25rem / 1.1; /* 36px */
+  /* Font sizes — size and line-height as paired vars (Tailwind v4 convention).
+     Usage: text-display-large, text-body-medium, etc.                         */
+  --text-display-large: 4rem; /* 64px */
+  --text-display-large--line-height: 1.1;
+  --text-display-medium: 2.25rem; /* 36px */
+  --text-display-medium--line-height: 1.1;
+  --text-body-large: 1.125rem; /* 18px */
+  --text-body-large--line-height: 1.1;
+  --text-body-medium: 0.875rem; /* 14px */
+  --text-body-medium--line-height: 1.1;
+  --text-body-small: 0.625rem; /* 10px */
+  --text-body-small--line-height: 1.1;
   --text-eyebrow-large: 1.375rem; /* 22px — line-height AUTO */
-  --text-body-large: 1.125rem / 1.1; /* 18px */
   --text-eyebrow-medium: 1.125rem; /* 18px — line-height AUTO */
-  --text-body-medium: 0.875rem / 1.1; /* 14px */
   --text-eyebrow-small: 0.875rem; /* 14px — line-height AUTO */
-  --text-body-small: 0.625rem / 1.1; /* 10px */
 }
 
 /* ── LCDH composite text styles ──────────────────────────────────────
