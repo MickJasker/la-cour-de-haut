@@ -1,91 +1,54 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: var(--lcdh-surface-page);
+  --foreground: var(--lcdh-text-strong);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-mulish);
+  --font-display: var(--font-pt-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
 }
 
-/* shadcn/ui CSS variables — neutral palette, oklch format (Tailwind 4) */
+/* shadcn/ui CSS variables — wired to LCDH design tokens */
 :root {
   --radius: 0.5rem;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: var(--lcdh-surface-page);
+  --foreground: var(--lcdh-text-strong);
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card: var(--lcdh-surface-card);
+  --card-foreground: var(--lcdh-text-strong);
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
+  --popover: var(--lcdh-surface-raised);
+  --popover-foreground: var(--lcdh-text-strong);
 
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--lcdh-accent);
+  --primary-foreground: var(--lcdh-accent-contrast);
 
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
+  --secondary: var(--lcdh-sage-100);
+  --secondary-foreground: var(--lcdh-text-strong);
 
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted: var(--lcdh-cream-200);
+  --muted-foreground: var(--lcdh-text-muted);
 
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --accent: var(--lcdh-sage-100);
+  --accent-foreground: var(--lcdh-text-strong);
 
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --destructive: var(--lcdh-danger);
+  --destructive-foreground: var(--lcdh-cream-50);
 
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-}
-
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.985 0 0);
-
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.556 0 0);
+  --border: var(--lcdh-border-cream);
+  --input: var(--lcdh-border-cream);
+  --ring: var(--lcdh-accent);
 }
 
 /* Map shadcn CSS vars to Tailwind 4 color utilities */
@@ -110,4 +73,234 @@ body {
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius: var(--radius);
+}
+
+/* ═══════════════════════════════════════════════
+   LCDH Design Tokens — sourced from Figma
+   ═══════════════════════════════════════════════ */
+
+:root {
+  /* ── Primitive palette ────────────────────── */
+
+  /* Olive */
+  --lcdh-olive-50: oklch(0.9684 0.0159 114.53);
+  --lcdh-olive-100: oklch(0.9286 0.0386 115.17);
+  --lcdh-olive-200: oklch(0.8558 0.0673 117.07);
+  --lcdh-olive-300: oklch(0.7773 0.0939 117.89);
+  --lcdh-olive-400: oklch(0.7031 0.1092 118.97);
+  --lcdh-olive-500: oklch(0.6137 0.1077 118.48);
+  --lcdh-olive-600: oklch(0.5253 0.0922 119.69);
+  --lcdh-olive-700: oklch(0.4417 0.0811 122.54);
+  --lcdh-olive-800: oklch(0.3728 0.0656 122.87);
+  --lcdh-olive-900: oklch(0.3081 0.0514 122.83);
+
+  /* Sage */
+  --lcdh-sage-100: oklch(0.9527 0.0124 157.37);
+  --lcdh-sage-200: oklch(0.8794 0.039 150.08);
+  --lcdh-sage-300: oklch(0.8122 0.0591 150.4);
+  --lcdh-sage-400: oklch(0.7275 0.0766 150.46);
+
+  /* Stone */
+  --lcdh-stone-200: oklch(0.8763 0.0071 88.71);
+  --lcdh-stone-300: oklch(0.7856 0.0086 91.57);
+  --lcdh-stone-400: oklch(0.7065 0.0092 84.59);
+  --lcdh-stone-500: oklch(0.5961 0.006 95.26);
+  --lcdh-stone-600: oklch(0.5058 0.0093 99.1);
+  --lcdh-stone-700: oklch(0.4084 0.0082 97.59);
+  --lcdh-stone-800: oklch(0.321 0.0054 91.6);
+
+  /* Cream */
+  --lcdh-cream-50: oklch(0.9862 0.0141 84.59);
+  --lcdh-cream-100: oklch(0.958 0.0312 84.6);
+  --lcdh-cream-200: oklch(0.9191 0.0435 86.6);
+  --lcdh-cream-300: oklch(0.8714 0.0626 87.82);
+
+  /* Base */
+  --lcdh-white: oklch(1 0 0);
+  --lcdh-black: oklch(0.2343 0.0292 120.17);
+
+  /* ── Semantic tokens ──────────────────────── */
+
+  /* Brand */
+  --lcdh-brand-forest: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-brand-moss: var(--lcdh-olive-500); /* #7e8d3c */
+  --lcdh-brand-sage: var(--lcdh-sage-200); /* #c6dfca */
+  --lcdh-brand-stone: var(--lcdh-stone-500); /* #807f7b */
+  --lcdh-brand-cream: var(--lcdh-cream-100); /* #fbf0da */
+
+  /* Text */
+  --lcdh-text-strong: var(--lcdh-olive-900); /* #2b3415 */
+  --lcdh-text-body: var(--lcdh-stone-700); /* #4b4a45 */
+  --lcdh-text-muted: var(--lcdh-stone-500); /* #807f7b */
+  --lcdh-text-on-dark: var(--lcdh-cream-50); /* #fffaf0 */
+  --lcdh-text-on-sage: var(--lcdh-olive-800); /* #3a461c */
+  --lcdh-text-link: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-text-link-hover: var(--lcdh-olive-500); /* #7e8d3c */
+
+  /* Surface */
+  --lcdh-surface-page: var(--lcdh-cream-100); /* #fbf0da */
+  --lcdh-surface-raised: var(--lcdh-cream-50); /* #fffaf0 */
+  --lcdh-surface-card: var(--lcdh-white); /* #ffffff */
+  --lcdh-surface-sage: var(--lcdh-sage-200); /* #c6dfca */
+  --lcdh-surface-sage-soft: var(--lcdh-sage-100); /* #e9f2ec */
+  --lcdh-surface-forest: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-surface-moss: var(--lcdh-olive-500); /* #7e8d3c */
+  --lcdh-surface-stone: var(--lcdh-stone-500); /* #807f7b */
+
+  /* Border */
+  --lcdh-border-cream: var(--lcdh-cream-200); /* #f1e3c4 */
+
+  /* Accent */
+  --lcdh-accent: var(--lcdh-olive-700); /* #4b5a23 */
+  --lcdh-accent-hover: var(--lcdh-olive-600); /* #647230 */
+  --lcdh-accent-press: var(--lcdh-olive-800); /* #3a461c */
+  --lcdh-accent-contrast: var(--lcdh-cream-50); /* #fffaf0 */
+
+  /* Status */
+  --lcdh-positive: oklch(0.5477 0.1026 131.31);
+  --lcdh-warning: oklch(0.6539 0.1177 77.4);
+  --lcdh-danger: oklch(0.5215 0.1294 36.46);
+  --lcdh-star: oklch(0.7124 0.1222 82.1);
+}
+
+/* Tailwind v4 color utilities — generated from LCDH Figma variables.
+   Usage examples: bg-olive-700, text-sage-200, border-cream-200,
+   bg-brand-forest, bg-surface-page, text-positive            */
+@theme inline {
+  /* Primitive scales */
+  --color-olive-50: var(--lcdh-olive-50);
+  --color-olive-100: var(--lcdh-olive-100);
+  --color-olive-200: var(--lcdh-olive-200);
+  --color-olive-300: var(--lcdh-olive-300);
+  --color-olive-400: var(--lcdh-olive-400);
+  --color-olive-500: var(--lcdh-olive-500);
+  --color-olive-600: var(--lcdh-olive-600);
+  --color-olive-700: var(--lcdh-olive-700);
+  --color-olive-800: var(--lcdh-olive-800);
+  --color-olive-900: var(--lcdh-olive-900);
+
+  --color-sage-100: var(--lcdh-sage-100);
+  --color-sage-200: var(--lcdh-sage-200);
+  --color-sage-300: var(--lcdh-sage-300);
+  --color-sage-400: var(--lcdh-sage-400);
+
+  --color-stone-200: var(--lcdh-stone-200);
+  --color-stone-300: var(--lcdh-stone-300);
+  --color-stone-400: var(--lcdh-stone-400);
+  --color-stone-500: var(--lcdh-stone-500);
+  --color-stone-600: var(--lcdh-stone-600);
+  --color-stone-700: var(--lcdh-stone-700);
+  --color-stone-800: var(--lcdh-stone-800);
+
+  --color-cream-50: var(--lcdh-cream-50);
+  --color-cream-100: var(--lcdh-cream-100);
+  --color-cream-200: var(--lcdh-cream-200);
+  --color-cream-300: var(--lcdh-cream-300);
+
+  /* Brand */
+  --color-brand-forest: var(--lcdh-brand-forest);
+  --color-brand-moss: var(--lcdh-brand-moss);
+  --color-brand-sage: var(--lcdh-brand-sage);
+  --color-brand-stone: var(--lcdh-brand-stone);
+  --color-brand-cream: var(--lcdh-brand-cream);
+
+  /* Surface */
+  --color-surface-page: var(--lcdh-surface-page);
+  --color-surface-raised: var(--lcdh-surface-raised);
+  --color-surface-card: var(--lcdh-surface-card);
+  --color-surface-sage: var(--lcdh-surface-sage);
+  --color-surface-sage-soft: var(--lcdh-surface-sage-soft);
+  --color-surface-forest: var(--lcdh-surface-forest);
+  --color-surface-moss: var(--lcdh-surface-moss);
+  --color-surface-stone: var(--lcdh-surface-stone);
+
+  /* Status */
+  --color-positive: var(--lcdh-positive);
+  --color-warning: var(--lcdh-warning);
+  --color-danger: var(--lcdh-danger);
+  --color-star: var(--lcdh-star);
+
+  /* Font sizes — size and line-height as paired vars (Tailwind v4 convention).
+     Usage: text-display-large, text-body-medium, etc.                         */
+  --text-display-large: 4rem; /* 64px */
+  --text-display-large--line-height: 1.1;
+  --text-display-medium: 2.25rem; /* 36px */
+  --text-display-medium--line-height: 1.1;
+  --text-body-large: 1.125rem; /* 18px */
+  --text-body-large--line-height: 1.1;
+  --text-body-medium: 0.875rem; /* 14px */
+  --text-body-medium--line-height: 1.1;
+  --text-body-small: 0.625rem; /* 10px */
+  --text-body-small--line-height: 1.1;
+  --text-eyebrow-large: 1.375rem; /* 22px — line-height AUTO */
+  --text-eyebrow-medium: 1.125rem; /* 18px — line-height AUTO */
+  --text-eyebrow-small: 0.875rem; /* 14px — line-height AUTO */
+}
+
+/* ── LCDH composite text styles ──────────────────────────────────────
+   Combine font-family, size, weight, tracking, and transform in one class.
+   Prefix: text-style-* to avoid collision with Tailwind's text-* utilities.
+   ──────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .text-style-display-large {
+    font-family: var(--font-pt-serif);
+    font-size: 4rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .text-style-display-medium {
+    font-family: var(--font-pt-serif);
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
+  .text-style-body-large {
+    font-family: var(--font-mulish);
+    font-size: 1.125rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .text-style-body-medium {
+    font-family: var(--font-mulish);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  .text-style-body-small {
+    font-family: var(--font-mulish);
+    font-size: 0.625rem;
+    font-weight: 400;
+    line-height: 1.1;
+  }
+
+  /* Eyebrow: uppercase + wide tracking, no explicit line-height */
+  .text-style-eyebrow-large {
+    font-family: var(--font-mulish);
+    font-size: 1.375rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .text-style-eyebrow-medium {
+    font-family: var(--font-mulish);
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .text-style-eyebrow-small {
+    font-family: var(--font-mulish);
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
 }
