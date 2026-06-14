@@ -262,21 +262,18 @@ body {
     font-family: var(--font-mulish);
     font-size: 1.125rem;
     font-weight: 400;
-    line-height: 1.1;
   }
 
   .text-style-body-medium {
     font-family: var(--font-mulish);
     font-size: 0.875rem;
     font-weight: 400;
-    line-height: 1.1;
   }
 
   .text-style-body-small {
     font-family: var(--font-mulish);
     font-size: 0.625rem;
     font-weight: 400;
-    line-height: 1.1;
   }
 
   /* Eyebrow: uppercase + wide tracking, no explicit line-height */

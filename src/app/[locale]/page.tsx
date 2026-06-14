@@ -1,14 +1,9 @@
-interface Props {
-  params: Promise<{ locale: string }>;
-}
+import { Hero } from "@/components/sections/hero";
 
-export default async function HomePage({ params }: Props) {
-  const { locale } = await params;
-
+export default async function HomePage() {
   return (
     <main>
-      <h1>La Cour de Haut</h1>
-      <p>locale: {locale}</p>
+      <Hero />
     </main>
   );
 }
