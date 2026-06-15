@@ -58,7 +58,11 @@ export function Header() {
           ))}
         </div>
       </div>
-      <Button asChild className="w-full md:col-start-11 md:col-end-14" size="lg">
+      <Button
+        asChild
+        className="w-full md:col-start-11 md:col-end-14"
+        size="lg"
+      >
         <Link href={`/${locale}/book`}>{t("bookNow")}</Link>
       </Button>
     </header>

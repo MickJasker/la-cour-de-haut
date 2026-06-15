@@ -9,7 +9,7 @@ export function Logo({ className, ...props }: SVGAttributes<SVGElement>) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-label="Gîte La Cour de Haut"
-      role="textbox"
+      role="img"
       className={className}
       {...props}
     >

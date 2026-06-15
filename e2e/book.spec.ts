@@ -87,7 +87,10 @@ test.describe("booking dialog — locale variants", () => {
   for (const locale of ["nl", "en", "fr", "de"]) {
     test(`dialog opens correctly on /${locale}`, async ({ page }) => {
       await page.goto(`/${locale}`);
-      await page.getByRole("banner").getByRole("link", { name: /book|boek|réserv|buchen/i }).click();
+      await page
+        .getByRole("banner")
+        .getByRole("link", { name: /book|boek|réserv|buchen/i })
+        .click();
 
       await expect(page).toHaveURL(new RegExp(`\\/${locale}\\/book`));
       await expect(page.getByRole("dialog")).toBeVisible();
