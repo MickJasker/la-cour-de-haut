@@ -26,7 +26,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm exec next typegen
 
@@ -47,7 +47,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm lint
 
@@ -66,7 +66,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm format:check
 
@@ -85,7 +85,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm test
 
@@ -128,7 +128,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - run: pnpm build
 
@@ -147,7 +147,7 @@ jobs:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Create Neon E2E branch
         id: neon-e2e-branch

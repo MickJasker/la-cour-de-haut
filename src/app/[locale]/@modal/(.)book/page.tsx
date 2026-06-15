@@ -1,27 +1,20 @@
-"use client";
+import type { Metadata } from "next";
+import { getTranslations } from "next-intl/server";
+import { BookModalClient } from "./book-modal-client";
 
-import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { BookForm } from "@/components/sections/book-form";
-import { useTranslations } from "next-intl";
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "metadata.book" });
+  return {
+    title: t("title"),
+    description: t("description"),
+  };
+}
 
-export default function BookModal() {
-  const router = useRouter();
-  const t = useTranslations("sections.header");
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && router.back()}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("bookNow")}</DialogTitle>
-        </DialogHeader>
-        <BookForm />
-      </DialogContent>
-    </Dialog>
-  );
+export default function BookModalPage() {
+  return <BookModalClient />;
 }

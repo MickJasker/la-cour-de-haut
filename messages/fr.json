@@ -1,4 +1,14 @@
 {
+  "metadata": {
+    "home": {
+      "title": "La Cour de Haut",
+      "description": "Réservez votre séjour à La Cour de Haut — une escapade unique au cœur de la France."
+    },
+    "book": {
+      "title": "Réserver votre séjour",
+      "description": "Réservez votre séjour idéal à La Cour de Haut."
+    }
+  },
   "sections": {
     "header": {
       "bookNow": "Réservez votre séjour maintenant"
