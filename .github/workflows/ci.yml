@@ -28,6 +28,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm exec next typegen
+
       - run: pnpm tsc --noEmit --incremental false
 
   lint:
@@ -86,6 +88,29 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test
+
+  react-doctor:
+    name: React Doctor
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.34.1
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm exec react-doctor --yes --no-telemetry --json . | tee react-doctor.json
+
+      - run: node -e "const r=require('./react-doctor.json'); if(r.summary.errorCount>0) process.exit(1)"
 
   build:
     name: Build
