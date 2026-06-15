@@ -1,4 +1,14 @@
 {
+  "metadata": {
+    "home": {
+      "title": "La Cour de Haut",
+      "description": "Buchen Sie Ihren Aufenthalt in La Cour de Haut — eine einzigartige Auszeit im Herzen Frankreichs."
+    },
+    "book": {
+      "title": "Aufenthalt buchen",
+      "description": "Reservieren Sie Ihren perfekten Aufenthalt in La Cour de Haut."
+    }
+  },
   "sections": {
     "header": {
       "bookNow": "Jetzt Ihren Aufenthalt buchen"

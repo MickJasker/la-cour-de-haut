@@ -1,4 +1,14 @@
 {
+  "metadata": {
+    "home": {
+      "title": "La Cour de Haut",
+      "description": "Boek uw verblijf bij La Cour de Haut — een unieke plek in het hart van Frankrijk."
+    },
+    "book": {
+      "title": "Verblijf boeken",
+      "description": "Reserveer uw perfecte verblijf bij La Cour de Haut."
+    }
+  },
   "sections": {
     "header": {
       "bookNow": "Boek je verblijf nu"

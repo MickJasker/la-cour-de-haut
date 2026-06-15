@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
-import { getMessages } from "next-intl/server";
+import { getMessages, getTranslations } from "next-intl/server";
 import { routing } from "@/i18n/routing";
 import "../globals.css";
 
@@ -19,6 +20,22 @@ const ptSerif = PT_Serif({
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "metadata.home" });
+  return {
+    title: {
+      default: t("title"),
+      template: `%s · La Cour de Haut`,
+    },
+    description: t("description"),
+  };
 }
 
 interface Props {

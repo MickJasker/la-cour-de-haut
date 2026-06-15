@@ -1,4 +1,14 @@
 {
+  "metadata": {
+    "home": {
+      "title": "La Cour de Haut",
+      "description": "Book your stay at La Cour de Haut — a unique getaway in the heart of France."
+    },
+    "book": {
+      "title": "Book your stay",
+      "description": "Reserve your perfect stay at La Cour de Haut."
+    }
+  },
   "sections": {
     "header": {
       "bookNow": "Book your stay now"
