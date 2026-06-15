@@ -23,10 +23,11 @@ export function generateStaticParams() {
 
 interface Props {
   children: ReactNode;
+  modal: ReactNode;
   params: Promise<{ locale: string }>;
 }
 
-export default async function LocaleLayout({ children, params }: Props) {
+export default async function LocaleLayout({ children, modal, params }: Props) {
   const { locale } = await params;
   const messages = await getMessages();
 
@@ -38,6 +39,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           {children}
+          {modal}
         </NextIntlClientProvider>
       </body>
     </html>

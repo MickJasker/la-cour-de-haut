@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { Button } from "../ui/button";
+import { Link } from "@/i18n/navigation";
 import { Logo } from "../ui/logo";
 import heroImage from "./hero.jpg";
 import Image from "next/image";
@@ -27,8 +28,8 @@ export function Hero() {
           <Logo className="w-full h-auto" />
         </h1>
         <p className="text-style-body-large">{t("description")}</p>
-        <Button variant="secondary" size="lg" className="max-md:hidden">
-          {t("callToAction")}
+        <Button asChild variant="secondary" size="lg" className="max-md:hidden">
+          <Link href="/book">{t("callToAction")}</Link>
         </Button>
       </div>
     </div>
