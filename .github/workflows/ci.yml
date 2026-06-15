@@ -90,6 +90,8 @@ jobs:
   react-doctor:
     name: React Doctor
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v6
 
@@ -104,7 +106,7 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm dlx react-doctor --yes --no-telemetry --json . | tee react-doctor.json
+      - run: pnpm exec react-doctor --yes --no-telemetry --json . | tee react-doctor.json
 
       - run: node -e "const r=require('./react-doctor.json'); if(r.summary.errorCount>0) process.exit(1)"
 
