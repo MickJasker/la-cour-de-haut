@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { BookModalClient } from "./book-modal-client";
+import { getBookedDatesAction } from "../../book/action";
 
 export async function generateMetadata({
   params,
@@ -15,6 +16,7 @@ export async function generateMetadata({
   };
 }
 
-export default function BookModalPage() {
-  return <BookModalClient />;
+export default async function BookModalPage() {
+  const bookedDates = getBookedDatesAction();
+  return <BookModalClient bookedDates={bookedDates} />;
 }
