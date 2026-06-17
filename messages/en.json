@@ -17,5 +17,31 @@
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
       "callToAction": "Book your stay now"
     }
+  },
+  "booking": {
+    "form": {
+      "name": "First and last name",
+      "email": "Email address",
+      "phone": "Phone number",
+      "guestCount": "Number of guests",
+      "guestCountOption": "{count, plural, =0 {No guests} =1 {1 guest} other {# guests}}",
+      "stayDates": "Choose your stay dates",
+      "submit": "Book now",
+      "submitting": "Booking...",
+      "successMessage": "Thank you for your booking! We will contact you shortly.",
+      "errorMessage": "An error occurred while processing your booking. Please try again later or contact us by email or phone.",
+      "pricePerNight": "Price per night: <strong>{price}</strong>",
+      "totalPrice": "Total price: <strong>{pricePerNight}</strong> x {totalNights} nights = <strong>{totalPrice}</strong>",
+      "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment."
+    },
+    "fieldErrors": {
+      "required": "This field is required",
+      "email": "Please enter a valid email address",
+      "phone": "Please enter a valid phone number",
+      "dateRange": "The check-out date must be after the check-in date",
+      "guestCount": "Number of guests must be 1 or 2",
+      "minNights": "Select at least 2 dates for a minimum stay of 1 night"
+    },
+    "aboutAction": "About the Gîte"
   }
 }

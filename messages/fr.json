@@ -17,5 +17,31 @@
       "description": "Une introduction captivante du site web, avec une image visuellement frappante et un titre accrocheur qui attire immédiatement l'attention du visiteur.",
       "callToAction": "Réservez votre séjour maintenant"
     }
+  },
+  "booking": {
+    "form": {
+      "name": "Prénom et nom de famille",
+      "email": "Adresse e-mail",
+      "phone": "Numéro de téléphone",
+      "guestCount": "Nombre de personnes",
+      "guestCountOption": "{count, plural, =0 {Aucun invité} =1 {1 invité} other {# invités}}",
+      "stayDates": "Choisissez vos dates de séjour",
+      "submit": "Réserver maintenant",
+      "submitting": "Réservation en cours...",
+      "successMessage": "Merci pour votre réservation ! Nous vous contacterons prochainement.",
+      "errorMessage": "Une erreur s'est produite lors du traitement de votre réservation. Veuillez réessayer plus tard ou contactez-nous par e-mail ou par téléphone.",
+      "pricePerNight": "Prix par nuit : <strong>{price}</strong>",
+      "totalPrice": "Prix total : <strong>{pricePerNight}</strong> x {totalNights} nuits = <strong>{totalPrice}</strong>",
+      "disclaimer": "Après avoir soumis le formulaire de réservation, nous vous contacterons pour confirmer la disponibilité et fournir plus de détails et les instructions de paiement. Votre réservation ne sera définitive qu'après notre confirmation et la réception du paiement."
+    },
+    "fieldErrors": {
+      "required": "Ce champ est obligatoire",
+      "email": "Veuillez entrer une adresse e-mail valide",
+      "phone": "Veuillez entrer un numéro de téléphone valide",
+      "dateRange": "La date de départ doit être postérieure à la date d'arrivée",
+      "guestCount": "Le nombre de personnes doit être 1 ou 2",
+      "minNights": "Sélectionnez au moins 2 dates pour un séjour minimum de 1 nuit"
+    },
+    "aboutAction": "À propos de la Gîte"
   }
 }
