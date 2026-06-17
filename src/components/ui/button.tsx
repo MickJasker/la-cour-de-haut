@@ -17,6 +17,7 @@ const buttonVariants = cva(
           "bg-brand-forest text-cream-50 hover:bg-olive-600 active:bg-olive-800",
         secondary:
           "bg-brand-sage text-olive-800 hover:bg-sage-300 active:bg-sage-400",
+        ghost: "bg-transparent hover:bg-accent active:bg-accent",
       },
       size: {
         default: "h-9 px-6",
