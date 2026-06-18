@@ -30,7 +30,7 @@ export function BookModalClient({
         </DialogHeader>
         <Suspense
           fallback={
-            <div className="h-200 grid place-content-center">
+            <div className="h-96 grid place-content-center">
               <LoaderCircle className="animate-spin size-30 stroke-1 text-accent-foreground" />
             </div>
           }

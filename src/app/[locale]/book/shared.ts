@@ -1,5 +1,5 @@
 import { formOptions } from "@tanstack/react-form-nextjs";
-import z from "../../../../node_modules/zod/v4/classic/external.cjs";
+import { z } from "zod";
 
 export const formOpts = formOptions({
   defaultValues: {
@@ -17,7 +17,7 @@ export function createBookingFormSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().min(2, t("fieldErrors.required")),
     email: z.email(t("fieldErrors.email")),
-    phone: z.string().min(1, t("fieldErrors.phone")),
+    phone: z.string(),
     guestCount: z.union([z.literal("1"), z.literal("2")]),
     stayDates: z
       .object({

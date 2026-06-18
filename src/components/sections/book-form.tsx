@@ -19,7 +19,7 @@ import {
 } from "../ui/field";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useId } from "react";
-import { addDays, addMonths } from "date-fns";
+import { addDays, addMonths, format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { useFormatter, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
@@ -215,8 +215,10 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
                     }}
                     onSelect={(range) => {
                       field.handleChange({
-                        from: range?.from ? range.from.toISOString() : "",
-                        to: range?.to ? range.to.toISOString() : "",
+                        from: range?.from
+                          ? format(range.from, "yyyy-MM-dd")
+                          : "",
+                        to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
                       });
                     }}
                   />
@@ -242,7 +244,6 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
 
             <form.Subscribe>
               {(formState) => {
-                console.log("formState.values.stayDates", formState);
                 const totalNights =
                   formState.values.stayDates.from &&
                   formState.values.stayDates.to

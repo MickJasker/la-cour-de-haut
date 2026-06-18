@@ -3,7 +3,7 @@ import { getTranslations } from "next-intl/server";
 import { BookForm } from "@/components/sections/book-form";
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
-import Link from "next/dist/client/link";
+import { Link } from "@/i18n/navigation";
 import { getBookedDatesAction } from "./action";
 
 export async function generateMetadata({

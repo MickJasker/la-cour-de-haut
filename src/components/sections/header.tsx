@@ -7,7 +7,6 @@ import { ComponentProps, ReactNode, useOptimistic, useTransition } from "react";
 const LOCALES = ["fr", "en", "nl", "de"] as const;
 
 export function Header({ action }: { action: ReactNode }) {
-  // const t = useTranslations("sections.header");
   const { locale } = useParams<{ locale: string }>();
   const [, startTransition] = useTransition();
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
