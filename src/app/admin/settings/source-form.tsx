@@ -78,9 +78,9 @@ export function SourceForm(props: Props) {
           <form.Field name="name">
             {(field) => (
               <Field>
-                <Label htmlFor="source-name">Name</Label>
+                <Label htmlFor={props.mode === "edit" ? `source-name-${props.sourceId}` : "source-name-add"}>Name</Label>
                 <Input
-                  id="source-name"
+                  id={props.mode === "edit" ? `source-name-${props.sourceId}` : "source-name-add"}
                   name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -97,9 +97,9 @@ export function SourceForm(props: Props) {
           <form.Field name="url">
             {(field) => (
               <Field>
-                <Label htmlFor="source-url">iCal URL</Label>
+                <Label htmlFor={props.mode === "edit" ? `source-url-${props.sourceId}` : "source-url-add"}>iCal URL</Label>
                 <Input
-                  id="source-url"
+                  id={props.mode === "edit" ? `source-url-${props.sourceId}` : "source-url-add"}
                   name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -125,13 +125,25 @@ export function SourceForm(props: Props) {
                 />
                 <div className="flex items-center gap-2">
                   <Checkbox
-                    id="source-enabled"
+                    id={
+                      props.mode === "edit"
+                        ? `source-enabled-${props.sourceId}`
+                        : "source-enabled-add"
+                    }
                     checked={field.state.value}
                     onCheckedChange={(checked) =>
                       field.handleChange(checked === true)
                     }
                   />
-                  <Label htmlFor="source-enabled">Enabled</Label>
+                  <Label
+                    htmlFor={
+                      props.mode === "edit"
+                        ? `source-enabled-${props.sourceId}`
+                        : "source-enabled-add"
+                    }
+                  >
+                    Enabled
+                  </Label>
                 </div>
                 <FieldError errors={field.state.meta.errors} />
               </Field>

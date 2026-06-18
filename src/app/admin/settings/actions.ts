@@ -65,7 +65,8 @@ export async function updateSourceAction(
       .select({ url: icalSource.url })
       .from(icalSource)
       .where(eq(icalSource.id, id));
-    const urlChanged = existing?.url !== data.url;
+    if (!existing) throw new Error("iCal source not found");
+    const urlChanged = existing.url !== data.url;
     await db
       .update(icalSource)
       .set({

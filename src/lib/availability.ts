@@ -9,7 +9,7 @@ import { eq, or } from "drizzle-orm";
 export type { BusyInterval };
 export { expandInterval } from "./availability-utils";
 
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+const REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 const busyIntervalSchema = z.array(
   z.object({ start: z.string(), end: z.string() }),
@@ -18,17 +18,14 @@ const busyIntervalSchema = z.array(
 async function refreshSource(
   source: typeof icalSource.$inferSelect,
 ): Promise<BusyInterval[]> {
-  const response = await fetch(source.url);
+  const response = await fetch(source.url, { cache: "no-store" });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const text = await response.text();
   const data = ical.sync.parseICS(text);
 
-  const toDateString = (d: Date, isAllDay: boolean): string => {
-    // For all-day events, read UTC components to avoid timezone-induced off-by-one shifts.
-    if (isAllDay) {
-      return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-    }
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const toDateString = (d: Date): string => {
+    // Normalize to a UTC calendar date string to avoid server-timezone/DST shifts.
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
   };
 
   const intervals: BusyInterval[] = [];
@@ -38,11 +35,10 @@ async function refreshSource(
     if (event.status === "CANCELLED") continue;
     if (!event.start || !event.end) continue;
 
-    const isAllDay = (event.start as { datetype?: string }).datetype === "date";
     intervals.push({
-      start: toDateString(event.start, isAllDay),
+      start: toDateString(event.start),
       // DTEND is exclusive per RFC 5545; stored as-is (callers expand [start, end))
-      end: toDateString(event.end, isAllDay),
+      end: toDateString(event.end),
     });
   }
 
