@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  serverExternalPackages: ["better-auth"],
+  serverExternalPackages: ["better-auth", "node-ical"],
   turbopack: {
     // better-auth bundles kysely-adapter SQLite dialects that reference internal
     // kysely exports moved to kysely/migration in 0.29.x. We use drizzleAdapter
