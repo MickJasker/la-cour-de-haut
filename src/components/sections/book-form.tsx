@@ -152,9 +152,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
             <form.Field name="guestCount">
               {(field) => (
                 <Field>
-                  <FieldLabel htmlFor="guestCount">
-                    {t("form.guestCount")}
-                  </FieldLabel>
+                  <FieldLabel>{t("form.guestCount")}</FieldLabel>
                   <RadioGroup
                     name={field.name}
                     value={field.state.value}
@@ -184,6 +182,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
             <form.Field name="stayDates">
               {(field) => (
                 <Field>
+                  <FieldLabel>{t("form.stayDates")}</FieldLabel>
                   <input
                     type="hidden"
                     name="stayDates.from"
@@ -200,17 +199,17 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
                     startMonth={addDays(new Date(), 1)}
                     endMonth={addMonths(new Date(), 12)}
                     disabled={[
-                      booked.map((date) => new Date(date)),
+                      booked.map((date) => new Date(date + "T00:00:00")),
                       ...Array.from({ length: 31 }, (_, i) =>
                         addDays(new Date(), -i),
                       ),
                     ]}
                     selected={{
                       from: field.state.value?.from
-                        ? new Date(field.state.value?.from)
+                        ? new Date(field.state.value.from + "T00:00:00")
                         : undefined,
                       to: field.state.value?.to
-                        ? new Date(field.state.value?.to)
+                        ? new Date(field.state.value.to + "T00:00:00")
                         : undefined,
                     }}
                     onSelect={(range) => {
@@ -248,8 +247,12 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
                   formState.values.stayDates.from &&
                   formState.values.stayDates.to
                     ? Math.ceil(
-                        (new Date(formState.values.stayDates.to).getTime() -
-                          new Date(formState.values.stayDates.from).getTime()) /
+                        (new Date(
+                          formState.values.stayDates.to + "T00:00:00",
+                        ).getTime() -
+                          new Date(
+                            formState.values.stayDates.from + "T00:00:00",
+                          ).getTime()) /
                           (1000 * 60 * 60 * 24),
                       ) || 1
                     : 0;

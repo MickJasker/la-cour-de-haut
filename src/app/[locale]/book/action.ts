@@ -69,11 +69,13 @@ export async function getBookedDatesAction(): Promise<string[]> {
   // TODO: merge data from ical feed if available
 
   return bookings.flatMap((booking) => {
-    const start = new Date(booking.startDate);
-    const end = new Date(booking.endDate);
+    const start = new Date(booking.startDate + "T00:00:00");
+    const end = new Date(booking.endDate + "T00:00:00");
     const dates: string[] = [];
     for (let date = start; date < end; date.setDate(date.getDate() + 1)) {
-      dates.push(date.toISOString().split("T")[0]);
+      dates.push(
+        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
+      );
     }
     return dates;
   });

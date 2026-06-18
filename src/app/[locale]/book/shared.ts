@@ -26,8 +26,8 @@ export function createBookingFormSchema(t: (key: string) => string) {
       })
       .refine(
         ({ from, to }) => {
-          const fromDate = new Date(from);
-          const toDate = new Date(to);
+          const fromDate = new Date(from + "T00:00:00");
+          const toDate = new Date(to + "T00:00:00");
 
           // Ensure that the selected dates are not in the past
           const today = new Date();
@@ -42,7 +42,8 @@ export function createBookingFormSchema(t: (key: string) => string) {
       .refine(
         ({ from, to }) => {
           return (
-            new Date(to).getTime() - new Date(from).getTime() >=
+            new Date(to + "T00:00:00").getTime() -
+              new Date(from + "T00:00:00").getTime() >=
             1000 * 60 * 60 * 24
           );
         },
