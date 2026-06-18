@@ -84,6 +84,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
       </div>
       <form
         action={formAction}
+        noValidate
         className={cn("w-full max-w-2xl space-y-6", {
           invisible: isSuccessful,
         })}
