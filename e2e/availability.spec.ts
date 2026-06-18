@@ -1,9 +1,52 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import {
+  blockedDates,
+  blockedMonth,
+  checkoutDate,
+} from "./availability-fixture";
 
 // The global setup seeds an iCal source with cachedIntervals covering
-// 2027-07-10 → 2027-07-14 (end is exclusive). These dates must appear
+// a dynamic 4-night blocked interval (end is exclusive). These dates must appear
 // as disabled in the booking calendar.
-const BLOCKED_DATES = ["2027-07-10", "2027-07-11", "2027-07-12", "2027-07-13"];
+
+const TARGET_YEAR = blockedMonth.year;
+const TARGET_MONTH_INDEX = blockedMonth.monthIndex;
+
+function getMonthDistanceToTarget(): number {
+  const now = new Date();
+  return (
+    (TARGET_YEAR - now.getFullYear()) * 12 +
+    (TARGET_MONTH_INDEX - now.getMonth())
+  );
+}
+
+async function goToTargetMonth(page: Page) {
+  const nextButton = page.locator(".rdp-button_next");
+  const monthsToAdvance = getMonthDistanceToTarget();
+  expect(monthsToAdvance).toBeGreaterThanOrEqual(0);
+
+  for (let i = 0; i < monthsToAdvance; i++) {
+    await nextButton.click();
+  }
+
+  const sampleDate = blockedDates[0]!;
+
+  // Ensure we're on the target month by checking a known in-month date exists.
+  await expect(dayButtonForDate(page, sampleDate)).toBeVisible();
+}
+
+function toDataDay(dateString: string): string {
+  const [year, month, day] = dateString
+    .split("-")
+    .map((part) => parseInt(part, 10));
+  return `${day}-${month}-${year}`;
+}
+
+function dayButtonForDate(page: Page, dateString: string) {
+  return page
+    .getByRole("grid")
+    .locator(`button[data-day='${toDataDay(dateString)}']`);
+}
 
 test.describe("availability — iCal source busy dates block the calendar", () => {
   test.beforeEach(async ({ page }) => {
@@ -12,41 +55,17 @@ test.describe("availability — iCal source busy dates block the calendar", () =
   });
 
   test("navigates to the month containing blocked dates", async ({ page }) => {
-    // Navigate forward through months until July 2027 is visible
-    const targetLabel = "July 2027";
-    let attempts = 0;
-    while (attempts < 24) {
-      const heading = page
-        .getByRole("grid")
-        .locator("..")
-        .getByText(targetLabel);
-      if (await heading.isVisible()) break;
-      await page.getByRole("button", { name: /next month/i }).click();
-      attempts++;
-    }
-    await expect(
-      page.getByRole("grid").locator("..").getByText(targetLabel),
-    ).toBeVisible();
+    await goToTargetMonth(page);
+
+    await expect(dayButtonForDate(page, blockedDates[0]!)).toBeVisible();
+    await expect(dayButtonForDate(page, checkoutDate)).toBeVisible();
   });
 
   test("blocked iCal dates are disabled in the calendar", async ({ page }) => {
-    // Navigate to July 2027
-    let attempts = 0;
-    while (attempts < 24) {
-      const heading = page
-        .getByRole("grid")
-        .locator("..")
-        .getByText("July 2027");
-      if (await heading.isVisible()) break;
-      await page.getByRole("button", { name: /next month/i }).click();
-      attempts++;
-    }
+    await goToTargetMonth(page);
 
-    for (const date of BLOCKED_DATES) {
-      const [, , day] = date.split("-");
-      const dayButton = page
-        .getByRole("grid")
-        .getByRole("button", { name: new RegExp(`^${parseInt(day)}$`) });
+    for (const date of blockedDates) {
+      const dayButton = dayButtonForDate(page, date);
       await expect(dayButton).toBeDisabled();
     }
   });
@@ -54,22 +73,10 @@ test.describe("availability — iCal source busy dates block the calendar", () =
   test("checkout day (end of blocked range) is not disabled", async ({
     page,
   }) => {
-    // Navigate to July 2027
-    let attempts = 0;
-    while (attempts < 24) {
-      const heading = page
-        .getByRole("grid")
-        .locator("..")
-        .getByText("July 2027");
-      if (await heading.isVisible()) break;
-      await page.getByRole("button", { name: /next month/i }).click();
-      attempts++;
-    }
+    await goToTargetMonth(page);
 
-    // 2027-07-15 is the DTEND (exclusive) — it should be available
-    const checkoutButton = page
-      .getByRole("grid")
-      .getByRole("button", { name: /^15$/ });
+    // The checkout day equals DTEND (exclusive) and should remain available.
+    const checkoutButton = dayButtonForDate(page, checkoutDate);
     await expect(checkoutButton).not.toBeDisabled();
   });
 });

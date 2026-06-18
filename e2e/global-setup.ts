@@ -1,5 +1,6 @@
 import { spawnSync } from "child_process";
 import { neon } from "@neondatabase/serverless";
+import { blockedRange } from "./availability-fixture";
 
 export default async function globalSetup() {
   const dbUrl = process.env.DATABASE_URL;
@@ -25,7 +26,7 @@ export default async function globalSetup() {
   if (seed.status !== 0) throw new Error("pnpm seed-owner failed");
 
   // Seed a test iCal source with pre-cached intervals so no network fetch is
-  // needed during tests. Dates are fixed far in the future to avoid flakiness.
+  // needed during tests. Dates are dynamic to stay within the booking window.
   await sql`
     INSERT INTO ical_source (id, name, url, enabled, cached_intervals, last_synced_at, created_at, updated_at)
     VALUES (
@@ -33,7 +34,7 @@ export default async function globalSetup() {
       'Test Source',
       'https://example.com/test.ics',
       true,
-      '[{"start":"2027-07-10","end":"2027-07-15"}]',
+      ${JSON.stringify([{ start: blockedRange.start, end: blockedRange.endExclusive }])}::jsonb,
       now(),
       now(),
       now()
