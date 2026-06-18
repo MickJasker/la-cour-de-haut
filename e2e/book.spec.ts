@@ -10,8 +10,10 @@ test.describe("booking dialog — intercepting route", () => {
   }) => {
     await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
 
-    await expect(page).toHaveURL(/\/nl\/book/);
+    // Wait for the dialog first — navigation + route compilation can take a moment
+    // in dev mode. Once the dialog is visible the URL has already updated.
     await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page).toHaveURL(/\/nl\/book/);
     // h1 uses display:contents so it has no box — toBeAttached confirms the home
     // page is still rendered underneath (intercepted, not replaced)
     await expect(page.locator("h1")).toBeAttached();
