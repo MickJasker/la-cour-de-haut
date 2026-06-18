@@ -31,4 +31,6 @@ await db
   ])
   .onConflictDoNothing();
 
-console.log("Seeded 2 iCal sources (disabled — set real URLs before enabling).");
+console.log(
+  "Seeded 2 iCal sources (disabled — set real URLs before enabling).",
+);
