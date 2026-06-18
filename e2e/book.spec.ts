@@ -8,6 +8,11 @@ test.describe("booking dialog — intercepting route", () => {
   test("clicking 'Book now' in the header opens the dialog without leaving the page", async ({
     page,
   }) => {
+    // First navigation to the intercepting route triggers lazy compilation in dev
+    // mode, which can exceed the default 5 s expect timeout on CI. test.slow()
+    // triples all assertion timeouts for this test only.
+    test.slow();
+
     await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
 
     // Wait for the dialog first — navigation + route compilation can take a moment
