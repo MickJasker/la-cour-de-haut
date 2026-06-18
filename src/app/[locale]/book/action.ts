@@ -9,6 +9,8 @@ import { createBookingFormSchema } from "./shared";
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
+import { getBusyIntervals } from "@/lib/availability";
+import { expandInterval } from "@/lib/availability-utils";
 
 const serverValidate = createServerValidate({
   ...formOpts,
@@ -57,26 +59,6 @@ export async function submitBookingAction(
 }
 
 export async function getBookedDatesAction(): Promise<string[]> {
-  const db = getDb();
-  const bookings = await db.query.bookingRequest.findMany({
-    where: (bookingRequest, { eq, or }) =>
-      or(
-        eq(bookingRequest.status, "pending"),
-        eq(bookingRequest.status, "confirmed"),
-      ),
-  });
-
-  // TODO: merge data from ical feed if available
-
-  return bookings.flatMap((booking) => {
-    const start = new Date(booking.startDate + "T00:00:00");
-    const end = new Date(booking.endDate + "T00:00:00");
-    const dates: string[] = [];
-    for (let date = start; date < end; date.setDate(date.getDate() + 1)) {
-      dates.push(
-        `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
-      );
-    }
-    return dates;
-  });
+  const intervals = await getBusyIntervals();
+  return [...new Set(intervals.flatMap(expandInterval))];
 }
