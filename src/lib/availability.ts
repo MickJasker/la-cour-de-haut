@@ -9,7 +9,7 @@ import { eq, or } from "drizzle-orm";
 export type { BusyInterval };
 export { expandInterval } from "./availability-utils";
 
-const REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 const busyIntervalSchema = z.array(
   z.object({ start: z.string(), end: z.string() }),
