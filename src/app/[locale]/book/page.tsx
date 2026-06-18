@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { BookForm } from "@/components/sections/book-form";
 import { Header } from "@/components/sections/header";
+import { Button } from "@/components/ui/button";
+import { Link } from "@/i18n/navigation";
+import { getBookedDatesAction } from "./action";
 
 export async function generateMetadata({
   params,
@@ -16,12 +19,33 @@ export async function generateMetadata({
   };
 }
 
-export default function BookPage() {
+export default async function BookPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const t = await getTranslations({
+    locale: (await params).locale,
+    namespace: "booking",
+  });
+  const bookedDates = getBookedDatesAction();
+
   return (
     <>
-      <Header />
-      <main className="flex flex-1 items-center justify-center p-6">
-        <BookForm />
+      <Header
+        action={
+          <Button
+            asChild
+            className="w-full md:col-start-11 md:col-end-14"
+            size="lg"
+          >
+            <Link href={`/`}>{t("aboutAction")}</Link>
+          </Button>
+        }
+      />
+      <main className="flex flex-col flex-1 items-center justify-center p-6">
+        <BookForm bookedDates={bookedDates} />
+        <div className="h-22" />
       </main>
     </>
   );

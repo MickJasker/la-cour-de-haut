@@ -1,15 +1,12 @@
 "use client";
 
-import { useTranslations } from "next-intl";
-import { Button } from "../ui/button";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ComponentProps, useOptimistic, useTransition } from "react";
+import { ComponentProps, ReactNode, useOptimistic, useTransition } from "react";
 
 const LOCALES = ["fr", "en", "nl", "de"] as const;
 
-export function Header() {
-  const t = useTranslations("sections.header");
+export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
   const [, startTransition] = useTransition();
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
@@ -58,13 +55,7 @@ export function Header() {
           ))}
         </div>
       </div>
-      <Button
-        asChild
-        className="w-full md:col-start-11 md:col-end-14"
-        size="lg"
-      >
-        <Link href={`/${locale}/book`}>{t("bookNow")}</Link>
-      </Button>
+      {action}
     </header>
   );
 }

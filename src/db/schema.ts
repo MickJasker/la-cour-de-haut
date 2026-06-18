@@ -1,5 +1,14 @@
 import { relations } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  timestamp,
+  date,
+  boolean,
+  index,
+  pgEnum,
+  integer,
+} from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -101,5 +110,26 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
-// Domain tables (booking_request, poi, review, content_block, setting, etc.)
+export const bookingStatus = pgEnum("booking_status", [
+  "pending",
+  "confirmed",
+  "rejected",
+  "cancelled",
+  "completed",
+]);
+
+export const bookingRequest = pgTable("booking_request", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  guestCount: integer("guest_count").notNull().default(1),
+  phone: text("phone"),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  message: text("message"),
+  status: bookingStatus("status").default("pending").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Domain tables (poi, review, content_block, setting, etc.)
 // are added here alongside their respective feature issues.

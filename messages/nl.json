@@ -17,5 +17,31 @@
       "description": "Een boeiende introductie op de website, met een visueel opvallend beeld en een pakkende kop die direct de aandacht van de bezoeker trekt.",
       "callToAction": "Boek je verblijf nu"
     }
+  },
+  "booking": {
+    "form": {
+      "name": "Voor- en achternaam",
+      "email": "E-mailadres",
+      "phone": "Telefoonnummer",
+      "guestCount": "Aantal gasten",
+      "guestCountOption": "{count, plural, =0 {Geen gasten} =1 {1 gast} other {# gasten}}",
+      "stayDates": "Kies uw verblijfsdata",
+      "submit": "Boek nu",
+      "submitting": "Bezig met boeken...",
+      "successMessage": "Bedankt voor uw boeking! We nemen binnenkort contact met u op.",
+      "errorMessage": "Er is een fout opgetreden bij het verwerken van uw boeking. Probeer het later opnieuw of neem contact met ons op via e-mail of telefoon.",
+      "pricePerNight": "Prijs per nacht: <strong>{price}</strong>",
+      "totalPrice": "Totale prijs: <strong>{pricePerNight}</strong> x {totalNights} nachten = <strong>{totalPrice}</strong>",
+      "disclaimer": "Na het indienen van het boekingsformulier nemen we contact met u op om de beschikbaarheid te bevestigen en verdere details en betalingsinstructies te verstrekken. Uw boeking is pas definitief na onze bevestiging en ontvangst van betaling."
+    },
+    "fieldErrors": {
+      "required": "Dit veld is verplicht",
+      "email": "Voer een geldig e-mailadres in",
+      "phone": "Voer een geldig telefoonnummer in",
+      "dateRange": "De uitcheckdatum moet na de incheckdatum liggen",
+      "guestCount": "Aantal gasten moet 1 of 2 zijn",
+      "minNights": "Selecteer minimaal 2 data voor een minimumverblijf van 1 nacht"
+    },
+    "aboutAction": "Over de Gîte"
   }
 }
