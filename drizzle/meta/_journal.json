@@ -29,6 +29,13 @@
       "when": 1781633637995,
       "tag": "0003_tense_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781797538139,
+      "tag": "0004_skinny_rictor",
+      "breakpoints": true
     }
   ]
 }
