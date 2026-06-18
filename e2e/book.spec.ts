@@ -8,15 +8,10 @@ test.describe("booking dialog — intercepting route", () => {
   test("clicking 'Book now' in the header opens the dialog without leaving the page", async ({
     page,
   }) => {
-    // First navigation to the intercepting route triggers lazy compilation in dev
-    // mode, which can exceed the default 5 s expect timeout on CI. test.slow()
-    // triples all assertion timeouts for this test only.
-    test.slow();
-
     await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
 
-    // Wait for the dialog first — navigation + route compilation can take a moment
-    // in dev mode. Once the dialog is visible the URL has already updated.
+    // The intercepting route is pre-compiled by warmup.setup.ts, so the dialog
+    // appears promptly. Once it's visible the URL has already updated.
     await expect(page.getByRole("dialog")).toBeVisible();
     await expect(page).toHaveURL(/\/nl\/book/);
     // h1 uses display:contents so it has no box — toBeAttached confirms the home
