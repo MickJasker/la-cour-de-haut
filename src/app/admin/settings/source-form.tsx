@@ -78,9 +78,21 @@ export function SourceForm(props: Props) {
           <form.Field name="name">
             {(field) => (
               <Field>
-                <Label htmlFor={props.mode === "edit" ? `source-name-${props.sourceId}` : "source-name-add"}>Name</Label>
+                <Label
+                  htmlFor={
+                    props.mode === "edit"
+                      ? `source-name-${props.sourceId}`
+                      : "source-name-add"
+                  }
+                >
+                  Name
+                </Label>
                 <Input
-                  id={props.mode === "edit" ? `source-name-${props.sourceId}` : "source-name-add"}
+                  id={
+                    props.mode === "edit"
+                      ? `source-name-${props.sourceId}`
+                      : "source-name-add"
+                  }
                   name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
@@ -97,9 +109,21 @@ export function SourceForm(props: Props) {
           <form.Field name="url">
             {(field) => (
               <Field>
-                <Label htmlFor={props.mode === "edit" ? `source-url-${props.sourceId}` : "source-url-add"}>iCal URL</Label>
+                <Label
+                  htmlFor={
+                    props.mode === "edit"
+                      ? `source-url-${props.sourceId}`
+                      : "source-url-add"
+                  }
+                >
+                  iCal URL
+                </Label>
                 <Input
-                  id={props.mode === "edit" ? `source-url-${props.sourceId}` : "source-url-add"}
+                  id={
+                    props.mode === "edit"
+                      ? `source-url-${props.sourceId}`
+                      : "source-url-add"
+                  }
                   name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
