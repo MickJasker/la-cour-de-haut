@@ -6,7 +6,7 @@ import {
   useForm,
   useTransform,
 } from "@tanstack/react-form-nextjs";
-import { use, useActionState } from "react";
+import { use, useActionState, useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -25,6 +25,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import {
   submitBookingAction,
   type BookingActionState,
@@ -38,6 +39,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
   const t = useTranslations("booking");
 
   const booked = use(bookedDates);
+  const [turnstileToken, setTurnstileToken] = useState("");
 
   const [state, formAction, isPending] = useActionState<
     BookingActionState,
@@ -283,6 +285,37 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
           </div>
 
           <FieldSet>
+            {/* Honeypot: off-screen, hidden from assistive tech and keyboard nav */}
+            <div
+              aria-hidden="true"
+              style={{ position: "absolute", left: "-9999px", top: "auto" }}
+            >
+              <input
+                type="text"
+                name="website"
+                tabIndex={-1}
+                autoComplete="off"
+              />
+            </div>
+
+            <Turnstile
+              siteKey={
+                process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
+              }
+              options={{ size: "invisible", execution: "render" }}
+              onSuccess={setTurnstileToken}
+              onExpire={() => setTurnstileToken("")}
+            />
+            <input
+              type="hidden"
+              name="cf-turnstile-response"
+              value={turnstileToken}
+            />
+
+            {state.formError && (
+              <p className="text-sm text-destructive">{state.formError}</p>
+            )}
+
             <Button type="submit" disabled={isPending} size="lg">
               {isPending ? t("form.submitting") : t("form.submit")}
             </Button>
