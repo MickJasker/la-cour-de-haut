@@ -2,11 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "@tanstack/react-form-nextjs";
+import { revalidateLogic, useForm } from "@tanstack/react-form-nextjs";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+} from "@/components/ui/field";
+import { z } from "zod";
+
+const schema = z.object({
+  email: z.email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export function LoginForm() {
   const router = useRouter();
@@ -14,6 +26,13 @@ export function LoginForm() {
 
   const form = useForm({
     defaultValues: { email: "", password: "" },
+    validators: {
+      onDynamic: schema,
+    },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
     onSubmit: async ({ value }) => {
       setError(null);
       const { error } = await authClient.signIn.email({
@@ -39,55 +58,68 @@ export function LoginForm() {
             e.preventDefault();
             form.handleSubmit();
           }}
-          className="space-y-4"
+          noValidate
         >
-          <form.Field name="email">
-            {(field) => (
-              <div className="space-y-1">
-                <Label htmlFor={field.name}>Email</Label>
-                <Input
-                  id={field.name}
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-              </div>
-            )}
-          </form.Field>
+          <FieldGroup>
+            <FieldSet>
+              <form.Field name="email">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                    <Input
+                      id={field.name}
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
 
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-1">
-                <Label htmlFor={field.name}>Password</Label>
-                <Input
-                  id={field.name}
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-              </div>
-            )}
-          </form.Field>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
 
-          {error && (
-            <p role="alert" className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
+              <form.Field name="password">
+                {(field) => (
+                  <Field>
+                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                    <Input
+                      id={field.name}
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
 
-          <form.Subscribe selector={(s) => s.isSubmitting}>
-            {(isSubmitting) => (
-              <Button type="submit" disabled={isSubmitting} className="w-full">
-                {isSubmitting ? "Signing in…" : "Sign in"}
-              </Button>
-            )}
-          </form.Subscribe>
+              {error && (
+                <p role="alert" className="text-sm text-red-600">
+                  {error}
+                </p>
+              )}
+            </FieldSet>
+
+            <form.Subscribe selector={(s) => s.isSubmitting}>
+              {(isSubmitting) => (
+                <FieldSet>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full"
+                  >
+                    {isSubmitting ? "Signing in…" : "Sign in"}
+                  </Button>
+                </FieldSet>
+              )}
+            </form.Subscribe>
+          </FieldGroup>
         </form>
       </div>
     </main>

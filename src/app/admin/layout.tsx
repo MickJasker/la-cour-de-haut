@@ -24,7 +24,7 @@ export default async function LocaleLayout({ children }: Props) {
       lang="nl"
       className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
