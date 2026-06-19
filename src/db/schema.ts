@@ -8,7 +8,10 @@ import {
   index,
   pgEnum,
   integer,
+  jsonb,
 } from "drizzle-orm/pg-core";
+
+export type BusyInterval = { start: string; end: string };
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -129,6 +132,22 @@ export const bookingRequest = pgTable("booking_request", {
   message: text("message"),
   status: bookingStatus("status").default("pending").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const icalSource = pgTable("ical_source", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  url: text("url").notNull(),
+  enabled: boolean("enabled").default(true).notNull(),
+  cachedIntervals: jsonb("cached_intervals").$type<BusyInterval[]>(),
+  lastSyncedAt: timestamp("last_synced_at"),
+  lastError: text("last_error"),
+  lastErrorAt: timestamp("last_error_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
 });
 
 // Domain tables (poi, review, content_block, setting, etc.)

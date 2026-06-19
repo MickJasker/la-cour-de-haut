@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "seed-owner": "tsx scripts/seed-owner.mts",
+    "seed-ical-sources": "tsx scripts/seed-ical-sources.mts",
     "test": "vitest run",
     "test:e2e": "playwright test",
     "doctor": "react-doctor --yes --no-telemetry ."
