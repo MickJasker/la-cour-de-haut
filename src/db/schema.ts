@@ -114,11 +114,11 @@ export const accountRelations = relations(account, ({ one }) => ({
 }));
 
 export const bookingStatus = pgEnum("booking_status", [
-  "pending",
+  "requested",
+  "on_hold",
   "confirmed",
-  "rejected",
+  "declined",
   "cancelled",
-  "completed",
 ]);
 
 export const bookingRequest = pgTable("booking_request", {
@@ -127,11 +127,20 @@ export const bookingRequest = pgTable("booking_request", {
   email: text("email").notNull(),
   guestCount: integer("guest_count").notNull().default(1),
   phone: text("phone"),
+  locale: text("locale").notNull().default("nl"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
   message: text("message"),
-  status: bookingStatus("status").default("pending").notNull(),
+  status: bookingStatus("status").default("requested").notNull(),
+  confirmedAt: timestamp("confirmed_at"),
+  paymentDeadline: date("payment_deadline"),
+  ownerNotes: text("owner_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const setting = pgTable("setting", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
 });
 
 export const icalSource = pgTable("ical_source", {
