@@ -16,7 +16,7 @@ export default async function globalSetup() {
 
   // Wipe all data for a deterministic starting state
   const sql = neon(dbUrl);
-  await sql`TRUNCATE "user", session, account, verification, ical_source, booking_request CASCADE`;
+  await sql`TRUNCATE "user", session, account, verification, ical_source, booking_request, setting CASCADE`;
 
   // Seed the owner account with known credentials
   const seed = spawnSync("pnpm", ["seed-owner"], {
