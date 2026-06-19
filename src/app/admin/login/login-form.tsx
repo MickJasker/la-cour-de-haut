@@ -13,7 +13,7 @@ import {
   FieldLabel,
   FieldSet,
 } from "@/components/ui/field";
-import z from "zod";
+import { z } from "zod";
 
 const schema = z.object({
   email: z.email("Invalid email address"),
