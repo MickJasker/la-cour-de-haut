@@ -21,7 +21,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useId } from "react";
 import { addDays, addMonths, format } from "date-fns";
 import { Calendar } from "../ui/calendar";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
@@ -37,6 +37,7 @@ const pricePerNight = 85; // This is a placeholder value. For a real application
 
 export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
   const t = useTranslations("booking");
+  const locale = useLocale();
 
   const booked = use(bookedDates);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -286,6 +287,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
           </div>
 
           <FieldSet>
+            <input type="hidden" name="_locale" value={locale} />
             {/* Honeypot: off-screen, hidden from assistive tech and keyboard nav */}
             <div
               aria-hidden="true"

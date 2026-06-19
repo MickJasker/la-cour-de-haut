@@ -63,7 +63,7 @@ export async function getBusyIntervals(): Promise<BusyInterval[]> {
       .from(bookingRequest)
       .where(
         or(
-          eq(bookingRequest.status, "pending"),
+          eq(bookingRequest.status, "on_hold"),
           eq(bookingRequest.status, "confirmed"),
         ),
       ),

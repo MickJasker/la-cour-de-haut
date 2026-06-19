@@ -129,12 +129,14 @@ export async function submitBookingAction(
   try {
     const data = await serverValidate(formData);
     const db = getDb();
+    const locale = (formData.get("_locale") as string) || "nl";
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,
       email: data.email,
       phone: data.phone,
       guestCount: parseInt(data.guestCount),
+      locale,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
     });
