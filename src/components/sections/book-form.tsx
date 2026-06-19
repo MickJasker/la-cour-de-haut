@@ -6,7 +6,7 @@ import {
   useForm,
   useTransform,
 } from "@tanstack/react-form-nextjs";
-import { use, useActionState, useState } from "react";
+import { use, useActionState, useRef, useState } from "react";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -25,7 +25,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
-import { Turnstile } from "@marsidev/react-turnstile";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
   submitBookingAction,
   type BookingActionState,
@@ -40,6 +40,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
 
   const booked = use(bookedDates);
   const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<TurnstileInstance>(null);
 
   const [state, formAction, isPending] = useActionState<
     BookingActionState,
@@ -299,12 +300,16 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
             </div>
 
             <Turnstile
+              ref={turnstileRef}
               siteKey={
                 process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
               }
               options={{ size: "invisible", execution: "render" }}
               onSuccess={setTurnstileToken}
-              onExpire={() => setTurnstileToken("")}
+              onExpire={() => {
+                setTurnstileToken("");
+                turnstileRef.current?.reset();
+              }}
             />
             <input
               type="hidden"

@@ -38,17 +38,22 @@ export type BookingActionState = {
 async function verifyTurnstile(token: string): Promise<boolean> {
   const secret = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
   if (!secret) return true; // dev bypass when key not configured
+  if (!token) return false;
 
-  const res = await fetch(
-    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret, response: token }),
-    },
-  );
-  const data = (await res.json()) as { success: boolean };
-  return data.success;
+  try {
+    const res = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ secret, response: token }),
+      },
+    );
+    const data = (await res.json()) as { success: boolean };
+    return data.success === true;
+  } catch {
+    return false;
+  }
 }
 
 const esc = (s: string) =>
@@ -79,7 +84,7 @@ async function sendOwnerNotification(data: {
     from,
     to,
     replyTo: data.email,
-    subject: `New booking request from ${esc(data.name)}`,
+    subject: `New booking request from ${data.name.replace(/[\r\n]/g, " ")}`,
     html: `
       <h2>New booking request</h2>
       <table cellpadding="6" style="border-collapse:collapse">
@@ -142,7 +147,7 @@ export async function submitBookingAction(
       guestCount: data.guestCount,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
-    });
+    }).catch(console.error);
 
     return { ...initialFormState, success: true };
   } catch (e) {
