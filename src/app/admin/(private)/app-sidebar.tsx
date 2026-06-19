@@ -7,6 +7,7 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -14,7 +15,16 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth-client";
-import { Settings, CalendarFold, SquareDashedText, Star } from "lucide-react";
+import {
+  Settings,
+  CalendarFold,
+  SquareDashedText,
+  Star,
+  CalendarSync,
+  Import,
+  ArrowUpToLine,
+  ArrowDownToLine,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
@@ -85,16 +95,38 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel className="flex items-center gap-2">
+            <CalendarSync /> ICAL
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   variant={
-                    currentPath === "/admin/settings" ? "outline" : "default"
+                    currentPath === "/admin/ical/import" ? "outline" : "default"
                   }
                   asChild
                 >
-                  <Link href="/admin/settings">
-                    <Settings />
-                    Settings
+                  <Link href="/admin/ical/import">
+                    <ArrowDownToLine />
+                    Import
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  variant={
+                    currentPath === "/admin/ical/export" ? "outline" : "default"
+                  }
+                  asChild
+                >
+                  <Link href="/admin/ical/export">
+                    <ArrowUpToLine />
+                    Export
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
