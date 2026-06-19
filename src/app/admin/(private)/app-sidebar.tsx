@@ -21,7 +21,6 @@ import {
   SquareDashedText,
   Star,
   CalendarSync,
-  Import,
   ArrowUpToLine,
   ArrowDownToLine,
 } from "lucide-react";
@@ -92,6 +91,25 @@ export function AppSidebar() {
                   <Link href="/admin/bookings">
                     <CalendarFold />
                     Bookings
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  variant={
+                    currentPath === "/admin/settings" ? "outline" : "default"
+                  }
+                  asChild
+                >
+                  <Link href="/admin/settings">
+                    <Settings />
+                    Settings
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
