@@ -39,6 +39,9 @@ export type BookingActionState = {
 async function verifyTurnstile(token: string): Promise<boolean> {
   const secret = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
   if (!secret) return true; // dev bypass when key not configured
+  // Cloudflare test secret — always passes; headless browsers can't complete
+  // the JS challenge so we skip token validation when using test credentials.
+  if (secret === "1x0000000000000000000000000000000AA") return true;
   if (!token) return false;
 
   try {

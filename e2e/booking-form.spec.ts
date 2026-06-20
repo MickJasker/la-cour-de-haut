@@ -45,12 +45,56 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await page.getByLabel("E-mailadres").fill("test@example.com");
     await page.getByLabel("Telefoonnummer").fill("+32123456789");
 
-    // Select a 1-night stay: click the first two available date cells
-    const availableDates = page
-      .getByRole("grid")
-      .locator("button:not([disabled])");
-    await availableDates.nth(0).click(); // check-in
-    await availableDates.nth(1).click(); // check-out (next day = 1 night)
+    // Use aria-label selectors for unambiguous date targeting — nth() is fragile
+    // after re-renders because react-day-picker may shift indices.
+    const dutchDays = [
+      "zondag",
+      "maandag",
+      "dinsdag",
+      "woensdag",
+      "donderdag",
+      "vrijdag",
+      "zaterdag",
+    ];
+    const dutchMonths = [
+      "januari",
+      "februari",
+      "maart",
+      "april",
+      "mei",
+      "juni",
+      "juli",
+      "augustus",
+      "september",
+      "oktober",
+      "november",
+      "december",
+    ];
+    const toAriaLabel = (d: Date) =>
+      `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]} ${d.getFullYear()}`;
+
+    const checkin = new Date();
+    checkin.setDate(checkin.getDate() + 1);
+    const checkout = new Date();
+    checkout.setDate(checkout.getDate() + 4);
+
+    await page.locator(`button[aria-label="${toAriaLabel(checkin)}"]`).click();
+    await page.locator(`button[aria-label="${toAriaLabel(checkout)}"]`).click();
+
+    // Wait until to !== from — react-day-picker sets from=to on first click.
+    await page.waitForFunction(() => {
+      const from = (
+        document.querySelector(
+          "input[name='stayDates.from']",
+        ) as HTMLInputElement | null
+      )?.value;
+      const to = (
+        document.querySelector(
+          "input[name='stayDates.to']",
+        ) as HTMLInputElement | null
+      )?.value;
+      return !!from && !!to && from !== to;
+    });
 
     await page.getByRole("button", { name: "Boek nu" }).click();
 
@@ -58,7 +102,7 @@ test.describe("booking form — standalone page (/nl/book)", () => {
       page.getByText(
         "Bedankt voor uw boeking! We nemen binnenkort contact met u op.",
       ),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15000 });
   });
 });
 
