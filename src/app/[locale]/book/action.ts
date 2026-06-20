@@ -11,6 +11,7 @@ import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { getBusyIntervals } from "@/lib/availability";
+import { routing } from "@/i18n/routing";
 import { expandInterval } from "@/lib/availability-utils";
 
 const serverValidate = createServerValidate({
@@ -38,6 +39,9 @@ export type BookingActionState = {
 async function verifyTurnstile(token: string): Promise<boolean> {
   const secret = process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY;
   if (!secret) return true; // dev bypass when key not configured
+  // Cloudflare test secret — always passes; headless browsers can't complete
+  // the JS challenge so we skip token validation when using test credentials.
+  if (secret === "1x0000000000000000000000000000000AA") return true;
   if (!token) return false;
 
   try {
@@ -129,12 +133,19 @@ export async function submitBookingAction(
   try {
     const data = await serverValidate(formData);
     const db = getDb();
+    const rawLocale = formData.get("_locale") as string;
+    const locale = routing.locales.includes(
+      rawLocale as (typeof routing.locales)[number],
+    )
+      ? rawLocale
+      : "nl";
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,
       email: data.email,
       phone: data.phone,
       guestCount: parseInt(data.guestCount),
+      locale,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
     });

@@ -1,0 +1,119 @@
+import { describe, it, expect } from "vitest";
+import { addDays, subDays, formatISO } from "date-fns";
+import {
+  transition,
+  canTransition,
+  toDisplayStatus,
+  type DbBookingStatus,
+} from "./booking-machine";
+
+describe("transition — valid paths", () => {
+  it("requested → on_hold on confirm, with blockInFeed + sendBankTransferEmail", () => {
+    const result = transition("requested", "confirm");
+    expect(result.nextStatus).toBe("on_hold");
+    expect(result.sideEffects.blockInFeed).toBe(true);
+    expect(result.sideEffects.sendBankTransferEmail).toBe(true);
+  });
+
+  it("requested → declined on decline", () => {
+    const result = transition("requested", "decline");
+    expect(result.nextStatus).toBe("declined");
+    expect(result.sideEffects).toEqual({});
+  });
+
+  it("on_hold → confirmed on mark_paid", () => {
+    const result = transition("on_hold", "mark_paid");
+    expect(result.nextStatus).toBe("confirmed");
+  });
+
+  it("on_hold → cancelled on cancel, with releaseFromFeed", () => {
+    const result = transition("on_hold", "cancel");
+    expect(result.nextStatus).toBe("cancelled");
+    expect(result.sideEffects.releaseFromFeed).toBe(true);
+  });
+
+  it("confirmed → cancelled on cancel, with releaseFromFeed", () => {
+    const result = transition("confirmed", "cancel");
+    expect(result.nextStatus).toBe("cancelled");
+    expect(result.sideEffects.releaseFromFeed).toBe(true);
+  });
+});
+
+describe("transition — invalid paths", () => {
+  const invalidCases: [DbBookingStatus, Parameters<typeof transition>[1]][] = [
+    ["on_hold", "confirm"],
+    ["on_hold", "decline"],
+    ["confirmed", "confirm"],
+    ["confirmed", "mark_paid"],
+    ["confirmed", "decline"],
+    ["declined", "confirm"],
+    ["declined", "cancel"],
+    ["cancelled", "confirm"],
+    ["cancelled", "cancel"],
+  ];
+
+  for (const [status, action] of invalidCases) {
+    it(`throws for '${action}' from '${status}'`, () => {
+      expect(() => transition(status, action)).toThrow();
+    });
+  }
+});
+
+describe("canTransition", () => {
+  it("returns true for valid transitions", () => {
+    expect(canTransition("requested", "confirm")).toBe(true);
+    expect(canTransition("on_hold", "mark_paid")).toBe(true);
+  });
+
+  it("returns false for invalid transitions", () => {
+    expect(canTransition("confirmed", "confirm")).toBe(false);
+    expect(canTransition("declined", "cancel")).toBe(false);
+  });
+});
+
+describe("toDisplayStatus — lazy expiry", () => {
+  const pastDeadline = formatISO(subDays(new Date(), 1), {
+    representation: "date",
+  });
+  const futureDeadline = formatISO(addDays(new Date(), 1), {
+    representation: "date",
+  });
+
+  it("on_hold with past deadline → expired", () => {
+    expect(
+      toDisplayStatus({ status: "on_hold", paymentDeadline: pastDeadline }),
+    ).toBe("expired");
+  });
+
+  it("on_hold with future deadline → on_hold", () => {
+    expect(
+      toDisplayStatus({ status: "on_hold", paymentDeadline: futureDeadline }),
+    ).toBe("on_hold");
+  });
+
+  it("on_hold with null deadline → on_hold (no deadline set yet)", () => {
+    expect(toDisplayStatus({ status: "on_hold", paymentDeadline: null })).toBe(
+      "on_hold",
+    );
+  });
+
+  it("confirmed with past deadline → confirmed (expiry only applies to on_hold)", () => {
+    expect(
+      toDisplayStatus({ status: "confirmed", paymentDeadline: pastDeadline }),
+    ).toBe("confirmed");
+  });
+
+  it("passes through all other statuses unchanged", () => {
+    const statuses: DbBookingStatus[] = [
+      "requested",
+      "confirmed",
+      "declined",
+      "cancelled",
+    ];
+    for (const s of statuses) {
+      expect(
+        toDisplayStatus({ status: s, paymentDeadline: pastDeadline }),
+      ).toBe(s);
+    }
+  });
+});

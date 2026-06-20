@@ -14,8 +14,8 @@ A vacation rental property in Normandy (France). The site is an **inquiry-and-co
 
 A single person who manages the property. They:
 
-- Review booking requests in the **inbox**
-- Confirm requests and send **bank-transfer instructions** manually via email
+- Review booking requests in the **inbox** (`/admin/bookings`)
+- Confirm requests; the site emails **bank-transfer instructions** automatically to the guest on confirm
 - Manage content (description, POIs, reviews, settings) in the backoffice
 
 ## Booking lifecycle
@@ -31,7 +31,7 @@ requested ──(owner confirms)──► on_hold ──(payment received)──
 - **requested** — form submitted; owner notified by email. Dates not yet held.
 - **on_hold** — owner confirmed; dates enter the outbound iCal feed immediately, platforms start blocking them. Guest is emailed bank details + a payment deadline.
 - **confirmed** — payment received; owner marks paid. Dates remain in feed.
-- **expired** — payment deadline passed without payment; dates released from feed.
+- **expired** — payment deadline passed without payment; dates released from feed. **Never stored in the DB** — computed lazily at query time (`on_hold` + `payment_deadline < now()`). See ADR-0004.
 - **declined / cancelled** — dates released from feed.
 
 ## iCal sync
@@ -68,6 +68,12 @@ Two test runners, strictly separated by what they can see:
 - **Vitest** — utility functions and synchronous client components only. Async Server Components are unsupported by Vitest (React ecosystem limitation). Tests live in `src/**/*.test.ts(x)`, co-located with source.
 - **Playwright** — full request-cycle tests against a running `next dev` server. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`.
 
+## Settings
+
+Owner-configurable values stored in a key-value `setting` table (`key TEXT PRIMARY KEY, value TEXT`). Known keys are declared in a Zod schema; code reads settings through typed accessors that parse and validate values. New keys require no schema migration.
+
+Current keys: `iban`, `bank_name`, `account_holder`, `payment_deadline_days` (default `"7"`).
+
 ## Key domain terms
 
 | Term                           | Meaning                                                                               |
@@ -75,14 +81,15 @@ Two test runners, strictly separated by what they can see:
 | **Booking request**            | A guest's availability inquiry, submitted via the public form                         |
 | **On hold**                    | Status after owner confirmation, before payment; dates are blocked in the export feed |
 | **Payment deadline**           | The date by which the guest must pay, or the hold expires automatically               |
+| **Display status**             | The UI-layer status type; extends the DB enum with `expired` (computed, never stored) |
 | **Busy intervals**             | Merged unavailable date ranges from all inbound iCal sources plus live DB holds       |
 | **iCal source**                | A first-class record (name + URL + enabled) for one inbound platform feed             |
 | **Feed sync health**           | Per-source `lastSyncedAt` / `lastError`, written on each lazy refresh, shown in admin |
 | **Export feed**                | The site's own outbound `.ics` file, subscribed to by Airbnb and Natuurhuisje         |
-| **Inbox**                      | The backoffice view listing all booking requests by status                            |
+| **Inbox**                      | The backoffice view listing all booking requests by status (`/admin/bookings`)        |
 | **POI**                        | Point of Interest — a card in the "Discover the area" section                         |
 | **Content block**              | A keyed singleton content unit (e.g. `hero_subtitle`, `description`)                  |
 | **Auto-translate**             | The DeepL-powered server action that fills EN/FR/DE from a Dutch source field         |
 | **Human-edited**               | A field manually edited by the owner; protected from auto-translate overwrite         |
 | **Machine**                    | A field filled by auto-translate; can be overwritten by a later re-translate          |
-| **Bank-transfer instructions** | The payment details emailed to the guest on hold confirmation                         |
+| **Bank-transfer instructions** | The payment details emailed to the guest (in their locale) on hold confirmation       |

@@ -4,7 +4,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { icalSource } from "@/db/schema";
 import { bookingRequest, type BusyInterval } from "@/db/schema";
-import { eq, or } from "drizzle-orm";
+import { and, eq, gte, isNull, or } from "drizzle-orm";
 
 export type { BusyInterval };
 export { expandInterval } from "./availability-utils";
@@ -63,7 +63,17 @@ export async function getBusyIntervals(): Promise<BusyInterval[]> {
       .from(bookingRequest)
       .where(
         or(
-          eq(bookingRequest.status, "pending"),
+          // on_hold only counts while the payment deadline hasn't passed
+          and(
+            eq(bookingRequest.status, "on_hold"),
+            or(
+              isNull(bookingRequest.paymentDeadline),
+              gte(
+                bookingRequest.paymentDeadline,
+                new Date().toISOString().slice(0, 10),
+              ),
+            ),
+          ),
           eq(bookingRequest.status, "confirmed"),
         ),
       ),
