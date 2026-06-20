@@ -17,7 +17,11 @@ export function NotesEditor({
       className="w-full resize-none rounded border border-stone-200 bg-stone-50 px-2 py-1 text-sm text-stone-700 placeholder:text-stone-400 focus:border-stone-400 focus:outline-none"
       rows={2}
       placeholder="Owner notes…"
-      defaultValue={notes}
+      value={notes}
+      onChange={(e) => {
+        const value = e.target.value;
+        startTransition(() => setOptimistic(value));
+      }}
       onBlur={(e) => {
         const value = e.currentTarget.value;
         startTransition(async () => {

@@ -5,7 +5,7 @@ import { bookingRequest } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { transition, type DbBookingStatus } from "@/lib/booking-machine";
-import { getSettings } from "@/lib/settings";
+import { getSettings, hasBankDetails } from "@/lib/settings";
 import { sendBankTransferEmail } from "@/lib/bank-transfer-email";
 
 async function fetchBooking(id: string) {
@@ -23,7 +23,23 @@ export async function confirmBookingAction(
   paymentDeadline: string,
 ) {
   await verifySession();
-  const booking = await fetchBooking(id);
+
+  const today = new Date().toISOString().slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDeadline) || paymentDeadline < today) {
+    throw new Error("Payment deadline must be today or in the future");
+  }
+
+  const [booking, settings] = await Promise.all([
+    fetchBooking(id),
+    getSettings(),
+  ]);
+
+  if (!hasBankDetails(settings)) {
+    throw new Error(
+      "Bank details must be configured before confirming a booking",
+    );
+  }
+
   const result = transition(booking.status as DbBookingStatus, "confirm");
 
   const db = getDb();
@@ -37,7 +53,6 @@ export async function confirmBookingAction(
     .where(eq(bookingRequest.id, id));
 
   if (result.sideEffects.sendBankTransferEmail) {
-    const settings = await getSettings();
     void sendBankTransferEmail({
       guest: { name: booking.name, email: booking.email },
       startDate: booking.startDate,

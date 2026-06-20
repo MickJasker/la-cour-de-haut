@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { addDays, subDays, formatISO } from "date-fns";
 import {
   transition,
   canTransition,
@@ -71,13 +72,12 @@ describe("canTransition", () => {
 });
 
 describe("toDisplayStatus — lazy expiry", () => {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const pastDeadline = yesterday.toISOString().slice(0, 10);
-
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const futureDeadline = tomorrow.toISOString().slice(0, 10);
+  const pastDeadline = formatISO(subDays(new Date(), 1), {
+    representation: "date",
+  });
+  const futureDeadline = formatISO(addDays(new Date(), 1), {
+    representation: "date",
+  });
 
   it("on_hold with past deadline → expired", () => {
     expect(

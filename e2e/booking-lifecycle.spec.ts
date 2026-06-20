@@ -172,8 +172,11 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.goto("/admin/bookings");
     await expect(page.getByText("Jan Expired")).toBeVisible();
     await expect(page.getByText("Expired")).toBeVisible();
-    // Expired holds have no action buttons
-    await expect(page.getByRole("button")).not.toBeVisible();
+    // Expired holds have no action buttons — scoped to the card to avoid matching sidebar buttons
+    const expiredCard = page
+      .locator("div.border")
+      .filter({ hasText: "Jan Expired" });
+    await expect(expiredCard.getByRole("button")).not.toBeVisible();
   });
 
   test("confirm button is disabled when bank details are not configured", async ({

@@ -11,6 +11,7 @@ import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { getBusyIntervals } from "@/lib/availability";
+import { routing } from "@/i18n/routing";
 import { expandInterval } from "@/lib/availability-utils";
 
 const serverValidate = createServerValidate({
@@ -129,7 +130,12 @@ export async function submitBookingAction(
   try {
     const data = await serverValidate(formData);
     const db = getDb();
-    const locale = (formData.get("_locale") as string) || "nl";
+    const rawLocale = formData.get("_locale") as string;
+    const locale = routing.locales.includes(
+      rawLocale as (typeof routing.locales)[number],
+    )
+      ? rawLocale
+      : "nl";
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,

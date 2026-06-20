@@ -9,7 +9,10 @@ export async function saveSettingsAction(formData: FormData) {
   const keys = ["iban", "bank_name", "account_holder", "payment_deadline_days"];
   await Promise.all(
     keys
-      .filter((k) => formData.get(k) !== null)
+      .filter((k) => {
+        const v = formData.get(k);
+        return v !== null && String(v).trim() !== "";
+      })
       .map((k) => upsertSetting(k, String(formData.get(k)))),
   );
 
