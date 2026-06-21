@@ -159,5 +159,13 @@ export const icalSource = pgTable("ical_source", {
     .notNull(),
 });
 
+export const icalExportToken = pgTable("ical_export_token", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  token: text("token").notNull().unique(),
+  lastAccessedAt: timestamp("last_accessed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Domain tables (poi, review, content_block, setting, etc.)
 // are added here alongside their respective feature issues.
