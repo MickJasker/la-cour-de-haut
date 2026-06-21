@@ -161,11 +161,13 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                       {booking.guestCount} guest
                       {booking.guestCount !== 1 ? "s" : ""}
                     </p>
-                    {booking.paymentDeadline && (
-                      <p className="text-orange-600">
-                        Due: {booking.paymentDeadline}
-                      </p>
-                    )}
+                    {booking.paymentDeadline &&
+                      (booking.displayStatus === "on_hold" ||
+                        booking.displayStatus === "expired") && (
+                        <p className="text-orange-600">
+                          Due: {booking.paymentDeadline}
+                        </p>
+                      )}
                   </div>
                 </div>
 
