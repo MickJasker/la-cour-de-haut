@@ -16,6 +16,8 @@ import { BookingActions } from "./booking-actions";
 import { NotesEditor } from "./notes-editor";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { TriangleAlert } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -86,15 +88,6 @@ export default async function BookingsPage({ searchParams }: PageProps) {
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-semibold">Bookings</h1>
-          {!bankDetailsOk && (
-            <p className="text-sm text-orange-600">
-              Bank details not configured —{" "}
-              <Link href="/admin/settings" className="underline">
-                add them in Settings
-              </Link>{" "}
-              to enable confirmations.
-            </p>
-          )}
         </div>
 
         {/* Status filter */}
@@ -126,6 +119,22 @@ export default async function BookingsPage({ searchParams }: PageProps) {
           ))}
         </div>
 
+        {!bankDetailsOk && (
+          <Alert variant="warning">
+            <TriangleAlert className="size-4" />
+            <AlertTitle>Bank details not configured</AlertTitle>
+            <AlertDescription>
+              Please set up your bank details in the{" "}
+              <Link
+                href="/admin/settings"
+                className="underline hover:text-stone-600"
+              >
+                settings
+              </Link>{" "}
+              to be able to confirm bookings and receive payouts.
+            </AlertDescription>
+          </Alert>
+        )}
         {filtered.length === 0 ? (
           <p className="text-stone-400 text-sm">No bookings found.</p>
         ) : (
