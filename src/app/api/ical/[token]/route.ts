@@ -4,9 +4,9 @@ import { and, eq, gte, isNull, or } from "drizzle-orm";
 
 export async function GET(
   _req: Request,
-  ctx: RouteContext<"/api/ical/[token]">,
+  { params }: { params: Promise<{ token: string }> },
 ) {
-  const { token: rawToken } = await ctx.params;
+  const { token: rawToken } = await params;
   const token = rawToken.replace(/\.ics$/, "");
 
   const db = getDb();
