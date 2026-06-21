@@ -104,9 +104,6 @@ test.describe("gallery: public section", () => {
       published: true,
     });
     await page.goto("/nl");
-    const imgs = page
-      .locator("[data-testid='gite-grid'] img")
-      .filter({ hasText: "" });
     const first = await page
       .locator("[data-testid='gite-grid'] img")
       .first()
