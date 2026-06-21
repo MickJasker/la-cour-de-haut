@@ -13,6 +13,10 @@
     "header": {
       "bookNow": "Boek je verblijf nu"
     },
+    "gite": {
+      "title": "De Gîte",
+      "viewMorePhotos": "Bekijk meer foto's"
+    },
     "hero": {
       "description": "Een boeiende introductie op de website, met een visueel opvallend beeld en een pakkende kop die direct de aandacht van de bezoeker trekt.",
       "callToAction": "Boek je verblijf nu"

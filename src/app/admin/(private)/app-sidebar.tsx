@@ -23,6 +23,7 @@ import {
   CalendarSync,
   ArrowUpToLine,
   ArrowDownToLine,
+  ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -78,6 +79,19 @@ export function AppSidebar() {
                   <Link href="/admin/reviews">
                     <Star />
                     Reviews
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  variant={
+                    currentPath === "/admin/gallery" ? "outline" : "default"
+                  }
+                  asChild
+                >
+                  <Link href="/admin/gallery">
+                    <ImageIcon />
+                    Gallery
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

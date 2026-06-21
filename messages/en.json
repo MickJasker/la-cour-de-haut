@@ -13,6 +13,10 @@
     "header": {
       "bookNow": "Book your stay now"
     },
+    "gite": {
+      "title": "The Gîte",
+      "viewMorePhotos": "View more photos"
+    },
     "hero": {
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
       "callToAction": "Book your stay now"

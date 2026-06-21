@@ -50,6 +50,13 @@
       "when": 1782041901250,
       "tag": "0006_ical_export_token",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782060733207,
+      "tag": "0007_broken_kabuki",
+      "breakpoints": true
     }
   ]
 }

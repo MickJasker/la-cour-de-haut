@@ -1,5 +1,6 @@
 import { Header } from "@/components/sections/header";
 import { Hero } from "@/components/sections/hero";
+import { GiteSection } from "@/components/sections/gite";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
@@ -27,7 +28,7 @@ export default async function HomePage({
       />
       <main>
         <Hero />
-        <div className="h-22" />
+        <GiteSection locale={locale} />
       </main>
     </>
   );
