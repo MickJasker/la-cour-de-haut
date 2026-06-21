@@ -1,10 +1,66 @@
 import { describe, it, expect } from "vitest";
-import { expandInterval } from "./availability-utils";
+import { expandInterval, hasConflict } from "./availability-utils";
 import type { BusyInterval } from "@/db/schema";
 
 function expandIntervals(intervals: BusyInterval[]): string[] {
   return [...new Set(intervals.flatMap(expandInterval))].sort();
 }
+
+describe("hasConflict", () => {
+  it("returns false for an empty interval list", () => {
+    expect(hasConflict([], "2025-08-01", "2025-08-07")).toBe(false);
+  });
+
+  it("returns false when the booking range does not overlap any interval", () => {
+    const intervals = [{ start: "2025-08-01", end: "2025-08-07" }];
+    expect(hasConflict(intervals, "2025-08-10", "2025-08-14")).toBe(false);
+  });
+
+  it("returns false when booking checkout equals interval start (DTEND exclusive)", () => {
+    const intervals = [{ start: "2025-08-10", end: "2025-08-17" }];
+    // booking checks out on 2025-08-10 — same day a new block starts
+    expect(hasConflict(intervals, "2025-08-05", "2025-08-10")).toBe(false);
+  });
+
+  it("returns false when booking start equals interval end (DTEND exclusive)", () => {
+    const intervals = [{ start: "2025-08-01", end: "2025-08-08" }];
+    // previous block ends on 2025-08-08 — booking starts that same day
+    expect(hasConflict(intervals, "2025-08-08", "2025-08-15")).toBe(false);
+  });
+
+  it("returns true when booking partially overlaps an interval from the left", () => {
+    const intervals = [{ start: "2025-08-05", end: "2025-08-12" }];
+    expect(hasConflict(intervals, "2025-08-01", "2025-08-07")).toBe(true);
+  });
+
+  it("returns true when booking partially overlaps an interval from the right", () => {
+    const intervals = [{ start: "2025-08-01", end: "2025-08-08" }];
+    expect(hasConflict(intervals, "2025-08-05", "2025-08-12")).toBe(true);
+  });
+
+  it("returns true when booking is fully contained within an interval", () => {
+    const intervals = [{ start: "2025-08-01", end: "2025-08-31" }];
+    expect(hasConflict(intervals, "2025-08-10", "2025-08-17")).toBe(true);
+  });
+
+  it("returns true when booking fully contains an interval", () => {
+    const intervals = [{ start: "2025-08-05", end: "2025-08-10" }];
+    expect(hasConflict(intervals, "2025-08-01", "2025-08-15")).toBe(true);
+  });
+
+  it("returns true when booking matches interval exactly", () => {
+    const intervals = [{ start: "2025-08-01", end: "2025-08-08" }];
+    expect(hasConflict(intervals, "2025-08-01", "2025-08-08")).toBe(true);
+  });
+
+  it("returns true when any one of multiple intervals conflicts", () => {
+    const intervals = [
+      { start: "2025-07-01", end: "2025-07-07" },
+      { start: "2025-08-10", end: "2025-08-17" },
+    ];
+    expect(hasConflict(intervals, "2025-08-12", "2025-08-20")).toBe(true);
+  });
+});
 
 describe("expandInterval", () => {
   it("expands a single-night interval to one date", () => {
