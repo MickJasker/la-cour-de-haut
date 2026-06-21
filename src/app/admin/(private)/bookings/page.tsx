@@ -201,6 +201,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                     displayStatus={booking.displayStatus}
                     bankDetailsConfigured={bankDetailsOk}
                     defaultDeadlineDays={deadlineDays}
+                    checkInDate={booking.startDate}
                   />
                 </div>
               </div>

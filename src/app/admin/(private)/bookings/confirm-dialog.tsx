@@ -21,16 +21,21 @@ type Props = {
   bookingId: string;
   guestName: string;
   defaultDeadlineDays: number;
+  checkInDate: string;
 };
 
 export function ConfirmDialog({
   bookingId,
   guestName,
   defaultDeadlineDays,
+  checkInDate,
 }: Props) {
   const [open, setOpen] = useState(false);
   const today = new Date().toISOString().slice(0, 10);
-  const [deadline, setDeadline] = useState(addDays(today, defaultDeadlineDays));
+  const defaultDeadline = addDays(today, defaultDeadlineDays);
+  const [deadline, setDeadline] = useState(
+    defaultDeadline <= checkInDate ? defaultDeadline : checkInDate,
+  );
   const [isPending, startTransition] = useTransition();
 
   function handleConfirm() {
@@ -66,6 +71,7 @@ export function ConfirmDialog({
               type="date"
               value={deadline}
               min={today}
+              max={checkInDate}
               onChange={(e) => setDeadline(e.target.value)}
               className="block w-full rounded border border-stone-300 px-3 py-1.5 text-sm focus:border-stone-500 focus:outline-none"
             />

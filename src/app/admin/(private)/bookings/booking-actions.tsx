@@ -15,6 +15,7 @@ type Props = {
   displayStatus: DisplayStatus;
   bankDetailsConfigured: boolean;
   defaultDeadlineDays: number;
+  checkInDate: string;
 };
 
 export function BookingActions({
@@ -23,6 +24,7 @@ export function BookingActions({
   displayStatus,
   bankDetailsConfigured,
   defaultDeadlineDays,
+  checkInDate,
 }: Props) {
   const [isPending, startTransition] = useTransition();
 
@@ -38,6 +40,7 @@ export function BookingActions({
             bookingId={bookingId}
             guestName={guestName}
             defaultDeadlineDays={defaultDeadlineDays}
+            checkInDate={checkInDate}
           />
         ) : (
           <div title="Configure bank details in Settings before confirming">

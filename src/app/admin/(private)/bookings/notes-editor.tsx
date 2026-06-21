@@ -1,5 +1,5 @@
 "use client";
-import { useOptimistic, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { updateOwnerNotesAction } from "./actions";
 
 export function NotesEditor({
@@ -9,7 +9,7 @@ export function NotesEditor({
   bookingId: string;
   initialNotes: string | null;
 }) {
-  const [notes, setOptimistic] = useOptimistic(initialNotes ?? "");
+  const [notes, setNotes] = useState(initialNotes ?? "");
   const [, startTransition] = useTransition();
 
   return (
@@ -18,14 +18,10 @@ export function NotesEditor({
       rows={2}
       placeholder="Owner notes…"
       value={notes}
-      onChange={(e) => {
-        const value = e.target.value;
-        startTransition(() => setOptimistic(value));
-      }}
+      onChange={(e) => setNotes(e.target.value)}
       onBlur={(e) => {
         const value = e.currentTarget.value;
         startTransition(async () => {
-          setOptimistic(value);
           await updateOwnerNotesAction(bookingId, value);
         });
       }}
