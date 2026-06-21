@@ -76,10 +76,15 @@ test.describe("availability — iCal source busy dates block the calendar", () =
 
   test("blocked iCal dates are disabled in the calendar", async ({ page }) => {
     await goToTargetMonth(page);
+    let displayedMonth = blockedMonth.monthIndex;
 
     for (const date of blockedDates) {
-      const dayButton = dayButtonForDate(page, date);
-      await expect(dayButton).toBeDisabled();
+      const dateMonth = parseInt(date.split("-")[1]!, 10) - 1; // 0-indexed
+      while (displayedMonth < dateMonth) {
+        await page.locator(".rdp-button_next").click();
+        displayedMonth++;
+      }
+      await expect(dayButtonForDate(page, date)).toBeDisabled();
     }
   });
 

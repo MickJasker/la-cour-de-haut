@@ -7,6 +7,8 @@ import { verifySession } from "@/lib/dal";
 import { transition, type DbBookingStatus } from "@/lib/booking-machine";
 import { getSettings, hasBankDetails } from "@/lib/settings";
 import { sendBankTransferEmail } from "@/lib/bank-transfer-email";
+import { getBusyIntervals } from "@/lib/availability";
+import { hasConflict } from "@/lib/availability-utils";
 
 async function fetchBooking(id: string) {
   const db = getDb();
@@ -29,14 +31,21 @@ export async function confirmBookingAction(
     throw new Error("Payment deadline must be today or in the future");
   }
 
-  const [booking, settings] = await Promise.all([
+  const [booking, settings, busyIntervals] = await Promise.all([
     fetchBooking(id),
     getSettings(),
+    getBusyIntervals(),
   ]);
 
   if (!hasBankDetails(settings)) {
     throw new Error(
       "Bank details must be configured before confirming a booking",
+    );
+  }
+
+  if (hasConflict(busyIntervals, booking.startDate, booking.endDate)) {
+    throw new Error(
+      "These dates conflict with an existing booking or platform hold. Check the availability calendar before confirming.",
     );
   }
 

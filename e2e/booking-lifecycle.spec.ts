@@ -132,8 +132,11 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.goto("/admin/bookings");
     await expect(page.getByText("Anna Schmidt")).toBeVisible();
+    const schmidtCard = page
+      .locator("div.border")
+      .filter({ hasText: "Anna Schmidt" });
     await expect(
-      page.locator("span").filter({ hasText: /^Requested$/ }),
+      schmidtCard.locator("span").filter({ hasText: /^Requested$/ }),
     ).toBeVisible();
 
     // Open confirm dialog
@@ -147,9 +150,6 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
     // Status updated — scope to card so the filter nav chip doesn't interfere
-    const schmidtCard = page
-      .locator("div.border")
-      .filter({ hasText: "Anna Schmidt" });
     await expect(
       schmidtCard.locator("span").filter({ hasText: /^On hold$/ }),
     ).toBeVisible();

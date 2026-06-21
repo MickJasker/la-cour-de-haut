@@ -76,20 +76,21 @@ Current keys: `iban`, `bank_name`, `account_holder`, `payment_deadline_days` (de
 
 ## Key domain terms
 
-| Term                           | Meaning                                                                               |
-| ------------------------------ | ------------------------------------------------------------------------------------- |
-| **Booking request**            | A guest's availability inquiry, submitted via the public form                         |
-| **On hold**                    | Status after owner confirmation, before payment; dates are blocked in the export feed |
-| **Payment deadline**           | The date by which the guest must pay, or the hold expires automatically               |
-| **Display status**             | The UI-layer status type; extends the DB enum with `expired` (computed, never stored) |
-| **Busy intervals**             | Merged unavailable date ranges from all inbound iCal sources plus live DB holds       |
-| **iCal source**                | A first-class record (name + URL + enabled) for one inbound platform feed             |
-| **Feed sync health**           | Per-source `lastSyncedAt` / `lastError`, written on each lazy refresh, shown in admin |
-| **Export feed**                | The site's own outbound `.ics` file, subscribed to by Airbnb and Natuurhuisje         |
-| **Inbox**                      | The backoffice view listing all booking requests by status (`/admin/bookings`)        |
-| **POI**                        | Point of Interest — a card in the "Discover the area" section                         |
-| **Content block**              | A keyed singleton content unit (e.g. `hero_subtitle`, `description`)                  |
-| **Auto-translate**             | The DeepL-powered server action that fills EN/FR/DE from a Dutch source field         |
-| **Human-edited**               | A field manually edited by the owner; protected from auto-translate overwrite         |
-| **Machine**                    | A field filled by auto-translate; can be overwritten by a later re-translate          |
-| **Bank-transfer instructions** | The payment details emailed to the guest (in their locale) on hold confirmation       |
+| Term                           | Meaning                                                                                                                                                                                                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Booking request**            | A guest's availability inquiry, submitted via the public form                                                                                                                                                                                      |
+| **On hold**                    | Status after owner confirmation, before payment; dates are blocked in the export feed                                                                                                                                                              |
+| **Payment deadline**           | The date by which the guest must pay, or the hold expires automatically                                                                                                                                                                            |
+| **Display status**             | The UI-layer status type; extends the DB enum with `expired` (computed, never stored)                                                                                                                                                              |
+| **Busy intervals**             | Merged unavailable date ranges from all inbound iCal sources plus live DB holds                                                                                                                                                                    |
+| **iCal source**                | A first-class record (name + URL + enabled) for one inbound platform feed                                                                                                                                                                          |
+| **Feed sync health**           | Per-source `lastSyncedAt` / `lastError`, written on each lazy refresh, shown in admin                                                                                                                                                              |
+| **Export feed**                | The site's own outbound `.ics` file, subscribed to by Airbnb and Natuurhuisje. Access is controlled by per-service export tokens.                                                                                                                  |
+| **Export token**               | A named, unguessable random string giving one platform read access to the export feed at `/api/ical/{token}.ics`. Stored in the `ical_export_token` table (not `setting`). Multiple can coexist; deleting one revokes only that platform's access. |
+| **Inbox**                      | The backoffice view listing all booking requests by status (`/admin/bookings`)                                                                                                                                                                     |
+| **POI**                        | Point of Interest — a card in the "Discover the area" section                                                                                                                                                                                      |
+| **Content block**              | A keyed singleton content unit (e.g. `hero_subtitle`, `description`)                                                                                                                                                                               |
+| **Auto-translate**             | The DeepL-powered server action that fills EN/FR/DE from a Dutch source field                                                                                                                                                                      |
+| **Human-edited**               | A field manually edited by the owner; protected from auto-translate overwrite                                                                                                                                                                      |
+| **Machine**                    | A field filled by auto-translate; can be overwritten by a later re-translate                                                                                                                                                                       |
+| **Bank-transfer instructions** | The payment details emailed to the guest (in their locale) on hold confirmation                                                                                                                                                                    |
