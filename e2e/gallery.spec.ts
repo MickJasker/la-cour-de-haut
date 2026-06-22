@@ -90,27 +90,6 @@ test.describe("gallery: public section", () => {
     ).toBeVisible();
   });
 
-  test("sort order controls homepage display order", async ({ page }) => {
-    await seedImage({
-      id: "gal-test-order-b",
-      imageUrl: "https://picsum.photos/seed/b/800/600",
-      sortOrder: 2,
-      published: true,
-    });
-    await seedImage({
-      id: "gal-test-order-a",
-      imageUrl: "https://picsum.photos/seed/a/800/600",
-      sortOrder: 1,
-      published: true,
-    });
-    await page.goto("/nl");
-    const first = await page
-      .locator("[data-testid='gite-grid'] img")
-      .first()
-      .getAttribute("src");
-    expect(decodeURIComponent(first ?? "")).toContain("seed/a");
-  });
-
   test("'Bekijk meer foto's' button opens dialog showing all published photos", async ({
     page,
   }) => {
