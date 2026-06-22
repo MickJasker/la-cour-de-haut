@@ -28,78 +28,82 @@ export async function GiteSection({ locale }: { locale: string }) {
     <section data-testid="gite-section" className="py-16">
       <div
         data-testid="gite-grid"
-        className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 pb-30 md:pb-0 md:items-center"
+        className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 pb-30 md:pb-0 md:items-center max-md:px-4"
       >
-        <div className="space-y-6 max-md:px-4 md:pt-30 md:row-start-1 md:col-start-2 md:col-end-9 lg:col-end-7">
-          <h2 className="text-style-display-large">{t("title")}</h2>
-          <p className="text-style-body-large">
-            {/* TODO: replace with proper content */}
-            lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-            euismod, nisl eget consectetur sagittis, nisl nunc consectetur nisi,
-            euismod aliquam nisl nunc euismod nisi. Donec euismod, nisl eget
-            consectetur sagittis, nisl nunc consectetur nisi, euismod aliquam
-            nisl nunc euismod nisi.
-          </p>
+        <div className="max-md:contents md:col-start-2 md:col-end-9 lg:col-end-7 md:grid md:grid-cols-subgrid gap-4 md:gap-6">
+          <div className="space-y-6 md:pt-30 md:row-start-1 md:col-start-1 md:col-end-9 lg:col-end-7">
+            <h2 className="text-style-display-large">{t("title")}</h2>
+            <p className="text-style-body-large">
+              {/* TODO: replace with proper content */}
+              lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
+              euismod, nisl eget consectetur sagittis, nisl nunc consectetur
+              nisi, euismod aliquam nisl nunc euismod nisi. Donec euismod, nisl
+              eget consectetur sagittis, nisl nunc consectetur nisi, euismod
+              aliquam nisl nunc euismod nisi.
+            </p>
+          </div>
+
+          {image3 && (
+            <div className="relative max-md:hidden aspect-3/2 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-7">
+              <Image
+                src={image3.imageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+              />
+            </div>
+          )}
+
+          {image2 && (
+            <div className="relative aspect-3/2 md:col-span-full">
+              <Image
+                src={image2.imageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+              />
+            </div>
+          )}
         </div>
 
-        {image1 && (
-          <div className="relative aspect-3/2 max-md:mx-4 md:row-start-1 md:col-start-9 md:col-end-14 lg:col-start-7 lg:col-end-14">
-            <Image
-              src={image1.imageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 25vw"
-            />
-          </div>
-        )}
+        <div className="max-md:contents md:col-start-9 md:col-end-14 lg:col-start-7 lg:col-end-14 md:grid md:grid-cols-subgrid gap-4 md:gap-6">
+          {image1 && (
+            <div className="relative aspect-3/2 md:col-span-full">
+              <Image
+                src={image1.imageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+              />
+            </div>
+          )}
 
-        {image2 && (
-          <div className="relative aspect-3/2 max-md:mx-4 md:row-start-2 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-6">
-            <Image
-              src={image2.imageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 25vw"
-            />
-          </div>
-        )}
+          {image4 && (
+            <div className="max-md:hidden relative aspect-3/2 md:col-start-1 md:col-end-9 lg:col-start-1 lg:col-end-6">
+              <Image
+                src={image4.imageUrl}
+                alt=""
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 50vw, 25vw"
+              />
+            </div>
+          )}
 
-        {image3 && (
-          <div className="max-md:hidden relative aspect-3/2 md:row-start-2 md:col-start-9 md:col-end-13 lg:col-start-7 lg:col-end-12">
-            <Image
-              src={image3.imageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 25vw"
-            />
-          </div>
-        )}
-
-        {image4 && (
-          <div className="max-md:hidden relative aspect-3/2 md:row-start-3 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-7">
-            <Image
-              src={image4.imageUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 50vw, 25vw"
-            />
-          </div>
-        )}
-
-        {allPublished.length > 2 && (
-          <GiteDialog
-            images={allPublished}
-            className={`justify-self-start max-md:mx-4 md:row-start-3 md:col-start-9 lg:col-start-7 ${
-              allPublished.length <= 4 ? "md:hidden" : ""
-            }`}
-          >
-            {t("viewMorePhotos")}
-          </GiteDialog>
-        )}
+          {allPublished.length > 2 && (
+            <GiteDialog
+              images={allPublished}
+              className={`justify-self-start md:row-start-3 md:col-start-9 lg:col-start-7 ${
+                allPublished.length <= 4 ? "md:hidden" : ""
+              }`}
+            >
+              {t("viewMorePhotos")}
+            </GiteDialog>
+          )}
+        </div>
       </div>
     </section>
   );
