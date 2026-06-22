@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 
 export async function uploadGalleryImageAction(formData: FormData) {
@@ -22,7 +22,7 @@ export async function uploadGalleryImageAction(formData: FormData) {
   const maxRow = await db
     .select({ sortOrder: galleryImage.sortOrder })
     .from(galleryImage)
-    .orderBy(galleryImage.sortOrder)
+    .orderBy(desc(galleryImage.sortOrder))
     .limit(1);
 
   const nextSort = maxRow.length > 0 ? (maxRow[0]?.sortOrder ?? 0) + 10 : 10;
