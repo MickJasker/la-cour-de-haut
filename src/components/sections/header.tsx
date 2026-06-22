@@ -6,7 +6,7 @@ import {
   ComponentProps,
   ReactNode,
   useOptimistic,
-  useState,
+  useSyncExternalStore,
   useTransition,
 } from "react";
 import { createPortal } from "react-dom";
@@ -17,10 +17,10 @@ export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
   const [, startTransition] = useTransition();
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
-  const [mainEl] = useState<HTMLElement | null>(() =>
-    typeof window === "undefined"
-      ? null
-      : document.querySelector<HTMLElement>("main"),
+  const mainEl = useSyncExternalStore(
+    () => () => {},
+    () => document.querySelector<HTMLElement>("main"),
+    () => null,
   );
 
   const displayIndex = LOCALES.indexOf(
