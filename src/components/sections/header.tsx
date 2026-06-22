@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import {
   ComponentProps,
   ReactNode,
-  useEffect,
   useOptimistic,
   useState,
   useTransition,
@@ -18,12 +17,11 @@ export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
   const [, startTransition] = useTransition();
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
-  const [mainEl, setMainEl] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMainEl(document.querySelector("main"));
-  }, []);
+  const [mainEl] = useState<HTMLElement | null>(() =>
+    typeof window === "undefined"
+      ? null
+      : document.querySelector<HTMLElement>("main"),
+  );
 
   const displayIndex = LOCALES.indexOf(
     optimisticLocale as (typeof LOCALES)[number],
