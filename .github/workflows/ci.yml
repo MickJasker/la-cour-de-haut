@@ -179,6 +179,9 @@ jobs:
       - run: pnpm exec playwright install chromium --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
+      - name: Run DB migrations
+        run: pnpm db:migrate
+
       - run: pnpm test:e2e
         env:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
@@ -186,6 +189,7 @@ jobs:
           OWNER_EMAIL: admin@lacourdehaut.fr
           OWNER_PASSWORD: ${{ secrets.OWNER_PASSWORD }}
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
 
       - name: Delete Neon E2E branch
         if: always()
