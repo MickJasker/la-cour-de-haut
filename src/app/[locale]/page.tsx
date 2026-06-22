@@ -19,7 +19,7 @@ export default async function HomePage({
         action={
           <Button
             asChild
-            className="w-full md:col-start-11 md:col-end-14"
+            className="w-full md:col-start-10 lg:col-start-11 md:col-end-14"
             size="lg"
           >
             <Link href="/book">{t("bookNow")}</Link>
