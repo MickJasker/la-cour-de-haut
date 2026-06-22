@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 import { BookForm } from "@/components/sections/book-form";
+
+// ISR: booked dates are already eventually-consistent (iCal sources refresh
+// lazily ~hourly, ADR-0005), so a short revalidate window is plenty fresh.
+export const revalidate = 600;
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";

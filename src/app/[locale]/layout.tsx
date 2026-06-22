@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { I18nProvider } from "@/i18n/provider";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getTranslations } from "@/i18n/server";
-import { locales, hasLocale } from "@/i18n/routing";
+import { hasLocale } from "@/i18n/routing";
 import "../globals.css";
 
 const mulish = Mulish({
@@ -20,8 +20,14 @@ const ptSerif = PT_Serif({
   weight: ["700"],
 });
 
+// Locales are NOT prebuilt at build time: the [locale] routes render owner-managed
+// DB content (gallery, booked dates), and the build environment has no database.
+// Returning [] defers generation to first request — each route is then cached and
+// revalidated on its own schedule (on-demand ISR via the per-page `revalidate`),
+// matching the project's lazy-on-read pattern (ADR-0004/0005). dynamicParams stays
+// true (default), so all four locales are served; unknown locales hit notFound().
 export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
+  return [];
 }
 
 export async function generateMetadata({
