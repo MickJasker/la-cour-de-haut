@@ -17,13 +17,20 @@ export async function GiteSection({ locale }: { locale: string }) {
 
   if (allPublished.length === 0) return null;
 
-  // First four drive the inline grid; the dialog shows the full set.
-  const gridImages = allPublished.slice(0, 4);
+  // Each image renders exactly once; responsive grid placement recreates the
+  // staggered desktop masonry while stacking image1/image2 on mobile.
+  const image1 = allPublished[0] ?? null;
+  const image2 = allPublished[1] ?? null;
+  const image3 = allPublished[2] ?? null;
+  const image4 = allPublished[3] ?? null;
 
   return (
     <section data-testid="gite-section" className="py-16">
-      <div className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-6 pb-30 md:pb-0 md:items-center">
-        <div className="col-start-2 col-span-7 lg:col-start-2 lg:col-span-5 space-y-6 max-md:px-4 md:pt-30">
+      <div
+        data-testid="gite-grid"
+        className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 pb-30 md:pb-0 md:items-center"
+      >
+        <div className="space-y-6 max-md:px-4 md:pt-30 md:row-start-1 md:col-start-2 md:col-end-9 lg:col-end-7">
           <h2 className="text-style-display-large">{t("title")}</h2>
           <p className="text-style-body-large">
             {/* TODO: replace with proper content */}
@@ -35,30 +42,64 @@ export async function GiteSection({ locale }: { locale: string }) {
           </p>
         </div>
 
-        <div className="col-start-9 lg:col-start-7 col-end-14 space-y-4 max-md:px-4">
-          <div
-            data-testid="gite-grid"
-            className="grid grid-cols-2 gap-4 md:gap-6"
-          >
-            {gridImages.map((img) => (
-              <div key={img.id} className="relative aspect-3/2">
-                <Image
-                  src={img.imageUrl}
-                  alt=""
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                />
-              </div>
-            ))}
+        {image1 && (
+          <div className="relative aspect-3/2 max-md:mx-4 md:row-start-1 md:col-start-9 md:col-end-14 lg:col-start-7 lg:col-end-14">
+            <Image
+              src={image1.imageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
           </div>
+        )}
 
-          {allPublished.length > 4 && (
-            <GiteDialog images={allPublished} className="justify-self-start">
-              {t("viewMorePhotos")}
-            </GiteDialog>
-          )}
-        </div>
+        {image2 && (
+          <div className="relative aspect-3/2 max-md:mx-4 md:row-start-2 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-6">
+            <Image
+              src={image2.imageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
+          </div>
+        )}
+
+        {image3 && (
+          <div className="max-md:hidden relative aspect-3/2 md:row-start-2 md:col-start-9 md:col-end-13 lg:col-start-7 lg:col-end-12">
+            <Image
+              src={image3.imageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
+          </div>
+        )}
+
+        {image4 && (
+          <div className="max-md:hidden relative aspect-3/2 md:row-start-3 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-7">
+            <Image
+              src={image4.imageUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 50vw, 25vw"
+            />
+          </div>
+        )}
+
+        {allPublished.length > 2 && (
+          <GiteDialog
+            images={allPublished}
+            className={`justify-self-start max-md:mx-4 md:row-start-3 md:col-start-9 lg:col-start-7 ${
+              allPublished.length <= 4 ? "md:hidden" : ""
+            }`}
+          >
+            {t("viewMorePhotos")}
+          </GiteDialog>
+        )}
       </div>
     </section>
   );
