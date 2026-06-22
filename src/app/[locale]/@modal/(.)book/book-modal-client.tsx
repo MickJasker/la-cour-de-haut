@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BookForm } from "@/components/sections/book-form";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/i18n/provider";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
 

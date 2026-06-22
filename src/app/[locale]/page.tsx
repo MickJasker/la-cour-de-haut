@@ -3,7 +3,8 @@ import { Hero } from "@/components/sections/hero";
 import { GiteSection } from "@/components/sections/gite";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/i18n/server";
+import type { Locale } from "@/i18n/routing";
 
 export default async function HomePage({
   params,
@@ -11,7 +12,10 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "sections.header" });
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: "sections.header",
+  });
 
   return (
     <>
@@ -27,8 +31,8 @@ export default async function HomePage({
         }
       />
       <main>
-        <Hero />
-        <GiteSection locale={locale} />
+        <Hero locale={locale as Locale} />
+        <GiteSection locale={locale as Locale} />
       </main>
     </>
   );

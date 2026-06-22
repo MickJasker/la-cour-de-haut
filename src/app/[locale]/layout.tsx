@@ -1,9 +1,11 @@
 import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
-import { NextIntlClientProvider } from "next-intl";
-import { getMessages, getTranslations } from "next-intl/server";
-import { routing } from "@/i18n/routing";
+import { notFound } from "next/navigation";
+import { I18nProvider } from "@/i18n/provider";
+import { getDictionary } from "@/i18n/dictionaries";
+import { getTranslations } from "@/i18n/server";
+import { locales, hasLocale } from "@/i18n/routing";
 import "../globals.css";
 
 const mulish = Mulish({
@@ -19,7 +21,7 @@ const ptSerif = PT_Serif({
 });
 
 export function generateStaticParams() {
-  return routing.locales.map((locale) => ({ locale }));
+  return locales.map((locale) => ({ locale }));
 }
 
 export async function generateMetadata({
@@ -28,6 +30,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  if (!hasLocale(locale)) notFound();
   const t = await getTranslations({ locale, namespace: "metadata.home" });
   return {
     title: {
@@ -46,7 +49,8 @@ interface Props {
 
 export default async function LocaleLayout({ children, modal, params }: Props) {
   const { locale } = await params;
-  const messages = await getMessages();
+  if (!hasLocale(locale)) notFound();
+  const messages = await getDictionary(locale);
 
   return (
     <html
@@ -54,10 +58,10 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
       className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <I18nProvider locale={locale} messages={messages}>
           {children}
           {modal}
-        </NextIntlClientProvider>
+        </I18nProvider>
       </body>
     </html>
   );

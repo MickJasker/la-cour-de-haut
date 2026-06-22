@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/i18n/server";
+import type { Locale } from "@/i18n/routing";
 import { BookForm } from "@/components/sections/book-form";
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
@@ -12,7 +13,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "metadata.book" });
+  const t = await getTranslations({
+    locale: locale as Locale,
+    namespace: "metadata.book",
+  });
   return {
     title: t("title"),
     description: t("description"),
@@ -25,7 +29,7 @@ export default async function BookPage({
   params: Promise<{ locale: string }>;
 }) {
   const t = await getTranslations({
-    locale: (await params).locale,
+    locale: (await params).locale as Locale,
     namespace: "booking",
   });
   const bookedDates = getBookedDatesAction();

@@ -4,20 +4,24 @@ import {
   ServerValidateError,
   initialFormState,
 } from "@tanstack/react-form-nextjs";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/i18n/server";
 import { Resend } from "resend";
 import { createBookingFormSchema } from "./shared";
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { getBusyIntervals } from "@/lib/availability";
-import { routing } from "@/i18n/routing";
+import { defaultLocale, hasLocale } from "@/i18n/routing";
 import { expandInterval } from "@/lib/availability-utils";
 
 const serverValidate = createServerValidate({
   ...formOpts,
   onServerValidate: async ({ value }) => {
-    const t = await getTranslations("booking");
+    // `value` is decoded from the full FormData, so the hidden `_locale` field is
+    // present here even though it is not a registered form field.
+    const rawLocale = (value as { _locale?: string })._locale;
+    const locale = hasLocale(rawLocale) ? rawLocale : defaultLocale;
+    const t = await getTranslations({ locale, namespace: "booking" });
     const schema = createBookingFormSchema((key) =>
       t(key as Parameters<typeof t>[0]),
     );
@@ -117,11 +121,18 @@ export async function submitBookingAction(
     return { ...initialFormState, success: true };
   }
 
+  // Locale comes from the form (hidden `_locale` field), never from request scope.
+  const rawLocale = formData.get("_locale");
+  const locale =
+    typeof rawLocale === "string" && hasLocale(rawLocale)
+      ? rawLocale
+      : defaultLocale;
+
   // 2. Turnstile verification
   const token = (formData.get("cf-turnstile-response") as string) ?? "";
   const turnstileOk = await verifyTurnstile(token);
   if (!turnstileOk) {
-    const t = await getTranslations("booking");
+    const t = await getTranslations({ locale, namespace: "booking" });
     return {
       ...initialFormState,
       success: false,
@@ -133,12 +144,6 @@ export async function submitBookingAction(
   try {
     const data = await serverValidate(formData);
     const db = getDb();
-    const rawLocale = formData.get("_locale") as string;
-    const locale = routing.locales.includes(
-      rawLocale as (typeof routing.locales)[number],
-    )
-      ? rawLocale
-      : "nl";
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,
