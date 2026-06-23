@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { icalSource } from "@/db/schema";
 import { bookingRequest, type BusyInterval } from "@/db/schema";
 import { and, eq, gte, isNull, or } from "drizzle-orm";
+import { connection } from "next/server";
 
 export type { BusyInterval };
 export { expandInterval } from "./availability-utils";
@@ -51,6 +52,7 @@ async function refreshSource(
  * A never-synced source that fails contributes no intervals (fail-open).
  */
 export async function getBusyIntervals(): Promise<BusyInterval[]> {
+  await connection();
   const db = getDb();
 
   const [sources, holds] = await Promise.all([
