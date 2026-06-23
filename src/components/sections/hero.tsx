@@ -1,12 +1,13 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "@/i18n/server";
+import type { Locale } from "@/i18n/routing";
 import { Button } from "../ui/button";
 import { Link } from "@/i18n/navigation";
 import { Logo } from "../ui/logo";
 import heroImage from "./hero.jpg";
 import Image from "next/image";
 
-export function Hero() {
-  const t = useTranslations("sections.hero");
+export async function Hero({ locale }: { locale: Locale }) {
+  const t = await getTranslations({ locale, namespace: "sections.hero" });
 
   return (
     <div className="grid grid-cols-[24px_1fr_24px] md:grid-cols-[24px_6fr_6fr_6fr_24px] lg:grid-cols-[2fr_3fr_4fr_4fr_2fr] xl:grid-cols-[2fr_3fr_1fr_8fr_2fr] h-svh max-h-225 gap-4 pb-30 md:pb-0 items-end md:items-center bg-brand-forest text-olive-50">

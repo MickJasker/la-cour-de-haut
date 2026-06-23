@@ -46,7 +46,7 @@ requested ──(owner confirms)──► on_hold ──(payment received)──
 
 Two distinct layers:
 
-**UI chrome** — static strings (buttons, labels, section titles, form validation). Translated at build time in next-intl message files. No DB involvement.
+**UI chrome** — static strings (buttons, labels, section titles, form validation). Held in per-locale message files (`messages/{locale}.json`) and resolved by the **active locale**, which is always read from the URL's `[locale]` segment — never from the request. No DB involvement. See [ADR-0008](docs/adr/0008-native-i18n-for-cache-components.md).
 
 **Dynamic content** — owner-managed records stored in the DB, translatable per field. Owner writes in Dutch (primary), then clicks **Auto-translate** to fill EN/FR/DE via DeepL. Fields the owner edits manually are marked **human-edited** and protected from being overwritten by a later re-translate. Fields filled by DeepL are marked **machine**.
 
@@ -82,6 +82,7 @@ Binary assets (photos) are stored in **Vercel Blob**; only the public URL is kep
 
 | Term                           | Meaning                                                                                                                                                                                                                                                        |
 | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Active locale**              | The locale in effect for a render, always derived from the URL's `[locale]` segment (a route param) — never from request headers/cookies. Resolving it from the param is what keeps pages prerenderable / `cacheComponents`-compatible.                        |
 | **Booking request**            | A guest's availability inquiry, submitted via the public form                                                                                                                                                                                                  |
 | **On hold**                    | Status after owner confirmation, before payment; dates are blocked in the export feed                                                                                                                                                                          |
 | **Payment deadline**           | The date by which the guest must pay, or the hold expires automatically                                                                                                                                                                                        |

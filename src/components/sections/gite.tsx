@@ -1,11 +1,12 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/i18n/server";
+import type { Locale } from "@/i18n/routing";
 import Image from "next/image";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { GiteDialog } from "./gite-dialog";
 
-export async function GiteSection({ locale }: { locale: string }) {
+export async function GiteSection({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: "sections.gite" });
 
   const db = getDb();

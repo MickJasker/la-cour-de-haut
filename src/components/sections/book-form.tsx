@@ -21,7 +21,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useId } from "react";
 import { addDays, addMonths, format } from "date-fns";
 import { Calendar } from "../ui/calendar";
-import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "@/i18n/provider";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
@@ -66,7 +66,11 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
 
   const id = useId();
 
-  const formatter = useFormatter();
+  const currency = new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+  });
 
   const isSuccessful = state.success;
 
@@ -236,12 +240,7 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
           <div>
             <p className="text-sm">
               {t.rich("form.pricePerNight", {
-                price: formatter.number(pricePerNight, {
-                  style: "currency",
-                  currency: "EUR",
-                  minimumFractionDigits: 0,
-                }),
-                strong: (chunks) => <strong>{chunks}</strong>,
+                price: currency.format(pricePerNight),
               })}
             </p>
 
@@ -264,21 +263,9 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
                 return (
                   <p className={cn("text-sm", !totalNights && "invisible")}>
                     {t.rich("form.totalPrice", {
-                      pricePerNight: formatter.number(pricePerNight, {
-                        style: "currency",
-                        currency: "EUR",
-                        minimumFractionDigits: 0,
-                      }),
+                      pricePerNight: currency.format(pricePerNight),
                       totalNights,
-                      totalPrice: formatter.number(
-                        pricePerNight * totalNights,
-                        {
-                          style: "currency",
-                          currency: "EUR",
-                          minimumFractionDigits: 0,
-                        },
-                      ),
-                      strong: (chunks) => <strong>{chunks}</strong>,
+                      totalPrice: currency.format(pricePerNight * totalNights),
                     })}
                   </p>
                 );
