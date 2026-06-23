@@ -6,10 +6,6 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 
-// ISR: cache the rendered page, regenerate hourly. The only DB-backed content is
-// the gallery (GiteSection), which changes rarely.
-export const revalidate = 3600;
-
 export default async function HomePage({
   params,
 }: {
