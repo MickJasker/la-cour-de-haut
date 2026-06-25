@@ -37,11 +37,11 @@
     "purposeTitle": "Why do we use your data?",
     "purposeBody": "We use your data solely to respond to your booking request, confirm availability, and provide further payment and stay information.",
     "retentionTitle": "How long do we retain your data?",
-    "retentionBody": "Your personal data is retained for a maximum of 2 years after your stay, after which it is deleted.",
+    "retentionBody": "We retain your data for as long as necessary to handle your booking request and any related correspondence. You can request deletion at any time by contacting us.",
     "rightsTitle": "Your rights",
-    "rightsBody": "You have the right to access, rectify, and delete your personal data. For questions or requests, please contact us at: info@lacourde-haut.be.",
+    "rightsBody": "You have the right to access, rectify, and delete your personal data. For questions or requests, please contact us at: info@lacourdehaut.fr.",
     "contactTitle": "Contact",
-    "contactBody": "La Cour de Haut — info@lacourde-haut.be"
+    "contactBody": "La Cour de Haut — info@lacourdehaut.fr"
   },
   "booking": {
     "form": {
