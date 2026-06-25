@@ -57,6 +57,13 @@
       "when": 1782060733207,
       "tag": "0007_broken_kabuki",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1782389621231,
+      "tag": "0008_dazzling_smasher",
+      "breakpoints": true
     }
   ]
 }

@@ -174,3 +174,27 @@ export const galleryImage = pgTable("gallery_image", {
   published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export type ReviewSource = "airbnb" | "natuurhuisje" | "direct";
+
+export const review = pgTable("review", {
+  id: text("id").primaryKey(),
+  authorName: text("author_name").notNull(),
+  rating: integer("rating").notNull(),
+  reviewDate: date("review_date").notNull(),
+  source: text("source").notNull().$type<ReviewSource>(),
+  body: jsonb("body")
+    .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
+    .notNull(),
+  bodySource: jsonb("body_source")
+    .$type<{
+      nl: "human" | "machine";
+      en?: "human" | "machine";
+      fr?: "human" | "machine";
+      de?: "human" | "machine";
+    }>()
+    .notNull(),
+  published: boolean("published").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
