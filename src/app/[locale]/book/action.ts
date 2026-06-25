@@ -12,7 +12,7 @@ import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { getBusyIntervals } from "@/lib/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
-import { expandInterval } from "@/lib/availability-utils";
+import { expandInterval, hasConflict } from "@/lib/availability-utils";
 
 const serverValidate = createServerValidate({
   ...formOpts,
@@ -143,6 +143,18 @@ export async function submitBookingAction(
   // 3. Field validation + DB insert
   try {
     const data = await serverValidate(formData);
+
+    // 3a. Server-side overlap check — guards against races and crafted POSTs
+    const busyIntervals = await getBusyIntervals();
+    if (hasConflict(busyIntervals, data.stayDates.from, data.stayDates.to)) {
+      const t = await getTranslations({ locale, namespace: "booking" });
+      return {
+        ...initialFormState,
+        success: false,
+        formError: t("form.datesUnavailable"),
+      };
+    }
+
     const db = getDb();
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),

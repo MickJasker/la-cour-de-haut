@@ -37,6 +37,7 @@
       "submitting": "Bezig met boeken...",
       "successMessage": "Bedankt voor uw boeking! We nemen binnenkort contact met u op.",
       "errorMessage": "Er is een fout opgetreden bij het verwerken van uw boeking. Probeer het later opnieuw of neem contact met ons op via e-mail of telefoon.",
+      "datesUnavailable": "De geselecteerde datums zijn niet meer beschikbaar. Kies andere datums.",
       "pricePerNight": "Prijs per nacht: <strong>{price}</strong>",
       "totalPrice": "Totale prijs: <strong>{pricePerNight}</strong> x {totalNights} nachten = <strong>{totalPrice}</strong>",
       "disclaimer": "Na het indienen van het boekingsformulier nemen we contact met u op om de beschikbaarheid te bevestigen en verdere details en betalingsinstructies te verstrekken. Uw boeking is pas definitief na onze bevestiging en ontvangst van betaling."
