@@ -36,6 +36,7 @@
       "submit": "Boek nu",
       "submitting": "Bezig met boeken...",
       "successMessage": "Bedankt voor uw boeking! We nemen binnenkort contact met u op.",
+      "makeAnotherBooking": "Nog een boeking maken",
       "errorMessage": "Er is een fout opgetreden bij het verwerken van uw boeking. Probeer het later opnieuw of neem contact met ons op via e-mail of telefoon.",
       "datesUnavailable": "De geselecteerde datums zijn niet meer beschikbaar. Kies andere datums.",
       "pricePerNight": "Prijs per nacht: <strong>{price}</strong>",

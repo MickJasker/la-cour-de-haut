@@ -36,6 +36,7 @@
       "submit": "Book now",
       "submitting": "Booking...",
       "successMessage": "Thank you for your booking! We will contact you shortly.",
+      "makeAnotherBooking": "Make another booking",
       "errorMessage": "An error occurred while processing your booking. Please try again later or contact us by email or phone.",
       "datesUnavailable": "The selected dates are no longer available. Please choose different dates.",
       "pricePerNight": "Price per night: <strong>{price}</strong>",

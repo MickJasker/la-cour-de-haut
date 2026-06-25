@@ -36,6 +36,7 @@
       "submit": "Réserver maintenant",
       "submitting": "Réservation en cours...",
       "successMessage": "Merci pour votre réservation ! Nous vous contacterons prochainement.",
+      "makeAnotherBooking": "Faire une autre réservation",
       "errorMessage": "Une erreur s'est produite lors du traitement de votre réservation. Veuillez réessayer plus tard ou contactez-nous par e-mail ou par téléphone.",
       "datesUnavailable": "Les dates sélectionnées ne sont plus disponibles. Veuillez choisir d'autres dates.",
       "pricePerNight": "Prix par nuit : <strong>{price}</strong>",
