@@ -37,6 +37,7 @@
       "submitting": "Réservation en cours...",
       "successMessage": "Merci pour votre réservation ! Nous vous contacterons prochainement.",
       "errorMessage": "Une erreur s'est produite lors du traitement de votre réservation. Veuillez réessayer plus tard ou contactez-nous par e-mail ou par téléphone.",
+      "datesUnavailable": "Les dates sélectionnées ne sont plus disponibles. Veuillez choisir d'autres dates.",
       "pricePerNight": "Prix par nuit : <strong>{price}</strong>",
       "totalPrice": "Prix total : <strong>{pricePerNight}</strong> x {totalNights} nuits = <strong>{totalPrice}</strong>",
       "disclaimer": "Après avoir soumis le formulaire de réservation, nous vous contacterons pour confirmer la disponibilité et fournir plus de détails et les instructions de paiement. Votre réservation ne sera définitive qu'après notre confirmation et la réception du paiement."

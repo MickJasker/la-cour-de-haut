@@ -37,6 +37,7 @@
       "submitting": "Booking...",
       "successMessage": "Thank you for your booking! We will contact you shortly.",
       "errorMessage": "An error occurred while processing your booking. Please try again later or contact us by email or phone.",
+      "datesUnavailable": "The selected dates are no longer available. Please choose different dates.",
       "pricePerNight": "Price per night: <strong>{price}</strong>",
       "totalPrice": "Total price: <strong>{pricePerNight}</strong> x {totalNights} nights = <strong>{totalPrice}</strong>",
       "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment."

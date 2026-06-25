@@ -37,6 +37,7 @@
       "submitting": "Buchung wird bearbeitet...",
       "successMessage": "Vielen Dank für Ihre Buchung! Wir werden uns in Kürze mit Ihnen in Verbindung setzen.",
       "errorMessage": "Bei der Verarbeitung Ihrer Buchung ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut oder kontaktieren Sie uns per E-Mail oder Telefon.",
+      "datesUnavailable": "Die ausgewählten Daten sind nicht mehr verfügbar. Bitte wählen Sie andere Daten.",
       "pricePerNight": "Preis pro Nacht: <strong>{price}</strong>",
       "totalPrice": "Gesamtpreis: <strong>{pricePerNight}</strong> x {totalNights} Nächte = <strong>{totalPrice}</strong>",
       "disclaimer": "Nach dem Absenden des Buchungsformulars werden wir uns mit Ihnen in Verbindung setzen, um die Verfügbarkeit zu bestätigen und weitere Details sowie Zahlungsanweisungen bereitzustellen. Ihre Buchung wird erst nach unserer Bestätigung und dem Erhalt der Zahlung endgültig."
