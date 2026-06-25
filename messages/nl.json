@@ -25,6 +25,24 @@
       "callToAction": "Boek je verblijf nu"
     }
   },
+  "privacy": {
+    "metadata": {
+      "title": "Privacybeleid",
+      "description": "Privacybeleid van La Cour de Haut — hoe wij uw persoonsgegevens verwerken."
+    },
+    "title": "Privacybeleid",
+    "intro": "La Cour de Haut verwerkt persoonsgegevens in verband met boekingsverzoeken. Deze kennisgeving legt uit welke gegevens wij verzamelen, waarom, en hoe lang wij deze bewaren.",
+    "dataCollectedTitle": "Welke gegevens verzamelen wij?",
+    "dataCollectedBody": "Via het boekingsformulier verzamelen wij: uw voor- en achternaam, e-mailadres, telefoonnummer en de gewenste verblijfsdata.",
+    "purposeTitle": "Waarvoor worden uw gegevens gebruikt?",
+    "purposeBody": "Wij gebruiken uw gegevens uitsluitend om te reageren op uw boekingsverzoek, de beschikbaarheid te bevestigen en verdere betalings- en verblijfsinformatie te verstrekken.",
+    "retentionTitle": "Hoe lang bewaren wij uw gegevens?",
+    "retentionBody": "Wij bewaren uw gegevens zo lang als nodig is voor de afhandeling van uw boekingsverzoek en de bijbehorende correspondentie. U kunt op elk moment om verwijdering verzoeken door contact met ons op te nemen.",
+    "rightsTitle": "Uw rechten",
+    "rightsBody": "U heeft het recht op inzage, rectificatie en verwijdering van uw persoonsgegevens. Voor vragen of verzoeken kunt u contact opnemen via: info@lacourdehaut.fr.",
+    "contactTitle": "Contact",
+    "contactBody": "La Cour de Haut — info@lacourdehaut.fr"
+  },
   "booking": {
     "form": {
       "name": "Voor- en achternaam",
@@ -51,6 +69,7 @@
       "guestCount": "Aantal gasten moet 1 of 2 zijn",
       "minNights": "Selecteer minimaal 2 data voor een minimumverblijf van 1 nacht"
     },
-    "aboutAction": "Over de Gîte"
+    "aboutAction": "Over de Gîte",
+    "privacyNotice": "Door dit formulier in te dienen gaat u akkoord met ons <link>privacybeleid</link>."
   }
 }

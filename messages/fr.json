@@ -25,6 +25,24 @@
       "callToAction": "Réservez votre séjour maintenant"
     }
   },
+  "privacy": {
+    "metadata": {
+      "title": "Politique de confidentialité",
+      "description": "Politique de confidentialité de La Cour de Haut — comment nous traitons vos données personnelles."
+    },
+    "title": "Politique de confidentialité",
+    "intro": "La Cour de Haut traite des données personnelles dans le cadre des demandes de réservation. Cette notice explique quelles données nous collectons, pourquoi, et combien de temps nous les conservons.",
+    "dataCollectedTitle": "Quelles données collectons-nous ?",
+    "dataCollectedBody": "Via le formulaire de réservation, nous collectons : votre prénom et nom de famille, adresse e-mail, numéro de téléphone et les dates de séjour souhaitées.",
+    "purposeTitle": "Pourquoi utilisons-nous vos données ?",
+    "purposeBody": "Nous utilisons vos données uniquement pour répondre à votre demande de réservation, confirmer la disponibilité et fournir des informations de paiement et de séjour.",
+    "retentionTitle": "Combien de temps conservons-nous vos données ?",
+    "retentionBody": "Nous conservons vos données aussi longtemps que nécessaire pour traiter votre demande de réservation et la correspondance associée. Vous pouvez demander la suppression à tout moment en nous contactant.",
+    "rightsTitle": "Vos droits",
+    "rightsBody": "Vous avez le droit d'accéder, de rectifier et de supprimer vos données personnelles. Pour toute question ou demande, contactez-nous à : info@lacourdehaut.fr.",
+    "contactTitle": "Contact",
+    "contactBody": "La Cour de Haut — info@lacourdehaut.fr"
+  },
   "booking": {
     "form": {
       "name": "Prénom et nom de famille",
@@ -51,6 +69,7 @@
       "guestCount": "Le nombre de personnes doit être 1 ou 2",
       "minNights": "Sélectionnez au moins 2 dates pour un séjour minimum de 1 nuit"
     },
-    "aboutAction": "À propos de la Gîte"
+    "aboutAction": "À propos de la Gîte",
+    "privacyNotice": "En soumettant ce formulaire, vous acceptez notre <link>politique de confidentialité</link>."
   }
 }

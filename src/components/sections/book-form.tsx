@@ -22,6 +22,8 @@ import { useId } from "react";
 import { addDays, addMonths, format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { useLocale, useTranslations } from "@/i18n/provider";
+import { Link } from "@/i18n/navigation";
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
@@ -319,6 +321,19 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
             <Button type="submit" disabled={isPending} size="lg">
               {isPending ? t("form.submitting") : t("form.submit")}
             </Button>
+
+            <p className="text-xs text-muted-foreground">
+              {t.rich("privacyNotice", {
+                link: (chunks: ReactNode) => (
+                  <Link
+                    href="/privacy"
+                    className="underline underline-offset-2 hover:text-foreground transition-colors"
+                  >
+                    {chunks}
+                  </Link>
+                ),
+              })}
+            </p>
           </FieldSet>
         </FieldGroup>
 
