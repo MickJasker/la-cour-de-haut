@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { neon } from "@neondatabase/serverless";
 
 const PLACEHOLDER_URL = "https://picsum.photos/seed/test/800/600";
@@ -6,6 +6,24 @@ const PLACEHOLDER_URL = "https://picsum.photos/seed/test/800/600";
 async function clearGallery() {
   const sql = neon(process.env.DATABASE_URL!);
   await sql`TRUNCATE gallery_image`;
+}
+
+// GiteSection uses `'use cache'` (tag "gallery"), and that cache is shared
+// process-wide across Playwright workers. Tests seed the DB directly — outside
+// the Server Actions that would normally call `updateTag` — so we expire the tag
+// *after* seeding and immediately before navigating. Busting post-seed (rather
+// than in beforeEach) closes the race where a concurrent render (e.g. smoke.spec
+// hitting "/") caches the pre-seed empty table.
+async function gotoFresh(page: Page, path: string) {
+  const res = await fetch("http://localhost:3000/api/dev/revalidate-gallery", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Failed to revalidate gallery cache (status ${res.status}). Is E2E_TESTING set?`,
+    );
+  }
+  await page.goto(path);
 }
 
 async function seedImage(opts: {
@@ -35,7 +53,7 @@ test.describe("gallery: public section", () => {
     page,
   }) => {
     await seedImage({ id: "gal-test-1", sortOrder: 1, published: true });
-    await page.goto("/nl");
+    await gotoFresh(page, "/nl");
     const section = page.locator("[data-testid='gite-section']");
     await expect(section).toBeVisible();
     await expect(section.locator("img")).toHaveCount(1);
@@ -46,7 +64,7 @@ test.describe("gallery: public section", () => {
   }) => {
     await seedImage({ id: "gal-test-pub", sortOrder: 1, published: true });
     await seedImage({ id: "gal-test-priv", sortOrder: 2, published: false });
-    await page.goto("/nl");
+    await gotoFresh(page, "/nl");
     const section = page.locator("[data-testid='gite-section']");
     await expect(section.locator("img")).toHaveCount(1);
   });
@@ -55,7 +73,7 @@ test.describe("gallery: public section", () => {
     for (let i = 1; i <= 6; i++) {
       await seedImage({ id: `gal-test-${i}`, sortOrder: i, published: true });
     }
-    await page.goto("/nl");
+    await gotoFresh(page, "/nl");
     const section = page.locator("[data-testid='gite-section']");
     await expect(section.locator("[data-testid='gite-grid'] img")).toHaveCount(
       4,
@@ -64,13 +82,13 @@ test.describe("gallery: public section", () => {
 
   test("section title appears in Dutch", async ({ page }) => {
     await seedImage({ id: "gal-test-nl", sortOrder: 1, published: true });
-    await page.goto("/nl");
+    await gotoFresh(page, "/nl");
     await expect(page.getByRole("heading", { name: /De Gîte/i })).toBeVisible();
   });
 
   test("section title appears in English", async ({ page }) => {
     await seedImage({ id: "gal-test-en", sortOrder: 1, published: true });
-    await page.goto("/en");
+    await gotoFresh(page, "/en");
     await expect(
       page.getByRole("heading", { name: /The Gîte/i }),
     ).toBeVisible();
@@ -78,13 +96,13 @@ test.describe("gallery: public section", () => {
 
   test("section title appears in French", async ({ page }) => {
     await seedImage({ id: "gal-test-fr", sortOrder: 1, published: true });
-    await page.goto("/fr");
+    await gotoFresh(page, "/fr");
     await expect(page.getByRole("heading", { name: /La Gîte/i })).toBeVisible();
   });
 
   test("section title appears in German", async ({ page }) => {
     await seedImage({ id: "gal-test-de", sortOrder: 1, published: true });
-    await page.goto("/de");
+    await gotoFresh(page, "/de");
     await expect(
       page.getByRole("heading", { name: /Das Gîte/i }),
     ).toBeVisible();
@@ -96,10 +114,11 @@ test.describe("gallery: public section", () => {
     for (let i = 1; i <= 6; i++) {
       await seedImage({ id: `gal-dlg-${i}`, sortOrder: i, published: true });
     }
-    await page.goto("/nl");
-    await page
-      .getByRole("button", { name: /bekijk meer foto/i })
-      .dispatchEvent("click");
+    await gotoFresh(page, "/nl");
+    // `.click()` (not `dispatchEvent`) so Playwright waits for the GiteDialog
+    // client component to hydrate — under PPR the static shell streams first,
+    // so a raw dispatched event can fire before React attaches its handler.
+    await page.getByRole("button", { name: /bekijk meer foto/i }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await expect(dialog.locator("img")).toHaveCount(6);

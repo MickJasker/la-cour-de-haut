@@ -66,7 +66,7 @@ title_source: { nl: "human", en: "machine", fr: "human", de: "machine" }
 Two test runners, strictly separated by what they can see:
 
 - **Vitest** — utility functions and synchronous client components only. Async Server Components are unsupported by Vitest (React ecosystem limitation). Tests live in `src/**/*.test.ts(x)`, co-located with source.
-- **Playwright** — full request-cycle tests against a running `next dev` server. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`.
+- **Playwright** — full request-cycle tests. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`. Locally it drives `next dev`; **on CI it runs against a production build** (`next build && next start`), because Cache Components / PPR don't actually run under `next dev` — see [ADR-0009](docs/adr/0009-e2e-against-production-build.md). The suite `TRUNCATE`s core tables in `global-setup`, so only run it against a disposable database (CI uses a per-run Neon branch), never your dev DB.
 
 ## Settings
 

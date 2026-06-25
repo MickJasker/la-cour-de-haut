@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
@@ -35,7 +35,7 @@ export async function uploadGalleryImageAction(formData: FormData) {
   });
 
   revalidatePath("/admin/gallery");
-  revalidatePath("/[locale]", "layout");
+  updateTag("gallery");
 }
 
 export async function togglePublishedAction(id: string, published: boolean) {
@@ -46,7 +46,7 @@ export async function togglePublishedAction(id: string, published: boolean) {
     .set({ published })
     .where(eq(galleryImage.id, id));
   revalidatePath("/admin/gallery");
-  revalidatePath("/[locale]", "layout");
+  updateTag("gallery");
 }
 
 export async function deleteGalleryImageAction(id: string) {
@@ -65,5 +65,5 @@ export async function deleteGalleryImageAction(id: string) {
   await db.delete(galleryImage).where(eq(galleryImage.id, id));
 
   revalidatePath("/admin/gallery");
-  revalidatePath("/[locale]", "layout");
+  updateTag("gallery");
 }

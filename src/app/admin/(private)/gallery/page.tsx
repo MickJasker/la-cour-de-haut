@@ -4,8 +4,6 @@ import { galleryImage } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { GalleryList, UploadForm } from "./gallery-client";
 
-export const dynamic = "force-dynamic";
-
 export default async function GalleryAdminPage() {
   await verifySession();
   const db = getDb();

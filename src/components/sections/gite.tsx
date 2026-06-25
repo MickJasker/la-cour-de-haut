@@ -5,8 +5,12 @@ import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { GiteDialog } from "./gite-dialog";
+import { cacheLife, cacheTag } from "next/cache";
 
 export async function GiteSection({ locale }: { locale: Locale }) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag("gallery");
   const t = await getTranslations({ locale, namespace: "sections.gite" });
 
   const db = getDb();

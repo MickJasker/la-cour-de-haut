@@ -8,9 +8,16 @@ export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
   webServer: {
-    command: "pnpm dev",
+    // On CI, run e2e against a real production build. Cache Components / PPR
+    // only behave correctly when built (`'use cache'` is real, static shells are
+    // prerendered, routes are precompiled so there's no lazy-compile latency
+    // that flakes timeouts under parallel workers). Locally we keep `pnpm dev`
+    // for fast iteration; reuse an already-running dev server.
+    command: process.env.CI ? "pnpm build && pnpm start" : "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
+    // A production build can take a couple of minutes on a cold CI runner.
+    timeout: 180_000,
   },
   use: {
     baseURL: "http://localhost:3000",

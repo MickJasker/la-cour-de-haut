@@ -3,10 +3,12 @@ import { redirect } from "next/navigation";
 import { getAuth } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
-export const dynamic = "force-dynamic";
-
 export default async function LoginPage() {
-  const session = await getAuth().api.getSession({ headers: await headers() });
+  // Await headers() before getAuth() so the admin layout's <Suspense> boundary
+  // bails into a dynamic hole during prerender — otherwise getAuth() (reading
+  // env absent at build time) throws while prerendering. See lib/dal.ts.
+  const requestHeaders = await headers();
+  const session = await getAuth().api.getSession({ headers: requestHeaders });
   if (session) redirect("/admin");
   return <LoginForm />;
 }

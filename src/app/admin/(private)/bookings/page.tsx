@@ -19,8 +19,6 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
 
-export const dynamic = "force-dynamic";
-
 const STATUS_LABELS: Record<DisplayStatus, string> = {
   requested: "Requested",
   on_hold: "On hold",
