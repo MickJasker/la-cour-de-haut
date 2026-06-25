@@ -10,8 +10,15 @@ function createAuth() {
   if (!baseURL) throw new Error("BETTER_AUTH_URL is not set");
   return betterAuth({
     secret,
-    baseURL,
-    origin: baseURL,
+    baseURL: {
+      allowedHosts: [
+        "localhost",
+        "la-cour-de-haut.vercel.app",
+        "lacourdehaut.fr",
+      ],
+      protocol: "https",
+      fallback: baseURL,
+    },
     database: drizzleAdapter(getDb(), { provider: "pg" }),
     emailAndPassword: { enabled: true, disableSignUp: true },
     plugins: [admin()],
