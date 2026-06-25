@@ -17,6 +17,9 @@
       "title": "De Gîte",
       "viewMorePhotos": "Bekijk meer foto's"
     },
+    "reviews": {
+      "title": "Wat gasten zeggen"
+    },
     "hero": {
       "description": "Een boeiende introductie op de website, met een visueel opvallend beeld en een pakkende kop die direct de aandacht van de bezoeker trekt.",
       "callToAction": "Boek je verblijf nu"

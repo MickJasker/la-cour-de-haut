@@ -1,6 +1,7 @@
 import { Header } from "@/components/sections/header";
 import { Hero } from "@/components/sections/hero";
 import { GiteSection } from "@/components/sections/gite";
+import { ReviewsSection } from "@/components/sections/reviews";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
@@ -33,6 +34,7 @@ export default async function HomePage({
       <main>
         <Hero locale={locale as Locale} />
         <GiteSection locale={locale as Locale} />
+        <ReviewsSection locale={locale as Locale} />
       </main>
     </>
   );
