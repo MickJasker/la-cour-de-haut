@@ -25,6 +25,24 @@
       "callToAction": "Book your stay now"
     }
   },
+  "privacy": {
+    "metadata": {
+      "title": "Privacy Policy",
+      "description": "Privacy policy of La Cour de Haut — how we process your personal data."
+    },
+    "title": "Privacy Policy",
+    "intro": "La Cour de Haut processes personal data in connection with booking requests. This notice explains what data we collect, why, and how long we retain it.",
+    "dataCollectedTitle": "What data do we collect?",
+    "dataCollectedBody": "Through the booking form we collect: your first and last name, email address, phone number, and your requested stay dates.",
+    "purposeTitle": "Why do we use your data?",
+    "purposeBody": "We use your data solely to respond to your booking request, confirm availability, and provide further payment and stay information.",
+    "retentionTitle": "How long do we retain your data?",
+    "retentionBody": "Your personal data is retained for a maximum of 2 years after your stay, after which it is deleted.",
+    "rightsTitle": "Your rights",
+    "rightsBody": "You have the right to access, rectify, and delete your personal data. For questions or requests, please contact us at: info@lacourde-haut.be.",
+    "contactTitle": "Contact",
+    "contactBody": "La Cour de Haut — info@lacourde-haut.be"
+  },
   "booking": {
     "form": {
       "name": "First and last name",
@@ -49,6 +67,7 @@
       "guestCount": "Number of guests must be 1 or 2",
       "minNights": "Select at least 2 dates for a minimum stay of 1 night"
     },
-    "aboutAction": "About the Gîte"
+    "aboutAction": "About the Gîte",
+    "privacyNotice": "By submitting this form you agree to our <link>privacy policy</link>."
   }
 }

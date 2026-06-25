@@ -25,6 +25,24 @@
       "callToAction": "Jetzt Ihren Aufenthalt buchen"
     }
   },
+  "privacy": {
+    "metadata": {
+      "title": "Datenschutzerklärung",
+      "description": "Datenschutzerklärung von La Cour de Haut — wie wir Ihre personenbezogenen Daten verarbeiten."
+    },
+    "title": "Datenschutzerklärung",
+    "intro": "La Cour de Haut verarbeitet personenbezogene Daten im Zusammenhang mit Buchungsanfragen. Diese Erklärung erläutert, welche Daten wir erheben, warum und wie lange wir sie aufbewahren.",
+    "dataCollectedTitle": "Welche Daten erheben wir?",
+    "dataCollectedBody": "Über das Buchungsformular erheben wir: Ihren Vor- und Nachnamen, Ihre E-Mail-Adresse, Telefonnummer und die gewünschten Aufenthaltsdaten.",
+    "purposeTitle": "Wofür verwenden wir Ihre Daten?",
+    "purposeBody": "Wir verwenden Ihre Daten ausschließlich zur Beantwortung Ihrer Buchungsanfrage, zur Bestätigung der Verfügbarkeit und zur Bereitstellung weiterer Zahlungs- und Aufenthaltsinformationen.",
+    "retentionTitle": "Wie lange bewahren wir Ihre Daten auf?",
+    "retentionBody": "Ihre personenbezogenen Daten werden für maximal 2 Jahre nach Ihrem Aufenthalt aufbewahrt und anschließend gelöscht.",
+    "rightsTitle": "Ihre Rechte",
+    "rightsBody": "Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer personenbezogenen Daten. Bei Fragen oder Anträgen kontaktieren Sie uns unter: info@lacourde-haut.be.",
+    "contactTitle": "Kontakt",
+    "contactBody": "La Cour de Haut — info@lacourde-haut.be"
+  },
   "booking": {
     "form": {
       "name": "Vor- und Nachname",
@@ -49,6 +67,7 @@
       "guestCount": "Die Anzahl der Gäste muss 1 oder 2 sein",
       "minNights": "Wählen Sie mindestens 2 Daten für einen Mindestaufenthalt von 1 Nacht aus"
     },
-    "aboutAction": "Über die Gîte"
+    "aboutAction": "Über die Gîte",
+    "privacyNotice": "Durch das Absenden dieses Formulars stimmen Sie unserer <link>Datenschutzerklärung</link> zu."
   }
 }
