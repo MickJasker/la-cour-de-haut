@@ -11,6 +11,7 @@ function createAuth() {
   return betterAuth({
     secret,
     baseURL,
+    origin: baseURL,
     database: drizzleAdapter(getDb(), { provider: "pg" }),
     emailAndPassword: { enabled: true, disableSignUp: true },
     plugins: [admin()],
