@@ -145,7 +145,7 @@ test.describe("reviews: admin", () => {
     // Open the calendar popover and pick the 15th of whatever month is shown
     await page.getByRole("button", { name: /pick a date/i }).click();
     await page.getByRole("gridcell", { name: "15" }).first().click();
-    await page.getByLabel(/body/i).fill("Prachtig verblijf!");
+    await page.getByLabel(/review text/i).fill("Prachtig verblijf!");
     await page.getByLabel(/source/i).selectOption("natuurhuisje");
     // Star picker: click the 4th star
     await page.locator("[data-testid='star-4']").click();

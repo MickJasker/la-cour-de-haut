@@ -35,7 +35,13 @@ const SOURCE_LABELS: Record<string, string> = {
   direct: "direct",
 };
 
-function ReviewRow({ r }: { r: Review }) {
+function ReviewRow({
+  r,
+  onDelete,
+}: {
+  r: Review;
+  onDelete: (id: string) => void;
+}) {
   const [isPending, startTransition] = useTransition();
   const [published, setPublished] = useState(r.published);
   const { attributes, listeners, setNodeRef, transform, transition } =
@@ -96,6 +102,7 @@ function ReviewRow({ r }: { r: Review }) {
           size="sm"
           disabled={isPending}
           onClick={() => {
+            onDelete(r.id);
             startTransition(() => {
               void deleteReviewAction(r.id);
             });
@@ -111,6 +118,10 @@ function ReviewRow({ r }: { r: Review }) {
 export function ReviewsList({ reviews }: { reviews: Review[] }) {
   const [items, setItems] = useState(reviews);
   const [, startTransition] = useTransition();
+
+  function handleDelete(id: string) {
+    setItems((prev) => prev.filter((r) => r.id !== id));
+  }
 
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -144,7 +155,7 @@ export function ReviewsList({ reviews }: { reviews: Review[] }) {
       >
         <ul className="space-y-2">
           {items.map((r) => (
-            <ReviewRow key={r.id} r={r} />
+            <ReviewRow key={r.id} r={r} onDelete={handleDelete} />
           ))}
         </ul>
       </SortableContext>
