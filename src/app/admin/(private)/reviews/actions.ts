@@ -15,7 +15,6 @@ const ReviewSchema = z.object({
   source: z.enum(["airbnb", "natuurhuisje", "direct"]),
   body: z.string().min(1),
   published: z.coerce.boolean().optional().default(false),
-  sortOrder: z.coerce.number().int().optional().default(0),
 });
 
 function invalidate() {
@@ -32,7 +31,6 @@ export async function createReviewAction(formData: FormData) {
     source: formData.get("source"),
     body: formData.get("body"),
     published: formData.get("published") === "on",
-    sortOrder: formData.get("sortOrder") ?? 0,
   });
 
   const db = getDb();
@@ -45,7 +43,7 @@ export async function createReviewAction(formData: FormData) {
     body: { nl: parsed.body },
     bodySource: { nl: "human" },
     published: parsed.published,
-    sortOrder: parsed.sortOrder,
+    sortOrder: 0,
   });
 
   invalidate();
@@ -61,7 +59,6 @@ export async function updateReviewAction(id: string, formData: FormData) {
     source: formData.get("source"),
     body: formData.get("body"),
     published: formData.get("published") === "on",
-    sortOrder: formData.get("sortOrder") ?? 0,
   });
 
   const db = getDb();
@@ -75,7 +72,6 @@ export async function updateReviewAction(id: string, formData: FormData) {
       body: { nl: parsed.body },
       bodySource: { nl: "human" },
       published: parsed.published,
-      sortOrder: parsed.sortOrder,
     })
     .where(eq(review.id, id));
 

@@ -20,9 +20,11 @@ export default async function EditReviewPage({
   if (!existing) notFound();
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Edit review</h1>
-      <ReviewForm existing={existing} />
-    </div>
+    <main className="min-h-screen p-8">
+      <div className="max-w-2xl mx-auto space-y-10">
+        <h1 className="text-2xl font-semibold">Edit review</h1>
+        <ReviewForm existing={existing} />
+      </div>
+    </main>
   );
 }
