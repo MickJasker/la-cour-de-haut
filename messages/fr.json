@@ -17,6 +17,9 @@
       "title": "La Gîte",
       "viewMorePhotos": "Voir plus de photos"
     },
+    "reviews": {
+      "title": "Ce que disent les clients"
+    },
     "hero": {
       "description": "Une introduction captivante du site web, avec une image visuellement frappante et un titre accrocheur qui attire immédiatement l'attention du visiteur.",
       "callToAction": "Réservez votre séjour maintenant"

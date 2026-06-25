@@ -17,6 +17,9 @@
       "title": "The Gîte",
       "viewMorePhotos": "View more photos"
     },
+    "reviews": {
+      "title": "What guests say"
+    },
     "hero": {
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
       "callToAction": "Book your stay now"
