@@ -1,13 +1,10 @@
 import { test as setup, expect } from "@playwright/test";
 
-// In dev mode Next.js compiles routes lazily on first request. The first
-// client-side navigation to the (.)book intercepting route triggers an
-// on-demand compile that, on a cold CI runner, can exceed the default 5 s
-// expect timeout — flaking whichever test happens to hit it first.
-//
-// Warming the route here (in the setup project, which all test projects depend
-// on) compiles it once before any real test runs, so per-test assertions can
-// keep tight timeouts and fail fast on genuine regressions.
+// Readiness gate: exercise the (.)book intercepting route once, in the setup
+// project that all test projects depend on, before any real test runs. On CI
+// the web server is a production build (`next start`), so there's no lazy
+// compilation — but warming the first client navigation still smooths cold-start
+// timing and fails fast (with a generous timeout) if the server isn't healthy.
 setup("warm up the booking intercepting route", async ({ page }) => {
   await page.goto("/nl");
   await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();

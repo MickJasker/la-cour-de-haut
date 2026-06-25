@@ -8,8 +8,13 @@ import { revalidateTag } from "next/cache";
 // Actions; this Route Handler exists only because tests bypass those actions.
 // `{ expire: 0 }` forces immediate (blocking) expiration, which `revalidateTag`'s
 // default stale-while-revalidate ("max") profile does not.
+//
+// E2E now runs against a production build (`next start`), where NODE_ENV is
+// "production" — so the gate also allows E2E_TESTING. It stays closed for a real
+// production deploy (E2E_TESTING unset).
 export async function POST() {
-  if (process.env.NODE_ENV === "production") {
+  const isProd = process.env.NODE_ENV === "production";
+  if (isProd && !process.env.E2E_TESTING) {
     return Response.json({ error: "not available" }, { status: 403 });
   }
   revalidateTag("gallery", { expire: 0 });
