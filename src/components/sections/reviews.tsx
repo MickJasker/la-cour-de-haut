@@ -1,4 +1,3 @@
-import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 import { getDb } from "@/db";
 import { review } from "@/db/schema";
@@ -33,8 +32,6 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
   cacheLife("hours");
   cacheTag("reviews");
 
-  const t = await getTranslations({ locale, namespace: "sections.reviews" });
-
   const db = getDb();
   const published = await db
     .select()
@@ -47,9 +44,6 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
   return (
     <section data-testid="reviews-section" className="py-16 bg-amber-50/40">
       <div className="px-6 max-w-7xl mx-auto">
-        <h2 className="text-style-display-large mb-10 text-center">
-          {t("title")}
-        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {published.map((r) => {
             const body =
