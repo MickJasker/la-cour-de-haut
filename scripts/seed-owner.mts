@@ -20,8 +20,16 @@ if (!email || !password) {
 // Dynamic import so env is populated before auth.ts module-level validation runs
 const { getAuth } = await import("../src/lib/auth.js");
 
-const result = await getAuth().api.createUser({
-  body: { email, password, name, role: "admin" },
-});
+try {
+  const result = await getAuth().api.createUser({
+    body: { email, password, name, role: "admin" },
+  });
 
-console.log("Owner created:", result.user.id, result.user.email);
+  console.log("Owner created:", result.user.id, result.user.email);
+} catch (err) {
+  if (err instanceof Error) {
+    console.error("Error creating owner:", err.message);
+  } else {
+    console.error("Error creating owner:", err);
+  }
+}
