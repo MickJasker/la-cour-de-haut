@@ -36,6 +36,7 @@
       "submit": "Jetzt buchen",
       "submitting": "Buchung wird bearbeitet...",
       "successMessage": "Vielen Dank für Ihre Buchung! Wir werden uns in Kürze mit Ihnen in Verbindung setzen.",
+      "makeAnotherBooking": "Eine weitere Buchung vornehmen",
       "errorMessage": "Bei der Verarbeitung Ihrer Buchung ist ein Fehler aufgetreten. Bitte versuchen Sie es später erneut oder kontaktieren Sie uns per E-Mail oder Telefon.",
       "pricePerNight": "Preis pro Nacht: <strong>{price}</strong>",
       "totalPrice": "Gesamtpreis: <strong>{pricePerNight}</strong> x {totalNights} Nächte = <strong>{totalPrice}</strong>",

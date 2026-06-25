@@ -89,6 +89,12 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
         <p className="text-sm text-pretty text-center">
           {t("form.disclaimer")}
         </p>
+        <Button
+          variant="secondary"
+          onClick={() => window.location.assign(`/${locale}/book`)}
+        >
+          {t("form.makeAnotherBooking")}
+        </Button>
       </div>
       <form
         action={formAction}
