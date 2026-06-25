@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldGroup, FieldSet } from "@/components/ui/field";
 import { StarPicker } from "./star-picker";
+import { DatePicker } from "./date-picker";
 import { createReviewAction, updateReviewAction } from "./actions";
 import type { review } from "@/db/schema";
 
@@ -58,14 +59,8 @@ export function ReviewForm({ existing }: { existing?: Review }) {
 
         <FieldSet>
           <Field>
-            <Label htmlFor="reviewDate">Review date</Label>
-            <Input
-              id="reviewDate"
-              name="reviewDate"
-              type="date"
-              required
-              defaultValue={existing?.reviewDate}
-            />
+            <Label>Review date</Label>
+            <DatePicker name="reviewDate" defaultValue={existing?.reviewDate} />
           </Field>
         </FieldSet>
 

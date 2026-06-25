@@ -142,7 +142,9 @@ test.describe("reviews: admin", () => {
   test("owner can create a review", async ({ page }) => {
     await page.goto("/admin/reviews/new");
     await page.getByLabel(/author/i).fill("Johan");
-    await page.getByLabel(/date/i).fill("2024-07-01");
+    // Open the calendar popover and pick the 15th of whatever month is shown
+    await page.getByRole("button", { name: /pick a date/i }).click();
+    await page.getByRole("gridcell", { name: "15" }).first().click();
     await page.getByLabel(/body/i).fill("Prachtig verblijf!");
     await page.getByLabel(/source/i).selectOption("natuurhuisje");
     // Star picker: click the 4th star
