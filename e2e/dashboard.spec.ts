@@ -10,6 +10,8 @@ async function clearBookings() {
 }
 
 test.describe("dashboard", () => {
+  test.describe.configure({ mode: "serial" });
+
   test.beforeEach(async () => {
     await clearBookings();
   });
