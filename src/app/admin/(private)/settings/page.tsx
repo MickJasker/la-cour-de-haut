@@ -12,19 +12,19 @@ export default async function SettingsPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-10">
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">Instellingen</h1>
 
         <section className="space-y-4">
           <div>
-            <h2 className="text-lg font-medium">Bank transfer</h2>
+            <h2 className="text-lg font-medium">Bankoverschrijving</h2>
             <p className="text-sm text-stone-500">
-              These details are included in the bank-transfer email sent to
-              guests when you confirm a booking.
+              Deze gegevens worden opgenomen in de overschrijvingse-mail die
+              naar gasten wordt verstuurd wanneer u een boeking bevestigt.
             </p>
           </div>
           <form action={saveSettingsAction} className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="account_holder">Account holder</Label>
+              <Label htmlFor="account_holder">Rekeninghouder</Label>
               <Input
                 id="account_holder"
                 name="account_holder"
@@ -42,7 +42,7 @@ export default async function SettingsPage() {
               />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="bank_name">Bank name</Label>
+              <Label htmlFor="bank_name">Banknaam</Label>
               <Input
                 id="bank_name"
                 name="bank_name"
@@ -52,7 +52,7 @@ export default async function SettingsPage() {
             </div>
             <div className="space-y-1">
               <Label htmlFor="payment_deadline_days">
-                Payment deadline (days)
+                Betalingstermijn (dagen)
               </Label>
               <Input
                 id="payment_deadline_days"
@@ -63,11 +63,11 @@ export default async function SettingsPage() {
                 defaultValue={settings.payment_deadline_days ?? 7}
               />
               <p className="text-xs text-stone-400">
-                Number of days from today that the guest has to pay when you
-                confirm a booking.
+                Aantal dagen vanaf vandaag dat de gast heeft om te betalen
+                wanneer u een boeking bevestigt.
               </p>
             </div>
-            <Button type="submit">Save</Button>
+            <Button type="submit">Opslaan</Button>
           </form>
         </section>
       </div>

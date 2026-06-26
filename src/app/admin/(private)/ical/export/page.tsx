@@ -24,24 +24,25 @@ export default async function ExportPage() {
         <div>
           <h1 className="text-2xl font-semibold">iCal export</h1>
           <p className="text-sm text-stone-500 mt-1">
-            Each platform gets its own feed URL. Revoking a token immediately
-            stops that platform from syncing — without affecting others.
+            Elk platform krijgt zijn eigen feed-URL. Een token intrekken stopt
+            de synchronisatie van dat platform onmiddellijk — zonder andere te
+            beïnvloeden.
           </p>
         </div>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Active tokens</h2>
+          <h2 className="text-lg font-medium">Actieve tokens</h2>
           <TokenList tokens={tokens} appUrl={appUrl} />
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Add token</h2>
+          <h2 className="text-lg font-medium">Token toevoegen</h2>
           <form
             action={createExportTokenAction}
             className="flex items-end gap-3"
           >
             <div className="flex-1 space-y-1">
-              <Label htmlFor="token-name">Platform name</Label>
+              <Label htmlFor="token-name">Platformnaam</Label>
               <Input
                 id="token-name"
                 name="name"
@@ -49,7 +50,7 @@ export default async function ExportPage() {
                 required
               />
             </div>
-            <Button type="submit">Generate</Button>
+            <Button type="submit">Genereren</Button>
           </form>
         </section>
       </div>

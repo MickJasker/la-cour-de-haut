@@ -16,9 +16,9 @@ export default async function AdminReviewsPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Reviews</h1>
+          <h1 className="text-2xl font-semibold">Beoordelingen</h1>
           <Button asChild>
-            <Link href="/admin/reviews/new">Add review</Link>
+            <Link href="/admin/reviews/new">Beoordeling toevoegen</Link>
           </Button>
         </div>
         <ReviewsList reviews={reviews} />

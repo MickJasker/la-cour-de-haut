@@ -22,7 +22,7 @@ export default async function EditReviewPage({
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-10">
-        <h1 className="text-2xl font-semibold">Edit review</h1>
+        <h1 className="text-2xl font-semibold">Beoordeling bewerken</h1>
         <ReviewForm existing={existing} />
       </div>
     </main>

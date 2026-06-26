@@ -16,20 +16,21 @@ export default async function SettingsPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-2xl mx-auto space-y-8">
-        <h1 className="text-2xl font-semibold">Settings</h1>
+        <h1 className="text-2xl font-semibold">iCal import</h1>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">iCal sources</h2>
+          <h2 className="text-lg font-medium">iCal-bronnen</h2>
           <p className="text-sm text-gray-500">
-            Feeds are refreshed lazily — a source older than 5 minutes is
-            re-fetched on the next booking form load. Use &ldquo;Force
-            sync&rdquo; to clear the cache immediately.
+            Feeds worden lui vernieuwd — een bron ouder dan 5 minuten wordt
+            opnieuw opgehaald bij het laden van het boekingsformulier. Gebruik
+            &ldquo;Geforceerd synchroniseren&rdquo; om de cache onmiddellijk te
+            wissen.
           </p>
           <SourceList sources={sources} />
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Add source</h2>
+          <h2 className="text-lg font-medium">Bron toevoegen</h2>
           <SourceForm mode="add" />
         </section>
       </div>

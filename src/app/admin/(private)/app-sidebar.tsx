@@ -65,7 +65,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/content">
                     <SquareDashedText />
-                    Content
+                    Inhoud
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -78,7 +78,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/reviews">
                     <Star />
-                    Reviews
+                    Beoordelingen
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -91,7 +91,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/gallery">
                     <ImageIcon />
-                    Gallery
+                    Galerij
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -104,7 +104,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/bookings">
                     <CalendarFold />
-                    Bookings
+                    Boekingen
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -123,7 +123,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/settings">
                     <Settings />
-                    Settings
+                    Instellingen
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -145,7 +145,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/ical/import">
                     <ArrowDownToLine />
-                    Import
+                    Importeren
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -158,7 +158,7 @@ export function AppSidebar() {
                 >
                   <Link href="/admin/ical/export">
                     <ArrowUpToLine />
-                    Export
+                    Exporteren
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -179,7 +179,7 @@ export function AppSidebar() {
               }}
               disabled={isLoggingOut}
             >
-              {isLoggingOut ? "Signing out..." : "Sign out"}
+              {isLoggingOut ? "Uitloggen..." : "Uitloggen"}
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

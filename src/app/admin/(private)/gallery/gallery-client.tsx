@@ -59,7 +59,7 @@ function GalleryRow({
         {...attributes}
         {...listeners}
         type="button"
-        aria-label="Drag to reorder"
+        aria-label="Slepen om te herordenen"
         className="cursor-grab text-stone-400 hover:text-stone-600 shrink-0"
       >
         ⠿
@@ -93,7 +93,7 @@ function GalleryRow({
             }}
           />
           <Label htmlFor={`pub-${image.id}`} className="text-xs">
-            Published
+            Gepubliceerd
           </Label>
         </div>
         <Button
@@ -107,7 +107,7 @@ function GalleryRow({
             });
           }}
         >
-          Delete
+          Verwijderen
         </Button>
       </div>
     </li>
@@ -148,7 +148,9 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
   }
 
   if (items.length === 0) {
-    return <p className="text-sm text-stone-500">No images uploaded yet.</p>;
+    return (
+      <p className="text-sm text-stone-500">Nog geen afbeeldingen geüpload.</p>
+    );
   }
 
   return (
@@ -198,7 +200,7 @@ export function UploadForm() {
     // server action and re-renders GalleryList with the new images.
     startTransition(async () => {
       for (let i = 0; i < filesToUpload.length; i++) {
-        setProgress(`Uploading ${i + 1} / ${filesToUpload.length}…`);
+        setProgress(`Uploaden ${i + 1} / ${filesToUpload.length}…`);
         const formData = new FormData();
         formData.append("file", filesToUpload[i]!);
         await uploadGalleryImageAction(formData);
@@ -241,8 +243,8 @@ export function UploadForm() {
           onChange={(e) => addFiles(e.target.files)}
         />
         <p className="text-sm text-stone-500 pointer-events-none">
-          Drag &amp; drop images here, or{" "}
-          <span className="text-primary underline">browse</span>
+          Sleep afbeeldingen hierheen, of{" "}
+          <span className="text-primary underline">bladeren</span>
         </p>
         <p className="text-xs text-stone-400 mt-1 pointer-events-none">
           PNG, JPG, WebP
@@ -261,7 +263,7 @@ export function UploadForm() {
                 type="button"
                 onClick={() => removeFile(i)}
                 className="ml-3 text-stone-400 hover:text-stone-700 shrink-0"
-                aria-label={`Remove ${f.name}`}
+                aria-label={`${f.name} verwijderen`}
               >
                 ✕
               </button>
@@ -274,7 +276,7 @@ export function UploadForm() {
         <Button onClick={handleUpload} disabled={isUploading}>
           {isUploading
             ? progress
-            : `Upload ${files.length} image${files.length !== 1 ? "s" : ""}`}
+            : `${files.length} afbeelding${files.length !== 1 ? "en" : ""} uploaden`}
         </Button>
       )}
     </div>

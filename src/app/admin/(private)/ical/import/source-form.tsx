@@ -85,7 +85,7 @@ export function SourceForm(props: Props) {
                       : "source-name-add"
                   }
                 >
-                  Name
+                  Naam
                 </Label>
                 <Input
                   id={
@@ -166,7 +166,7 @@ export function SourceForm(props: Props) {
                         : "source-enabled-add"
                     }
                   >
-                    Enabled
+                    Ingeschakeld
                   </Label>
                 </div>
                 <FieldError errors={field.state.meta.errors} />
@@ -178,10 +178,10 @@ export function SourceForm(props: Props) {
         <FieldSet>
           <Button type="submit" disabled={isPending}>
             {isPending
-              ? "Saving…"
+              ? "Opslaan…"
               : props.mode === "edit"
-                ? "Save changes"
-                : "Add source"}
+                ? "Wijzigingen opslaan"
+                : "Bron toevoegen"}
           </Button>
         </FieldSet>
       </FieldGroup>

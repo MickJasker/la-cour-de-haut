@@ -39,7 +39,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
       <FieldGroup>
         <FieldSet>
           <Field>
-            <Label htmlFor="authorName">Author name</Label>
+            <Label htmlFor="authorName">Auteursnaam</Label>
             <Input
               id="authorName"
               name="authorName"
@@ -52,21 +52,21 @@ export function ReviewForm({ existing }: { existing?: Review }) {
 
         <FieldSet>
           <Field>
-            <Label>Rating</Label>
+            <Label>Beoordeling</Label>
             <StarPicker defaultValue={existing?.rating ?? 5} />
           </Field>
         </FieldSet>
 
         <FieldSet>
           <Field>
-            <Label>Review date</Label>
+            <Label>Beoordelingsdatum</Label>
             <DatePicker name="reviewDate" defaultValue={existing?.reviewDate} />
           </Field>
         </FieldSet>
 
         <FieldSet>
           <Field>
-            <Label htmlFor="source">Source</Label>
+            <Label htmlFor="source">Bron</Label>
             <select
               id="source"
               name="source"
@@ -82,14 +82,14 @@ export function ReviewForm({ existing }: { existing?: Review }) {
 
         <FieldSet>
           <Field>
-            <Label htmlFor="body">Review text (NL)</Label>
+            <Label htmlFor="body">Recensietekst (NL)</Label>
             <textarea
               id="body"
               name="body"
               required
               rows={5}
               defaultValue={existing?.body?.nl}
-              placeholder="Paste the review text here…"
+              placeholder="Plak de recensietekst hier…"
               className={`${inputClass} h-auto resize-y`}
             />
           </Field>
@@ -103,7 +103,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
                 name="published"
                 defaultChecked={existing?.published ?? false}
               />
-              <Label htmlFor="published">Published</Label>
+              <Label htmlFor="published">Gepubliceerd</Label>
             </div>
           </Field>
         </FieldSet>
@@ -111,14 +111,14 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         <FieldSet>
           <div className="flex gap-3">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Saving…" : "Save"}
+              {isPending ? "Opslaan…" : "Opslaan"}
             </Button>
             <Button
               type="button"
               variant="secondary"
               onClick={() => router.push("/admin/reviews")}
             >
-              Cancel
+              Annuleren
             </Button>
           </div>
         </FieldSet>

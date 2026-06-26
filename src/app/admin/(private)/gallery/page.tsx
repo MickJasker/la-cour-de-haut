@@ -15,15 +15,15 @@ export default async function GalleryAdminPage() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-8">
-        <h1 className="text-2xl font-semibold">Gallery</h1>
+        <h1 className="text-2xl font-semibold">Galerij</h1>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Upload photo</h2>
+          <h2 className="text-lg font-medium">Foto uploaden</h2>
           <UploadForm />
         </section>
 
         <section className="space-y-4">
-          <h2 className="text-lg font-medium">Photos</h2>
+          <h2 className="text-lg font-medium">Foto&apos;s</h2>
           <GalleryList images={images} />
         </section>
       </div>

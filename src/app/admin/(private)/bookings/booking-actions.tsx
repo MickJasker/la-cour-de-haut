@@ -43,9 +43,9 @@ export function BookingActions({
             checkInDate={checkInDate}
           />
         ) : (
-          <div title="Configure bank details in Settings before confirming">
+          <div title="Stel bankgegevens in via Instellingen voor bevestiging">
             <Button size="sm" disabled>
-              Confirm
+              Bevestigen
             </Button>
           </div>
         )}
@@ -55,7 +55,7 @@ export function BookingActions({
           disabled={isPending}
           onClick={() => action(declineBookingAction)}
         >
-          Decline
+          Afwijzen
         </Button>
       </div>
     );
@@ -69,7 +69,7 @@ export function BookingActions({
           disabled={isPending}
           onClick={() => action(markPaidBookingAction)}
         >
-          Mark paid
+          Betaald markeren
         </Button>
         <Button
           size="sm"
@@ -77,7 +77,7 @@ export function BookingActions({
           disabled={isPending}
           onClick={() => action(cancelBookingAction)}
         >
-          Cancel
+          Annuleren
         </Button>
       </div>
     );
@@ -91,7 +91,7 @@ export function BookingActions({
         disabled={isPending}
         onClick={() => action(cancelBookingAction)}
       >
-        Cancel
+        Annuleren
       </Button>
     );
   }

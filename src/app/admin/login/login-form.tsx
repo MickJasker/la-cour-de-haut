@@ -16,8 +16,8 @@ import {
 import { z } from "zod";
 
 const schema = z.object({
-  email: z.email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.email("Ongeldig e-mailadres"),
+  password: z.string().min(1, "Wachtwoord is verplicht"),
 });
 
 export function LoginForm() {
@@ -40,7 +40,7 @@ export function LoginForm() {
         password: value.password,
       });
       if (error) {
-        setError("Invalid email or password.");
+        setError("Ongeldig e-mailadres of wachtwoord.");
         return;
       }
       router.push("/admin");
@@ -51,7 +51,9 @@ export function LoginForm() {
   return (
     <main className="min-h-screen flex items-center justify-center">
       <div className="w-full max-w-sm space-y-6">
-        <h1 className="text-style-display-medium text-center">Admin login</h1>
+        <h1 className="text-style-display-medium text-center">
+          Beheerder aanmelden
+        </h1>
 
         <form
           onSubmit={(e) => {
@@ -65,7 +67,7 @@ export function LoginForm() {
               <form.Field name="email">
                 {(field) => (
                   <Field>
-                    <FieldLabel htmlFor={field.name}>Email</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>E-mailadres</FieldLabel>
                     <Input
                       id={field.name}
                       type="email"
@@ -84,7 +86,7 @@ export function LoginForm() {
               <form.Field name="password">
                 {(field) => (
                   <Field>
-                    <FieldLabel htmlFor={field.name}>Password</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>Wachtwoord</FieldLabel>
                     <Input
                       id={field.name}
                       type="password"
@@ -114,7 +116,7 @@ export function LoginForm() {
                     disabled={isSubmitting}
                     className="w-full"
                   >
-                    {isSubmitting ? "Signing in…" : "Sign in"}
+                    {isSubmitting ? "Aanmelden…" : "Aanmelden"}
                   </Button>
                 </FieldSet>
               )}

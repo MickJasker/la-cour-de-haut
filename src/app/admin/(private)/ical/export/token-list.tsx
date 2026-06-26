@@ -19,7 +19,7 @@ function CopyButton({ value }: { value: string }) {
         });
       }}
     >
-      {copied ? "Copied!" : "Copy URL"}
+      {copied ? "Gekopieerd!" : "URL kopiëren"}
     </Button>
   );
 }
@@ -36,10 +36,10 @@ function TokenRow({ token, appUrl }: { token: Token; appUrl: string }) {
           <p className="text-xs text-stone-500 font-mono truncate">{feedUrl}</p>
           {token.lastAccessedAt ? (
             <p className="text-xs text-stone-500">
-              Last accessed: {token.lastAccessedAt.toLocaleString()}
+              Laatste toegang: {token.lastAccessedAt.toLocaleString("nl-NL")}
             </p>
           ) : (
-            <p className="text-xs text-stone-400">Never accessed</p>
+            <p className="text-xs text-stone-400">Nooit gebruikt</p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -51,7 +51,7 @@ function TokenRow({ token, appUrl }: { token: Token; appUrl: string }) {
             onClick={() => {
               if (
                 !confirm(
-                  `Revoke token for "${token.name}"? The feed URL will stop working immediately.`,
+                  `Token voor "${token.name}" intrekken? De feed-URL werkt dan niet meer.`,
                 )
               )
                 return;
@@ -60,7 +60,7 @@ function TokenRow({ token, appUrl }: { token: Token; appUrl: string }) {
               });
             }}
           >
-            Revoke
+            Intrekken
           </Button>
         </div>
       </div>
@@ -78,7 +78,7 @@ export function TokenList({
   if (tokens.length === 0) {
     return (
       <p className="text-sm text-stone-500">
-        No export tokens yet. Add one below to get started.
+        Nog geen exporttokens. Voeg er hieronder een toe om te beginnen.
       </p>
     );
   }

@@ -20,12 +20,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
-  requested: "Requested",
-  on_hold: "On hold",
-  confirmed: "Confirmed",
-  declined: "Declined",
-  cancelled: "Cancelled",
-  expired: "Expired",
+  requested: "Aangevraagd",
+  on_hold: "In afwachting",
+  confirmed: "Bevestigd",
+  declined: "Afgewezen",
+  cancelled: "Geannuleerd",
+  expired: "Verlopen",
 };
 
 const STATUS_COLORS: Record<DisplayStatus, string> = {
@@ -85,7 +85,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
     <main className="min-h-screen p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-semibold">Bookings</h1>
+          <h1 className="text-2xl font-semibold">Boekingen</h1>
         </div>
 
         {/* Status filter */}
@@ -99,7 +99,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                 : "bg-stone-100 text-stone-600 hover:bg-stone-200",
             )}
           >
-            All
+            Alle
           </Link>
           {ALL_STATUSES.map((s) => (
             <Link
@@ -120,21 +120,21 @@ export default async function BookingsPage({ searchParams }: PageProps) {
         {!bankDetailsOk && (
           <Alert variant="warning">
             <TriangleAlert className="size-4" />
-            <AlertTitle>Bank details not configured</AlertTitle>
+            <AlertTitle>Bankgegevens niet ingesteld</AlertTitle>
             <AlertDescription>
-              Please set up your bank details in the{" "}
+              Stel uw bankgegevens in via de{" "}
               <Link
                 href="/admin/settings"
                 className="underline hover:text-stone-600"
               >
-                settings
+                instellingen
               </Link>{" "}
-              to be able to confirm bookings and receive payouts.
+              om boekingen te bevestigen en uitbetalingen te ontvangen.
             </AlertDescription>
           </Alert>
         )}
         {filtered.length === 0 ? (
-          <p className="text-stone-400 text-sm">No bookings found.</p>
+          <p className="text-stone-400 text-sm">Geen boekingen gevonden.</p>
         ) : (
           <div className="space-y-4">
             {filtered.map((booking) => (
@@ -165,14 +165,14 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                       {booking.startDate} → {booking.endDate}
                     </p>
                     <p>
-                      {booking.guestCount} guest
-                      {booking.guestCount !== 1 ? "s" : ""}
+                      {booking.guestCount} gast
+                      {booking.guestCount !== 1 ? "en" : ""}
                     </p>
                     {booking.paymentDeadline &&
                       (booking.displayStatus === "on_hold" ||
                         booking.displayStatus === "expired") && (
                         <p className="text-orange-600">
-                          Due: {booking.paymentDeadline}
+                          Vervaldatum: {booking.paymentDeadline}
                         </p>
                       )}
                   </div>
@@ -186,7 +186,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
 
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
-                    Owner notes
+                    Eigenaarnotities
                   </p>
                   <NotesEditor
                     bookingId={booking.id}
@@ -196,7 +196,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
 
                 <div className="flex items-center justify-between">
                   <p className="text-xs text-stone-400">
-                    {new Date(booking.createdAt).toLocaleDateString("en-GB", {
+                    {new Date(booking.createdAt).toLocaleDateString("nl-NL", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",

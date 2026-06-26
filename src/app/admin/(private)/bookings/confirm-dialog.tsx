@@ -48,23 +48,24 @@ export function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">Confirm</Button>
+        <Button size="sm">Bevestigen</Button>
       </DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Confirm booking — {guestName}</DialogTitle>
+          <DialogTitle>Boeking bevestigen — {guestName}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <p className="text-sm text-stone-600">
-            Setting status to <strong>on hold</strong>. Dates will be blocked in
-            the export feed and a bank-transfer email will be sent to the guest.
+            Status wordt ingesteld op <strong>in afwachting</strong>. De datums
+            worden geblokkeerd in de exportfeed en er wordt een
+            overschrijvingse-mail naar de gast verstuurd.
           </p>
           <div className="space-y-1">
             <label
               htmlFor="payment-deadline"
               className="text-sm font-medium text-stone-700"
             >
-              Payment deadline
+              Betalingstermijn
             </label>
             <input
               id="payment-deadline"
@@ -84,10 +85,10 @@ export function ConfirmDialog({
             onClick={() => setOpen(false)}
             disabled={isPending}
           >
-            Cancel
+            Annuleren
           </Button>
           <Button size="sm" onClick={handleConfirm} disabled={isPending}>
-            {isPending ? "Confirming…" : "Confirm booking"}
+            {isPending ? "Bevestigen…" : "Boeking bevestigen"}
           </Button>
         </DialogFooter>
       </DialogContent>

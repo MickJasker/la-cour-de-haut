@@ -63,7 +63,7 @@ function ReviewRow({
         {...attributes}
         {...listeners}
         type="button"
-        aria-label="Drag to reorder"
+        aria-label="Slepen om te herordenen"
         className="cursor-grab text-stone-400 hover:text-stone-600 shrink-0"
       >
         ⠿
@@ -91,11 +91,11 @@ function ReviewRow({
             }}
           />
           <Label htmlFor={`pub-${r.id}`} className="text-xs">
-            Published
+            Gepubliceerd
           </Label>
         </div>
         <Button variant="secondary" size="sm" asChild>
-          <Link href={`/admin/reviews/${r.id}/edit`}>Edit</Link>
+          <Link href={`/admin/reviews/${r.id}/edit`}>Bewerken</Link>
         </Button>
         <Button
           variant="ghost"
@@ -108,7 +108,7 @@ function ReviewRow({
             });
           }}
         >
-          Delete
+          Verwijderen
         </Button>
       </div>
     </li>

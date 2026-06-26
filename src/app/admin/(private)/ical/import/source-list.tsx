@@ -18,7 +18,7 @@ function SyncHealth({ source }: { source: Source }) {
     return (
       <div className="text-xs text-danger space-y-0.5">
         <p>
-          Error: <span className="font-mono">{source.lastError}</span>
+          Fout: <span className="font-mono">{source.lastError}</span>
         </p>
         {source.lastErrorAt && (
           <p className="text-stone-400">
@@ -31,11 +31,11 @@ function SyncHealth({ source }: { source: Source }) {
   if (source.lastSyncedAt) {
     return (
       <p className="text-xs text-stone-500">
-        Last synced: {source.lastSyncedAt.toLocaleString()}
+        Laatste synchronisatie: {source.lastSyncedAt.toLocaleString("nl-NL")}
       </p>
     );
   }
-  return <p className="text-xs text-stone-400">Never synced</p>;
+  return <p className="text-xs text-stone-400">Nooit gesynchroniseerd</p>;
 }
 
 function SourceRow({ source }: { source: Source }) {
@@ -56,7 +56,7 @@ function SourceRow({ source }: { source: Source }) {
           onSuccess={() => setEditing(false)}
         />
         <Button variant="ghost" onClick={() => setEditing(false)}>
-          Cancel
+          Annuleren
         </Button>
       </li>
     );
@@ -86,7 +86,7 @@ function SourceRow({ source }: { source: Source }) {
               }}
             />
             <Label htmlFor={`enabled-${source.id}`} className="text-xs">
-              Enabled
+              Ingeschakeld
             </Label>
           </div>
 
@@ -100,11 +100,11 @@ function SourceRow({ source }: { source: Source }) {
               });
             }}
           >
-            Force sync
+            Geforceerd synchroniseren
           </Button>
 
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
-            Edit
+            Bewerken
           </Button>
 
           <Button
@@ -112,13 +112,13 @@ function SourceRow({ source }: { source: Source }) {
             size="sm"
             disabled={isPending}
             onClick={() => {
-              if (!confirm(`Delete "${source.name}"?`)) return;
+              if (!confirm(`"${source.name}" verwijderen?`)) return;
               startTransition(() => {
                 void deleteSourceAction(source.id);
               });
             }}
           >
-            Delete
+            Verwijderen
           </Button>
         </div>
       </div>
@@ -129,7 +129,7 @@ function SourceRow({ source }: { source: Source }) {
 export function SourceList({ sources }: { sources: Source[] }) {
   if (sources.length === 0) {
     return (
-      <p className="text-sm text-stone-500">No iCal sources configured yet.</p>
+      <p className="text-sm text-stone-500">Nog geen iCal-bronnen ingesteld.</p>
     );
   }
 
