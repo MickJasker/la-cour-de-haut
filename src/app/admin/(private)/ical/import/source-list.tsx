@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { SourceForm } from "./source-form";
-import { toggleSourceAction, deleteSourceAction } from "./actions";
+import {
+  toggleSourceAction,
+  deleteSourceAction,
+  forceRefreshSourceAction,
+} from "./actions";
 import type { icalSource } from "@/db/schema";
 
 type Source = typeof icalSource.$inferSelect;
@@ -85,6 +89,19 @@ function SourceRow({ source }: { source: Source }) {
               Enabled
             </Label>
           </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={isPending}
+            onClick={() => {
+              startTransition(() => {
+                void forceRefreshSourceAction(source.id);
+              });
+            }}
+          >
+            Force sync
+          </Button>
 
           <Button variant="ghost" size="sm" onClick={() => setEditing(true)}>
             Edit

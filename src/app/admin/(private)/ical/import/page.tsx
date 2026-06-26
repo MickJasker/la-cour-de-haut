@@ -21,9 +21,9 @@ export default async function SettingsPage() {
         <section className="space-y-4">
           <h2 className="text-lg font-medium">iCal sources</h2>
           <p className="text-sm text-gray-500">
-            Feeds are refreshed lazily — a source older than 1 hour is
-            re-fetched on the next booking form load. Editing a URL clears the
-            cache immediately.
+            Feeds are refreshed lazily — a source older than 5 minutes is
+            re-fetched on the next booking form load. Use &ldquo;Force
+            sync&rdquo; to clear the cache immediately.
           </p>
           <SourceList sources={sources} />
         </section>

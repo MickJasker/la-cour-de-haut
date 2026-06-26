@@ -100,3 +100,13 @@ export async function deleteSourceAction(id: string) {
   await db.delete(icalSource).where(eq(icalSource.id, id));
   revalidatePath("/admin/settings");
 }
+
+export async function forceRefreshSourceAction(id: string) {
+  await verifySession();
+  const db = getDb();
+  await db
+    .update(icalSource)
+    .set({ cachedIntervals: null, lastSyncedAt: null })
+    .where(eq(icalSource.id, id));
+  revalidatePath("/admin/ical/import");
+}
