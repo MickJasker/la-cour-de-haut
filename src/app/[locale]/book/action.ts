@@ -83,6 +83,7 @@ async function sendOwnerNotification(data: {
   guestCount: string;
   startDate: string;
   endDate: string;
+  pricePerNight: number;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM ?? "noreply@lacourdehaut.fr";
@@ -92,6 +93,21 @@ async function sendOwnerNotification(data: {
 
   const resend = new Resend(apiKey);
 
+  const currencyFormatter = new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  });
+
+  const totalNights = calculateTotalNights(data.startDate, data.endDate);
+
+  const tourismTax = calculateTourismTax(
+    parseInt(data.guestCount),
+    totalNights,
+    data.pricePerNight,
+  );
+
+  const totalPrice = data.pricePerNight * totalNights + tourismTax;
+
   await resend.emails.send({
     from,
     to,
@@ -100,12 +116,15 @@ async function sendOwnerNotification(data: {
     html: `
       <h2>New booking request</h2>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Name</th><td>${esc(data.name)}</td></tr>
+        <tr><th align="left">Naam</th><td>${esc(data.name)}</td></tr>
         <tr><th align="left">Email</th><td><a href="mailto:${encodeURIComponent(data.email)}">${esc(data.email)}</a></td></tr>
-        <tr><th align="left">Phone</th><td>${esc(data.phone) || "—"}</td></tr>
-        <tr><th align="left">Guests</th><td>${esc(data.guestCount)}</td></tr>
-        <tr><th align="left">Check-in</th><td>${esc(data.startDate)}</td></tr>
-        <tr><th align="left">Check-out</th><td>${esc(data.endDate)}</td></tr>
+        <tr><th align="left">Telefoon</th><td>${esc(data.phone) || "—"}</td></tr>
+        <tr><th align="left">Gasten</th><td>${esc(data.guestCount)}</td></tr>
+        <tr><th align="left">Inchecken</th><td>${esc(data.startDate)}</td></tr>
+        <tr><th align="left">Uitchecken</th><td>${esc(data.endDate)}</td></tr>
+        <tr><th align="left">Nachten</th><td>${calculateTotalNights(data.startDate, data.endDate)}</td></tr>
+        <tr><th align="left">Toeristenbelasting</th><td>${currencyFormatter.format(tourismTax)}</td></tr>
+        <tr><th align="left">Totaalprijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p style="margin-top:24px">
         <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/admin">
@@ -161,11 +180,6 @@ export async function submitBookingAction(
 
     const db = getDb();
 
-    const totalNights = calculateTotalNights(
-      data.stayDates.from,
-      data.stayDates.to,
-    );
-
     const pricePerNight = await getPricePerNightAction();
 
     await db.insert(bookingRequest).values({
@@ -177,14 +191,7 @@ export async function submitBookingAction(
       locale,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
-      shownPriceAtBooking: String(
-        (pricePerNight ?? 0) * parseInt(data.guestCount) * totalNights +
-          calculateTourismTax(
-            parseInt(data.guestCount),
-            totalNights,
-            pricePerNight ?? 0,
-          ),
-      ),
+      shownPriceAtBooking: pricePerNight.toString(),
     });
 
     // 4. Owner notification (fire-and-forget — don't block on email failure)
@@ -195,6 +202,7 @@ export async function submitBookingAction(
       guestCount: data.guestCount,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
+      pricePerNight,
     }).catch(console.error);
 
     return { ...initialFormState, success: true };
