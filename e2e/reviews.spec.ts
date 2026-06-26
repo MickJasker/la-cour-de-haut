@@ -7,7 +7,7 @@ async function clearReviews() {
 }
 
 async function gotoFresh(page: Page, path: string) {
-  const res = await fetch("http://localhost:3000/api/dev/revalidate-reviews", {
+  const res = await fetch("http://localhost:3000/api/dev/revalidate/reviews", {
     method: "POST",
   });
   if (!res.ok) {

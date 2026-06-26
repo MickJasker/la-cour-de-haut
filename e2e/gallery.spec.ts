@@ -15,7 +15,7 @@ async function clearGallery() {
 // than in beforeEach) closes the race where a concurrent render (e.g. smoke.spec
 // hitting "/") caches the pre-seed empty table.
 async function gotoFresh(page: Page, path: string) {
-  const res = await fetch("http://localhost:3000/api/dev/revalidate-gallery", {
+  const res = await fetch("http://localhost:3000/api/dev/revalidate/gallery", {
     method: "POST",
   });
   if (!res.ok) {

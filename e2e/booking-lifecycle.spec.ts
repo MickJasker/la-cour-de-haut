@@ -47,7 +47,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     // always reads the freshly-written bank details rather than a stale cache
     // entry (e.g. the empty one written during global-setup's TRUNCATE, or left
     // by test 260's TRUNCATE + revalidate call).
-    await fetch("http://localhost:3000/api/dev/revalidate-settings", {
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
       method: "POST",
     });
   });
@@ -275,7 +275,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
       VALUES ('test-nobk-1', 'No Bank Guest', 'guest@example.com', 1, 'nl', '2028-01-01', '2028-01-05', 'requested', now())
     `;
     // getSettings() is `use cache` — bust the tag so the page sees the truncated table
-    await fetch("http://localhost:3000/api/dev/revalidate-settings", {
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
       method: "POST",
     });
 
