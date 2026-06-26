@@ -189,6 +189,20 @@ test.describe("pois: admin", () => {
     ).toBeChecked();
   });
 
+  test("owner can edit a POI title", async ({ page }) => {
+    await seedPoi({ id: "poi-edit-1", published: false, title: "Original" });
+    await page.goto("/admin/pois");
+    await page
+      .locator("[data-testid='poi-row-poi-edit-1']")
+      .getByRole("button", { name: /bewerken/i })
+      .click();
+    await page.getByLabel(/titel/i).fill("Updated");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-testid='poi-row-poi-edit-1']"),
+    ).toContainText("Updated");
+  });
+
   test("owner can delete a POI", async ({ page }) => {
     await seedPoi({ id: "poi-del-1", published: false });
     await page.goto("/admin/pois");

@@ -7,30 +7,35 @@ import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 
+function parseDistanceKm(raw: FormDataEntryValue | null): number | null {
+  if (raw === null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function parseSortOrder(raw: FormDataEntryValue | null): number {
+  if (raw === null || raw === "") return 0;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export async function createPoiAction(formData: FormData) {
   await verifySession();
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("No image provided");
-  }
-
-  const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
-    access: "public",
-  });
-
   const title = formData.get("title");
   const body = formData.get("body");
-  const distanceKmRaw = formData.get("distanceKm");
-  const sortOrderRaw = formData.get("sortOrder");
-
   if (typeof title !== "string" || !title.trim())
     throw new Error("Title required");
   if (typeof body !== "string" || !body.trim())
     throw new Error("Body required");
 
-  const distanceKm = distanceKmRaw ? Number(distanceKmRaw) : null;
-  const sortOrder = sortOrderRaw ? Number(sortOrderRaw) : 0;
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0)
+    throw new Error("No image provided");
+
+  const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
+    access: "public",
+  });
 
   const db = getDb();
   await db.insert(poi).values({
@@ -38,10 +43,54 @@ export async function createPoiAction(formData: FormData) {
     title: title.trim(),
     body: body.trim(),
     imageUrl: blob.url,
-    distanceKm: distanceKm && !isNaN(distanceKm) ? distanceKm : null,
-    sortOrder: isNaN(sortOrder) ? 0 : sortOrder,
-    published: false,
+    distanceKm: parseDistanceKm(formData.get("distanceKm")),
+    sortOrder: parseSortOrder(formData.get("sortOrder")),
+    published: formData.get("published") === "true",
   });
+
+  revalidatePath("/admin/pois");
+  updateTag("poi");
+}
+
+export async function updatePoiAction(id: string, formData: FormData) {
+  await verifySession();
+
+  const title = formData.get("title");
+  const body = formData.get("body");
+  if (typeof title !== "string" || !title.trim())
+    throw new Error("Title required");
+  if (typeof body !== "string" || !body.trim())
+    throw new Error("Body required");
+
+  const db = getDb();
+
+  let imageUrl: string | undefined;
+  const file = formData.get("file");
+  if (file instanceof File && file.size > 0) {
+    const [existing] = await db
+      .select({ imageUrl: poi.imageUrl })
+      .from(poi)
+      .where(eq(poi.id, id));
+    if (existing?.imageUrl.includes("blob.vercel-storage.com")) {
+      await del(existing.imageUrl);
+    }
+    const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
+      access: "public",
+    });
+    imageUrl = blob.url;
+  }
+
+  await db
+    .update(poi)
+    .set({
+      title: title.trim(),
+      body: body.trim(),
+      distanceKm: parseDistanceKm(formData.get("distanceKm")),
+      sortOrder: parseSortOrder(formData.get("sortOrder")),
+      published: formData.get("published") === "true",
+      ...(imageUrl ? { imageUrl } : {}),
+    })
+    .where(eq(poi.id, id));
 
   revalidatePath("/admin/pois");
   updateTag("poi");
