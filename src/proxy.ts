@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 import { locales, defaultLocale, type Locale } from "./i18n/routing";
 
 // Pick the best supported locale from the Accept-Language header, falling back to
@@ -30,9 +31,7 @@ export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname.startsWith("/admin")) {
-    const hasSession = Boolean(
-      request.cookies.get("better-auth.session_token")?.value,
-    );
+    const hasSession = Boolean(getSessionCookie(request));
 
     if (pathname === "/admin/login") {
       return NextResponse.next();
