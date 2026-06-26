@@ -67,3 +67,18 @@ export async function deleteGalleryImageAction(id: string) {
   revalidatePath("/admin/gallery");
   updateTag("gallery");
 }
+
+export async function reorderGalleryImagesAction(ids: string[]) {
+  await verifySession();
+  const db = getDb();
+  await Promise.all(
+    ids.map((id, index) =>
+      db
+        .update(galleryImage)
+        .set({ sortOrder: index * 10 })
+        .where(eq(galleryImage.id, id)),
+    ),
+  );
+  revalidatePath("/admin/gallery");
+  updateTag("gallery");
+}
