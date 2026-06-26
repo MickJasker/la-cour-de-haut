@@ -142,7 +142,7 @@ test.describe("gallery: admin", () => {
     await page.goto("/admin/gallery");
     const fileInput = page.locator("[data-testid='gallery-file-input']");
     // Wait for the dropzone to be visible so React has hydrated and attached onChange
-    await expect(page.getByText(/drag.*drop/i)).toBeVisible();
+    await expect(page.getByText(/sleep.*hierheen/i)).toBeVisible();
     await fileInput.setInputFiles({
       name: "test-photo.jpg",
       mimeType: "image/jpeg",
@@ -167,9 +167,9 @@ test.describe("gallery: admin", () => {
     await seedImage({ id: "gal-admin-toggle", sortOrder: 1, published: false });
     await page.goto("/admin/gallery");
     const row = page.locator("[data-testid='gallery-row-gal-admin-toggle']");
-    await row.getByRole("checkbox", { name: /published/i }).check();
+    await row.getByRole("checkbox", { name: /gepubliceerd/i }).check();
     await expect(
-      row.getByRole("checkbox", { name: /published/i }),
+      row.getByRole("checkbox", { name: /gepubliceerd/i }),
     ).toBeChecked();
   });
 
@@ -181,7 +181,7 @@ test.describe("gallery: admin", () => {
     ).toBeVisible();
     await page
       .locator("[data-testid='gallery-row-gal-admin-del']")
-      .getByRole("button", { name: /delete/i })
+      .getByRole("button", { name: /verwijderen/i })
       .click();
     await expect(
       page.locator("[data-testid='gallery-row-gal-admin-del']"),
@@ -201,7 +201,9 @@ test.describe("gallery: admin", () => {
     // dnd-kit's PointerSensor needs gradual pointer movement to activate — dragTo()
     // fires a single synthetic event that doesn't cross the activation threshold.
     // Using mouse.move() with steps gives it enough events to register as a drag.
-    const handleB = rowB.getByRole("button", { name: /drag to reorder/i });
+    const handleB = rowB.getByRole("button", {
+      name: /slepen om te herordenen/i,
+    });
     const boxB = await handleB.boundingBox();
     const boxA = await rowA.boundingBox();
     await page.mouse.move(
@@ -230,7 +232,7 @@ test.describe("gallery: admin", () => {
   test("owner can upload multiple images at once", async ({ page }) => {
     await page.goto("/admin/gallery");
     const fileInput = page.locator("[data-testid='gallery-file-input']");
-    await expect(page.getByText(/drag.*drop/i)).toBeVisible();
+    await expect(page.getByText(/sleep.*hierheen/i)).toBeVisible();
 
     const minimalJpeg = Buffer.from(
       "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U" +
@@ -248,10 +250,12 @@ test.describe("gallery: admin", () => {
     ]);
 
     await expect(
-      page.getByRole("button", { name: /upload 2 images/i }),
+      page.getByRole("button", { name: /2 afbeeldingen uploaden/i }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: /upload 2 images/i }).click();
+    await page
+      .getByRole("button", { name: /2 afbeeldingen uploaden/i })
+      .click();
 
     await expect(page.locator("[data-testid='gallery-list'] img")).toHaveCount(
       2,

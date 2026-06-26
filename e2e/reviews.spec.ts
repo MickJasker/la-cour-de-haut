@@ -116,7 +116,9 @@ test.describe("reviews: admin", () => {
 
   test("reviews page is accessible in the admin sidebar", async ({ page }) => {
     await page.goto("/admin");
-    await expect(page.getByRole("link", { name: /reviews/i })).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: /beoordelingen/i }),
+    ).toBeVisible();
   });
 
   test("admin list shows review with author, rating, date, source, published", async ({
@@ -141,15 +143,15 @@ test.describe("reviews: admin", () => {
 
   test("owner can create a review", async ({ page }) => {
     await page.goto("/admin/reviews/new");
-    await page.getByLabel(/author/i).fill("Johan");
+    await page.getByLabel(/auteur/i).fill("Johan");
     // Open the calendar popover and pick the 15th of whatever month is shown
     await page.getByRole("button", { name: /pick a date/i }).click();
     await page.getByRole("gridcell", { name: "15" }).first().click();
-    await page.getByLabel(/review text/i).fill("Prachtig verblijf!");
-    await page.getByLabel(/source/i).selectOption("natuurhuisje");
+    await page.getByLabel(/recensie/i).fill("Prachtig verblijf!");
+    await page.getByLabel(/bron/i).selectOption("natuurhuisje");
     // Star picker: click the 4th star
     await page.locator("[data-testid='star-4']").click();
-    await page.getByRole("button", { name: /save/i }).click();
+    await page.getByRole("button", { name: /opslaan/i }).click();
     await expect(page.locator("[data-testid^='review-row-']")).toHaveCount(1);
     await expect(page.locator("[data-testid^='review-row-']")).toContainText(
       "Johan",
@@ -168,7 +170,7 @@ test.describe("reviews: admin", () => {
     ).toBeVisible();
     await page
       .locator("[data-testid='review-row-rev-del-1']")
-      .getByRole("button", { name: /delete/i })
+      .getByRole("button", { name: /verwijderen/i })
       .click();
     await expect(
       page.locator("[data-testid='review-row-rev-del-1']"),
@@ -179,9 +181,9 @@ test.describe("reviews: admin", () => {
     await seedReview({ id: "rev-toggle-1", published: false });
     await page.goto("/admin/reviews");
     const row = page.locator("[data-testid='review-row-rev-toggle-1']");
-    await row.getByRole("checkbox", { name: /published/i }).check();
+    await row.getByRole("checkbox", { name: /gepubliceerd/i }).check();
     await expect(
-      row.getByRole("checkbox", { name: /published/i }),
+      row.getByRole("checkbox", { name: /gepubliceerd/i }),
     ).toBeChecked();
   });
 });
