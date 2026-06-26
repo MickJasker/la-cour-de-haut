@@ -18,7 +18,9 @@
       "viewMorePhotos": "Voir plus de photos"
     },
     "reviews": {
-      "title": "Ce que disent les clients"
+      "title": "Ce que disent les clients",
+      "source": "via {source}",
+      "roughDate": "Il y a {distance}"
     },
     "hero": {
       "description": "Une introduction captivante du site web, avec une image visuellement frappante et un titre accrocheur qui attire immédiatement l'attention du visiteur.",

@@ -18,7 +18,9 @@
       "viewMorePhotos": "Bekijk meer foto's"
     },
     "reviews": {
-      "title": "Wat gasten zeggen"
+      "title": "Wat gasten zeggen",
+      "source": "via {source}",
+      "roughDate": "{distance} geleden"
     },
     "hero": {
       "description": "Een boeiende introductie op de website, met een visueel opvallend beeld en een pakkende kop die direct de aandacht van de bezoeker trekt.",
