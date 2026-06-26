@@ -6,7 +6,11 @@ import {
 } from "@tanstack/react-form-nextjs";
 import { getTranslations } from "@/i18n/server";
 import { Resend } from "resend";
-import { createBookingFormSchema } from "./shared";
+import {
+  calculateTotalNights,
+  calculateTourismTax,
+  createBookingFormSchema,
+} from "./shared";
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
@@ -156,6 +160,14 @@ export async function submitBookingAction(
     }
 
     const db = getDb();
+
+    const totalNights = calculateTotalNights(
+      data.stayDates.from,
+      data.stayDates.to,
+    );
+
+    const pricePerNight = await getPricePerNightAction();
+
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,
@@ -165,6 +177,14 @@ export async function submitBookingAction(
       locale,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
+      shownPriceAtBooking: String(
+        (pricePerNight ?? 0) * parseInt(data.guestCount) * totalNights +
+          calculateTourismTax(
+            parseInt(data.guestCount),
+            totalNights,
+            pricePerNight ?? 0,
+          ),
+      ),
     });
 
     // 4. Owner notification (fire-and-forget — don't block on email failure)
@@ -189,4 +209,10 @@ export async function submitBookingAction(
 export async function getBookedDatesAction(): Promise<string[]> {
   const intervals = await getBusyIntervals();
   return [...new Set(intervals.flatMap(expandInterval))];
+}
+
+export async function getPricePerNightAction(): Promise<number> {
+  const settings = await import("@/lib/settings");
+  const { price_per_night } = await settings.getSettings();
+  return price_per_night ?? 0;
 }

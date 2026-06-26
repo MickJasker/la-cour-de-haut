@@ -3,7 +3,10 @@ import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 import { BookModalClient } from "./book-modal-client";
 
-import { getBookedDatesAction } from "../../book/action";
+import {
+  getBookedDatesAction,
+  getPricePerNightAction,
+} from "../../book/action";
 
 export async function generateMetadata({
   params,
@@ -23,5 +26,8 @@ export async function generateMetadata({
 
 export default async function BookModalPage() {
   const bookedDates = getBookedDatesAction();
-  return <BookModalClient bookedDates={bookedDates} />;
+  const pricePerNight = getPricePerNightAction();
+  return (
+    <BookModalClient bookedDates={bookedDates} pricePerNight={pricePerNight} />
+  );
 }

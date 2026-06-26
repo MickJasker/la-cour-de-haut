@@ -53,3 +53,28 @@ export function createBookingFormSchema(t: (key: string) => string) {
       ),
   });
 }
+
+const MAX_PER_PERSON_PER_NIGHT = 4.5; // This is a placeholder value. For a real application, you might want to fetch this from a config or database.
+
+export function calculateTourismTax(
+  guestCount: number,
+  nights: number,
+  pricePerNight: number,
+): number {
+  const pricePerPersonPerNight = pricePerNight / guestCount;
+  const taxableAmountPerPersonPerNight = Math.min(
+    pricePerPersonPerNight * 0.05,
+    MAX_PER_PERSON_PER_NIGHT,
+  );
+  const subtotalTaxableAmount =
+    taxableAmountPerPersonPerNight * guestCount * nights;
+  return subtotalTaxableAmount * 1.1;
+}
+
+export function calculateTotalNights(from: string, to: string): number {
+  const fromDate = new Date(from + "T00:00:00");
+  const toDate = new Date(to + "T00:00:00");
+  return Math.ceil(
+    (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
+  );
+}

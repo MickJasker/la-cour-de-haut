@@ -14,8 +14,10 @@ import { LoaderCircle } from "lucide-react";
 
 export function BookModalClient({
   bookedDates,
+  pricePerNight,
 }: {
   bookedDates: Promise<string[]>;
+  pricePerNight: Promise<number>;
 }) {
   const router = useRouter();
   const t = useTranslations("sections.header");
@@ -35,7 +37,7 @@ export function BookModalClient({
             </div>
           }
         >
-          <BookForm bookedDates={bookedDates} />
+          <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
         </Suspense>
       </DialogContent>
     </Dialog>
