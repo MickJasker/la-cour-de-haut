@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   uploadGalleryImageAction,
   togglePublishedAction,
@@ -162,40 +163,105 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
 }
 
 export function UploadForm() {
-  const [isPending, startTransition] = useTransition();
-  const formRef = useRef<HTMLFormElement>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    startTransition(async () => {
-      await uploadGalleryImageAction(formData);
-      formRef.current?.reset();
-    });
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const images = Array.from(list).filter((f) => f.type.startsWith("image/"));
+    setFiles((prev) => [...prev, ...images]);
   }
 
+  function removeFile(index: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function handleUpload() {
+    if (files.length === 0) return;
+    for (let i = 0; i < files.length; i++) {
+      setProgress(`Uploading ${i + 1} / ${files.length}…`);
+      const formData = new FormData();
+      formData.append("file", files[i]!);
+      await uploadGalleryImageAction(formData);
+    }
+    setFiles([]);
+    setProgress(null);
+  }
+
+  const isUploading = progress !== null;
+
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="flex items-end gap-3"
-    >
-      <div className="space-y-1">
-        <Label htmlFor="gallery-file" className="text-sm">
-          Photo
-        </Label>
+    <div className="space-y-3">
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => !isUploading && inputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          addFiles(e.dataTransfer.files);
+        }}
+        className={cn(
+          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer select-none transition-colors",
+          isDragOver
+            ? "border-primary bg-primary/5"
+            : "border-stone-200 hover:border-stone-400",
+          isUploading && "pointer-events-none opacity-60",
+        )}
+      >
         <input
-          id="gallery-file"
-          name="file"
+          ref={inputRef}
           type="file"
           accept="image/*"
-          required
-          className="text-sm"
+          multiple
+          className="hidden"
+          onChange={(e) => addFiles(e.target.files)}
         />
+        <p className="text-sm text-stone-500">
+          Drag &amp; drop images here, or{" "}
+          <span className="text-primary underline">browse</span>
+        </p>
+        <p className="text-xs text-stone-400 mt-1">PNG, JPG, WebP</p>
       </div>
-      <Button type="submit" disabled={isPending}>
-        {isPending ? "Uploading…" : "Upload"}
-      </Button>
-    </form>
+
+      {files.length > 0 && (
+        <ul className="space-y-1">
+          {files.map((f, i) => (
+            <li
+              key={i}
+              className="flex items-center justify-between text-sm text-stone-600 bg-stone-50 rounded px-3 py-1.5"
+            >
+              <span className="truncate">{f.name}</span>
+              <button
+                type="button"
+                onClick={() => removeFile(i)}
+                className="ml-3 text-stone-400 hover:text-stone-700 shrink-0"
+                aria-label={`Remove ${f.name}`}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {(files.length > 0 || isUploading) && (
+        <Button onClick={handleUpload} disabled={isUploading}>
+          {isUploading
+            ? progress
+            : `Upload ${files.length} image${files.length !== 1 ? "s" : ""}`}
+        </Button>
+      )}
+    </div>
   );
 }
