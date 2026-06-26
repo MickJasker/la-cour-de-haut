@@ -1,3 +1,5 @@
+import { getDb } from "@/db/index.js";
+
 /**
  * One-time script to create the owner account.
  * Run with: pnpm seed-owner
@@ -21,6 +23,16 @@ if (!email || !password) {
 const { getAuth } = await import("../src/lib/auth.js");
 
 try {
+  //check if user already exists
+  const existingUser = await getDb().query.user.findFirst({
+    where: (user, { eq }) => eq(user.email, email),
+  });
+
+  if (existingUser) {
+    console.log("Owner already exists:", existingUser.id, existingUser.email);
+    process.exit(0);
+  }
+
   const result = await getAuth().api.createUser({
     body: { email, password, name, role: "admin" },
   });
@@ -28,8 +40,8 @@ try {
   console.log("Owner created:", result.user.id, result.user.email);
 } catch (err) {
   if (err instanceof Error) {
-    console.error("Error creating owner:", err.message);
+    console.warn("Warning creating owner:", err.message);
   } else {
-    console.error("Error creating owner:", err);
+    console.warn("Warning creating owner:", err);
   }
 }

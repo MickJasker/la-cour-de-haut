@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "pnpm db:migrate && pnpm seed-owner && next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint",
