@@ -1,5 +1,6 @@
 import "server-only";
 import type { Locale } from "./routing";
+import { nl, enGB, fr, de } from "date-fns/locale";
 
 // Lazy per-locale imports so only the requested dictionary is loaded. Keying off
 // the (statically-known) [locale] route param keeps this prerenderable, which is
@@ -20,3 +21,18 @@ export type Messages = typeof import("../../messages/nl.json");
 
 export const getDictionary = (locale: Locale): Promise<Messages> =>
   dictionaries[locale]();
+
+export function getDateFnsLocale(locale: Locale) {
+  switch (locale) {
+    case "nl":
+      return nl;
+    case "fr":
+      return fr;
+    case "en":
+      return enGB;
+    case "de":
+      return de;
+    default:
+      return nl;
+  }
+}

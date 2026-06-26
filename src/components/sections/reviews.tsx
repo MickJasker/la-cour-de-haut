@@ -5,22 +5,7 @@ import { eq, asc } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
 import { formatDistance } from "date-fns";
-import { nl, fr, enGB, de } from "date-fns/locale";
-
-function getDateFnsLocale(locale: Locale) {
-  switch (locale) {
-    case "nl":
-      return nl;
-    case "fr":
-      return fr;
-    case "en":
-      return enGB;
-    case "de":
-      return de;
-    default:
-      return nl;
-  }
-}
+import { getDateFnsLocale } from "@/i18n/dictionaries";
 
 const SOURCE_LABELS: Record<string, string> = {
   airbnb: "AirBnB",
