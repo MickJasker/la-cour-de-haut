@@ -13,14 +13,30 @@ export type IcalSourceRow = {
   name: string;
   lastError: string | null;
   lastErrorAt: Date | null;
+  cachedIntervals: { start: string; end: string }[] | null;
 };
+
+export type UpcomingEntry =
+  | {
+      type: "booking";
+      startDate: string;
+      endDate: string;
+      name: string;
+      guestCount: number;
+    }
+  | {
+      type: "ical";
+      startDate: string;
+      endDate: string;
+      sourceName: string;
+    };
 
 export type DashboardData = {
   newRequests: BookingRow[];
   overdue: BookingRow[];
   approaching: BookingRow[];
   brokenFeeds: IcalSourceRow[];
-  upcoming: BookingRow[];
+  upcoming: UpcomingEntry[];
 };
 
 export function computeDashboard(
@@ -44,8 +60,30 @@ export function computeDashboard(
       return b.paymentDeadline >= today && b.paymentDeadline <= in3Days;
     }),
     brokenFeeds: icalSources.filter((f) => f.lastError !== null),
-    upcoming: bookings
-      .filter((b) => b.status === "confirmed" && b.startDate >= today)
-      .sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    upcoming: [
+      ...bookings
+        .filter((b) => b.status === "confirmed" && b.startDate >= today)
+        .map(
+          (b): UpcomingEntry => ({
+            type: "booking",
+            startDate: b.startDate,
+            endDate: b.endDate,
+            name: b.name,
+            guestCount: b.guestCount,
+          }),
+        ),
+      ...icalSources.flatMap((source) =>
+        (source.cachedIntervals ?? [])
+          .filter((interval) => interval.end >= today)
+          .map(
+            (interval): UpcomingEntry => ({
+              type: "ical",
+              startDate: interval.start,
+              endDate: interval.end,
+              sourceName: source.name,
+            }),
+          ),
+      ),
+    ].sort((a, b) => a.startDate.localeCompare(b.startDate)),
   };
 }

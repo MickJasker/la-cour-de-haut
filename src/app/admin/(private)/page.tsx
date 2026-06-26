@@ -6,6 +6,7 @@ import {
   computeDashboard,
   type BookingRow,
   type IcalSourceRow,
+  type UpcomingEntry,
 } from "@/lib/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -116,22 +117,33 @@ function SystemAlertItem({ source }: { source: IcalSourceRow }) {
   );
 }
 
-function UpcomingBookingRow({
-  booking,
+function UpcomingEntryRow({
+  entry,
   today,
 }: {
-  booking: BookingRow;
+  entry: UpcomingEntry;
   today: string;
 }) {
-  const days = daysUntil(booking.startDate, today);
+  const days = daysUntil(entry.startDate, today);
+  const subtitle =
+    entry.type === "booking"
+      ? `${formatDate(entry.startDate)} → ${formatDate(entry.endDate)} · ${entry.guestCount} gast${entry.guestCount !== 1 ? "en" : ""}`
+      : `${formatDate(entry.startDate)} → ${formatDate(entry.endDate)}`;
+
   return (
     <div className="flex items-center justify-between py-3 border-b border-stone-100 last:border-0">
       <div className="space-y-0.5">
-        <p className="text-sm font-medium">{booking.name}</p>
-        <p className="text-xs text-stone-500">
-          {formatDate(booking.startDate)} → {formatDate(booking.endDate)} ·{" "}
-          {booking.guestCount} gast{booking.guestCount !== 1 ? "en" : ""}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium">
+            {entry.type === "booking" ? entry.name : entry.sourceName}
+          </p>
+          {entry.type === "ical" && (
+            <span className="rounded-full px-2 py-0.5 text-xs font-medium bg-stone-100 text-stone-500">
+              extern
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-stone-500">{subtitle}</p>
       </div>
       <span className="text-xs text-stone-400 shrink-0">
         {days === 0 ? "Vandaag" : days === 1 ? "Morgen" : `over ${days} dagen`}
@@ -221,8 +233,8 @@ export default async function AdminPage() {
               Aankomende verblijven
             </h2>
             <div className="rounded-lg border border-stone-200 bg-white px-4 divide-y divide-stone-100">
-              {upcoming.slice(0, 3).map((b) => (
-                <UpcomingBookingRow key={b.id} booking={b} today={today} />
+              {upcoming.slice(0, 3).map((entry, i) => (
+                <UpcomingEntryRow key={i} entry={entry} today={today} />
               ))}
             </div>
           </section>

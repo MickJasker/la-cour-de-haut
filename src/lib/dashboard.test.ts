@@ -5,6 +5,16 @@ import {
   type IcalSourceRow,
 } from "./dashboard";
 
+// Helpers to narrow union types in assertions
+function asBooking(entry: ReturnType<typeof computeDashboard>["upcoming"][0]) {
+  if (entry.type !== "booking") throw new Error("Expected booking entry");
+  return entry;
+}
+function asIcal(entry: ReturnType<typeof computeDashboard>["upcoming"][0]) {
+  if (entry.type !== "ical") throw new Error("Expected ical entry");
+  return entry;
+}
+
 const TODAY = "2026-06-26";
 
 function booking(overrides: Partial<BookingRow> = {}): BookingRow {
@@ -26,6 +36,7 @@ function feed(overrides: Partial<IcalSourceRow> = {}): IcalSourceRow {
     name: "Airbnb",
     lastError: null,
     lastErrorAt: null,
+    cachedIntervals: null,
     ...overrides,
   };
 }
@@ -43,13 +54,14 @@ describe("computeDashboard — new requests", () => {
 });
 
 describe("computeDashboard — upcoming confirmed stays", () => {
-  it("puts a confirmed booking with future startDate in upcoming", () => {
+  it("puts a confirmed booking with future startDate in upcoming as type=booking", () => {
     const result = computeDashboard(
       [booking({ status: "confirmed", startDate: "2026-07-10" })],
       [],
       TODAY,
     );
     expect(result.upcoming).toHaveLength(1);
+    expect(asBooking(result.upcoming[0]).name).toBe("Test Guest");
   });
 
   it("does not include a confirmed booking that started in the past", () => {
@@ -67,7 +79,7 @@ describe("computeDashboard — upcoming confirmed stays", () => {
     expect(result.upcoming).toHaveLength(0);
   });
 
-  it("sorts upcoming stays by startDate ascending", () => {
+  it("sorts upcoming stays by startDate ascending across both types", () => {
     const result = computeDashboard(
       [
         booking({ id: "b2", status: "confirmed", startDate: "2026-09-01" }),
@@ -84,6 +96,71 @@ describe("computeDashboard — upcoming confirmed stays", () => {
     const result = computeDashboard(
       [booking({ status: "requested", startDate: "2026-07-10" })],
       [],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(0);
+  });
+});
+
+describe("computeDashboard — upcoming iCal intervals", () => {
+  it("includes a future iCal interval as type=ical", () => {
+    const result = computeDashboard(
+      [],
+      [
+        feed({
+          name: "Airbnb",
+          cachedIntervals: [{ start: "2026-08-01", end: "2026-08-08" }],
+        }),
+      ],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(1);
+    expect(asIcal(result.upcoming[0]).sourceName).toBe("Airbnb");
+    expect(result.upcoming[0].startDate).toBe("2026-08-01");
+  });
+
+  it("excludes a past iCal interval (end date before today)", () => {
+    const result = computeDashboard(
+      [],
+      [
+        feed({
+          cachedIntervals: [{ start: "2026-06-01", end: "2026-06-08" }],
+        }),
+      ],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(0);
+  });
+
+  it("includes an interval ending today (end >= today)", () => {
+    const result = computeDashboard(
+      [],
+      [feed({ cachedIntervals: [{ start: "2026-06-20", end: TODAY }] })],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(1);
+  });
+
+  it("sorts iCal intervals together with booking entries by startDate", () => {
+    const result = computeDashboard(
+      [booking({ status: "confirmed", startDate: "2026-09-01" })],
+      [
+        feed({
+          name: "Airbnb",
+          cachedIntervals: [{ start: "2026-07-15", end: "2026-07-22" }],
+        }),
+      ],
+      TODAY,
+    );
+    expect(result.upcoming[0].startDate).toBe("2026-07-15");
+    expect(asIcal(result.upcoming[0]).sourceName).toBe("Airbnb");
+    expect(result.upcoming[1].startDate).toBe("2026-09-01");
+  });
+
+  it("handles a source with no cached intervals", () => {
+    const result = computeDashboard(
+      [],
+      [feed({ cachedIntervals: null })],
       TODAY,
     );
     expect(result.upcoming).toHaveLength(0);

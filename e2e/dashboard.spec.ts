@@ -101,6 +101,38 @@ test.describe("dashboard", () => {
     await expect(page.getByText("Alles in orde")).toBeVisible();
   });
 
+  test("shows an iCal interval as an upcoming external stay", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    const futureStart = "2028-12-01";
+    const futureEnd = "2028-12-08";
+    await sql`
+      INSERT INTO ical_source (id, name, url, enabled, cached_intervals, created_at, updated_at)
+      VALUES (
+        'dash-ical-1',
+        'Airbnb',
+        'https://example.com/ical.ics',
+        true,
+        ${JSON.stringify([{ start: futureStart, end: futureEnd }])}::jsonb,
+        now(), now()
+      )
+      ON CONFLICT (id) DO UPDATE
+        SET cached_intervals = EXCLUDED.cached_intervals
+    `;
+
+    await page.goto("/admin");
+    await expect(
+      page.getByRole("heading", { name: "Aankomende verblijven" }),
+    ).toBeVisible();
+    const airbnbRow = page
+      .locator("div")
+      .filter({ hasText: /^Airbnb/ })
+      .first();
+    await expect(airbnbRow).toBeVisible();
+    await expect(airbnbRow.getByText("extern")).toBeVisible();
+  });
+
   test("clicking a new request action navigates to the bookings inbox", async ({
     page,
   }) => {
