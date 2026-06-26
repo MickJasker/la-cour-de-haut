@@ -23,19 +23,22 @@ export async function PoiSection({ locale }: { locale: Locale }) {
   if (published.length === 0) return null;
 
   return (
-    <section data-testid="poi-section" className="py-16 lg:py-24 bg-[#c6dfca]">
+    <section
+      data-testid="poi-section"
+      className="py-16 lg:py-24 bg-brand-sage text-teal-800"
+    >
       <div className="flex flex-col max-md:px-4 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6">
-        <h2 className="font-pt-serif font-bold text-5xl text-[#3a461c] md:col-span-12 md:col-start-2">
+        <h2 className="text-style-display-large md:col-span-12 md:col-start-2">
           {t("title")}
         </h2>
-        <div className="md:col-span-12 md:col-start-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-[22px]">
+        <div className="md:col-span-12 md:col-start-2 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6">
           {published.map((item) => (
             <article
               key={item.id}
               data-testid="poi-card"
-              className="flex flex-col gap-2"
+              className="flex flex-col gap-1"
             >
-              <div className="relative h-[121px] rounded-[8px] overflow-hidden">
+              <div className="relative aspect-3/2 rounded-md overflow-hidden">
                 <Image
                   src={item.imageUrl}
                   alt={item.title}
@@ -46,20 +49,18 @@ export async function PoiSection({ locale }: { locale: Locale }) {
                 {item.distanceKm != null && (
                   <div
                     data-testid="poi-distance"
-                    className="absolute bottom-2 left-2 flex items-center backdrop-blur-sm bg-black/30 rounded-full px-2 py-1"
+                    className="absolute bottom-2 left-2 flex items-center backdrop-blur-sm bg-black/10 rounded-full px-3 py-2"
                   >
-                    <span className="text-white text-[10px] leading-none">
+                    <span className="text-white text-[12px] leading-none">
                       {item.distanceKm} km
                     </span>
                   </div>
                 )}
               </div>
-              <p className="font-pt-serif font-bold text-[14px] text-[#3a461c] leading-[1.1]">
+              <h3 className="text-style-display-small font-bold!">
                 {item.title}
-              </p>
-              <p className="font-mulish text-[10px] text-[#3a461c] opacity-80 leading-[1.1]">
-                {item.body}
-              </p>
+              </h3>
+              <p className="text-style-body-medium">{item.body}</p>
             </article>
           ))}
         </div>

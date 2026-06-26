@@ -573,6 +573,14 @@ body {
     letter-spacing: 0;
   }
 
+  .text-style-display-small {
+    font-family: var(--font-pt-serif);
+    font-size: 1.125rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: 0;
+  }
+
   .text-style-body-large {
     font-family: var(--font-mulish);
     font-size: 1.125rem;
