@@ -140,7 +140,9 @@ test.describe("gallery: admin", () => {
     page,
   }) => {
     await page.goto("/admin/gallery");
-    const fileInput = page.locator("input[type='file']");
+    const fileInput = page.locator("[data-testid='gallery-file-input']");
+    // Wait for the dropzone to be visible so React has hydrated and attached onChange
+    await expect(page.getByText(/drag.*drop/i)).toBeVisible();
     await fileInput.setInputFiles({
       name: "test-photo.jpg",
       mimeType: "image/jpeg",
@@ -157,6 +159,7 @@ test.describe("gallery: admin", () => {
     await page.getByRole("button", { name: /upload/i }).click();
     await expect(page.locator("[data-testid='gallery-list'] img")).toHaveCount(
       1,
+      { timeout: 15000 },
     );
   });
 
@@ -183,5 +186,76 @@ test.describe("gallery: admin", () => {
     await expect(
       page.locator("[data-testid='gallery-row-gal-admin-del']"),
     ).not.toBeVisible();
+  });
+
+  test("owner can reorder images by dragging", async ({ page }) => {
+    await seedImage({ id: "gal-order-a", sortOrder: 10, published: false });
+    await seedImage({ id: "gal-order-b", sortOrder: 20, published: false });
+    await page.goto("/admin/gallery");
+
+    const rowA = page.locator("[data-testid='gallery-row-gal-order-a']");
+    const rowB = page.locator("[data-testid='gallery-row-gal-order-b']");
+    await expect(rowA).toBeVisible();
+    await expect(rowB).toBeVisible();
+
+    // dnd-kit's PointerSensor needs gradual pointer movement to activate — dragTo()
+    // fires a single synthetic event that doesn't cross the activation threshold.
+    // Using mouse.move() with steps gives it enough events to register as a drag.
+    const handleB = rowB.getByRole("button", { name: /drag to reorder/i });
+    const boxB = await handleB.boundingBox();
+    const boxA = await rowA.boundingBox();
+    await page.mouse.move(
+      boxB!.x + boxB!.width / 2,
+      boxB!.y + boxB!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      boxA!.x + boxA!.width / 2,
+      boxA!.y + boxA!.height / 2,
+      { steps: 20 },
+    );
+    await page.mouse.up();
+
+    const rows = page.locator("[data-testid^='gallery-row-gal-order-']");
+    await expect(rows.nth(0)).toHaveAttribute(
+      "data-testid",
+      "gallery-row-gal-order-b",
+    );
+    await expect(rows.nth(1)).toHaveAttribute(
+      "data-testid",
+      "gallery-row-gal-order-a",
+    );
+  });
+
+  test("owner can upload multiple images at once", async ({ page }) => {
+    await page.goto("/admin/gallery");
+    const fileInput = page.locator("[data-testid='gallery-file-input']");
+    await expect(page.getByText(/drag.*drop/i)).toBeVisible();
+
+    const minimalJpeg = Buffer.from(
+      "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U" +
+        "HRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgN" +
+        "DRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy" +
+        "MjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAA" +
+        "AAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/" +
+        "aAAwDAQACEQMRAD8AJQAB/9k=",
+      "base64",
+    );
+
+    await fileInput.setInputFiles([
+      { name: "photo-1.jpg", mimeType: "image/jpeg", buffer: minimalJpeg },
+      { name: "photo-2.jpg", mimeType: "image/jpeg", buffer: minimalJpeg },
+    ]);
+
+    await expect(
+      page.getByRole("button", { name: /upload 2 images/i }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: /upload 2 images/i }).click();
+
+    await expect(page.locator("[data-testid='gallery-list'] img")).toHaveCount(
+      2,
+      { timeout: 15000 },
+    );
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useRef, useState } from "react";
+import { useTransition, useState } from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -115,8 +115,17 @@ function GalleryRow({
 }
 
 export function GalleryList({ images }: { images: GalleryImage[] }) {
+  const [serverImages, setServerImages] = useState(images);
   const [items, setItems] = useState(images);
   const [, startTransition] = useTransition();
+
+  // Sync with updated server props (e.g. after upload revalidates the page).
+  // Updating state during render is React's recommended alternative to
+  // useEffect+setState, which would cause an extra render cycle.
+  if (serverImages !== images) {
+    setServerImages(images);
+    setItems(images);
+  }
 
   function handleDelete(id: string) {
     setItems((prev) => prev.filter((img) => img.id !== id));
@@ -166,11 +175,15 @@ export function UploadForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [isPending, startTransition] = useTransition();
 
   function addFiles(list: FileList | null) {
     if (!list) return;
-    const images = Array.from(list).filter((f) => f.type.startsWith("image/"));
+    const images = Array.from(list).filter(
+      (f) =>
+        f.type.startsWith("image/") ||
+        /\.(jpe?g|png|webp|gif|avif)$/i.test(f.name),
+    );
     setFiles((prev) => [...prev, ...images]);
   }
 
@@ -178,29 +191,28 @@ export function UploadForm() {
     setFiles((prev) => prev.filter((_, i) => i !== index));
   }
 
-  async function handleUpload() {
+  function handleUpload() {
     if (files.length === 0) return;
-    for (let i = 0; i < files.length; i++) {
-      setProgress(`Uploading ${i + 1} / ${files.length}…`);
-      const formData = new FormData();
-      formData.append("file", files[i]!);
-      await uploadGalleryImageAction(formData);
-    }
-    setFiles([]);
-    setProgress(null);
+    const filesToUpload = [...files];
+    // startTransition is required so Next.js sends back updated RSC after each
+    // server action and re-renders GalleryList with the new images.
+    startTransition(async () => {
+      for (let i = 0; i < filesToUpload.length; i++) {
+        setProgress(`Uploading ${i + 1} / ${filesToUpload.length}…`);
+        const formData = new FormData();
+        formData.append("file", filesToUpload[i]!);
+        await uploadGalleryImageAction(formData);
+      }
+      setFiles([]);
+      setProgress(null);
+    });
   }
 
-  const isUploading = progress !== null;
+  const isUploading = isPending;
 
   return (
     <div className="space-y-3">
       <div
-        role="button"
-        tabIndex={0}
-        onClick={() => !isUploading && inputRef.current?.click()}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
-        }}
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragOver(true);
@@ -212,26 +224,29 @@ export function UploadForm() {
           addFiles(e.dataTransfer.files);
         }}
         className={cn(
-          "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer select-none transition-colors",
+          "relative border-2 border-dashed rounded-lg p-8 text-center transition-colors",
           isDragOver
             ? "border-primary bg-primary/5"
             : "border-stone-200 hover:border-stone-400",
           isUploading && "pointer-events-none opacity-60",
         )}
       >
+        {/* Transparent overlay input — covers the zone so clicks open the picker */}
         <input
-          ref={inputRef}
+          data-testid="gallery-file-input"
           type="file"
           accept="image/*"
           multiple
-          className="hidden"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           onChange={(e) => addFiles(e.target.files)}
         />
-        <p className="text-sm text-stone-500">
+        <p className="text-sm text-stone-500 pointer-events-none">
           Drag &amp; drop images here, or{" "}
           <span className="text-primary underline">browse</span>
         </p>
-        <p className="text-xs text-stone-400 mt-1">PNG, JPG, WebP</p>
+        <p className="text-xs text-stone-400 mt-1 pointer-events-none">
+          PNG, JPG, WebP
+        </p>
       </div>
 
       {files.length > 0 && (
