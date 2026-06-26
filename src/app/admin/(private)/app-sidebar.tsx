@@ -24,6 +24,7 @@ import {
   ArrowUpToLine,
   ArrowDownToLine,
   ImageIcon,
+  MapPin,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -92,6 +93,19 @@ export function AppSidebar() {
                   <Link href="/admin/gallery">
                     <ImageIcon />
                     Galerij
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  variant={
+                    currentPath === "/admin/pois" ? "outline" : "default"
+                  }
+                  asChild
+                >
+                  <Link href="/admin/pois">
+                    <MapPin />
+                    POI&apos;s
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

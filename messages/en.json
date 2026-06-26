@@ -13,6 +13,9 @@
     "header": {
       "bookNow": "Book your stay now"
     },
+    "poi": {
+      "title": "Discover Normandy"
+    },
     "gite": {
       "title": "The Gîte",
       "viewMorePhotos": "View more photos"
