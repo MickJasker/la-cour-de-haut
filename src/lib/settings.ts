@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { setting } from "@/db/schema";
+import { cacheLife, cacheTag, updateTag } from "next/cache";
 
 const knownSettings = z
   .object({
@@ -15,6 +16,10 @@ const knownSettings = z
 export type Settings = z.infer<typeof knownSettings>;
 
 export async function getSettings(): Promise<Settings> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("settings");
+
   const db = getDb();
   const rows = await db.select().from(setting);
   const raw = Object.fromEntries(rows.map((r) => [r.key, r.value]));
@@ -27,6 +32,8 @@ export async function upsertSetting(key: string, value: string) {
     .insert(setting)
     .values({ key, value })
     .onConflictDoUpdate({ target: setting.key, set: { value } });
+
+  updateTag("settings");
 }
 
 export function hasBankDetails(s: Settings): boolean {
