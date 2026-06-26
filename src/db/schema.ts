@@ -177,6 +177,17 @@ export const galleryImage = pgTable("gallery_image", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const poi = pgTable("poi", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  imageUrl: text("image_url").notNull(),
+  distanceKm: integer("distance_km"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  published: boolean("published").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export type ReviewSource = "airbnb" | "natuurhuisje" | "direct";
 
 export const review = pgTable("review", {

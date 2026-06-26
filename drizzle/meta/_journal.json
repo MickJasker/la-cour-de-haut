@@ -71,6 +71,13 @@
       "when": 1782500066633,
       "tag": "0009_serious_quicksilver",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782506598781,
+      "tag": "0010_low_eternals",
+      "breakpoints": true
     }
   ]
 }
