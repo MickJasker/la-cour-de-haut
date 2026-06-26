@@ -123,7 +123,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
       .locator("div.border")
       .filter({ hasText: "Marie Dupont" });
     await expect(
-      dupontCard.locator("span").filter({ hasText: /^Requested$/ }),
+      dupontCard.locator("span").filter({ hasText: /^Aangevraagd$/ }),
     ).toBeVisible();
   });
 
@@ -143,25 +143,25 @@ test.describe("booking lifecycle — full admin funnel", () => {
       .locator("div.border")
       .filter({ hasText: "Anna Schmidt" });
     await expect(
-      schmidtCard.locator("span").filter({ hasText: /^Requested$/ }),
+      schmidtCard.locator("span").filter({ hasText: /^Aangevraagd$/ }),
     ).toBeVisible();
 
     // Open confirm dialog — scope to the card so stray bookings from parallel tests don't cause strict mode violations
-    await schmidtCard.getByRole("button", { name: "Confirm" }).click();
+    await schmidtCard.getByRole("button", { name: "Bevestigen" }).click();
     await expect(
-      page.getByRole("dialog", { name: /confirm booking/i }),
+      page.getByRole("dialog", { name: /boeking bevestigen/i }),
     ).toBeVisible();
 
     // Submit with default deadline
-    await page.getByRole("button", { name: "Confirm booking" }).click();
+    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
     // Status updated — scope to card so the filter nav chip doesn't interfere
     await expect(
-      schmidtCard.locator("span").filter({ hasText: /^On hold$/ }),
+      schmidtCard.locator("span").filter({ hasText: /^In afwachting$/ }),
     ).toBeVisible();
     await expect(
-      schmidtCard.locator("span").filter({ hasText: /^Requested$/ }),
+      schmidtCard.locator("span").filter({ hasText: /^Aangevraagd$/ }),
     ).not.toBeVisible();
   });
 
@@ -177,13 +177,13 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.goto("/admin/bookings");
     await expect(page.getByText("Peter Jones")).toBeVisible();
 
-    await page.getByRole("button", { name: "Decline" }).click();
+    await page.getByRole("button", { name: "Afwijzen" }).click();
 
     await expect(
-      page.locator("span").filter({ hasText: /^Declined$/ }),
+      page.locator("span").filter({ hasText: /^Afgewezen$/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Decline" }),
+      page.getByRole("button", { name: "Afwijzen" }),
     ).not.toBeVisible();
   });
 
@@ -206,16 +206,16 @@ test.describe("booking lifecycle — full admin funnel", () => {
       .locator("div.border")
       .filter({ hasText: "Sophie Martin" });
     await expect(
-      martinCard.locator("span").filter({ hasText: /^On hold$/ }),
+      martinCard.locator("span").filter({ hasText: /^In afwachting$/ }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Mark paid" }).click();
+    await page.getByRole("button", { name: "Betaald markeren" }).click();
 
     await expect(
-      martinCard.locator("span").filter({ hasText: /^Confirmed$/ }),
+      martinCard.locator("span").filter({ hasText: /^Bevestigd$/ }),
     ).toBeVisible();
     await expect(
-      martinCard.locator("span").filter({ hasText: /^On hold$/ }),
+      martinCard.locator("span").filter({ hasText: /^In afwachting$/ }),
     ).not.toBeVisible();
   });
 
@@ -234,16 +234,16 @@ test.describe("booking lifecycle — full admin funnel", () => {
       .locator("div.border")
       .filter({ hasText: "Luca Rossi" });
     await expect(
-      rossiCard.locator("span").filter({ hasText: /^Confirmed$/ }),
+      rossiCard.locator("span").filter({ hasText: /^Bevestigd$/ }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("button", { name: "Annuleren" }).click();
 
     await expect(
-      rossiCard.locator("span").filter({ hasText: /^Cancelled$/ }),
+      rossiCard.locator("span").filter({ hasText: /^Geannuleerd$/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Cancel" }),
+      page.getByRole("button", { name: "Annuleren" }),
     ).not.toBeVisible();
   });
 
@@ -255,7 +255,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.goto("/admin/bookings");
     await expect(page.getByText("Jan Expired")).toBeVisible();
     await expect(
-      page.locator("span").filter({ hasText: /^Expired$/ }),
+      page.locator("span").filter({ hasText: /^Verlopen$/ }),
     ).toBeVisible();
     // Expired holds have no action buttons — scoped to the card to avoid matching sidebar buttons
     const expiredCard = page
@@ -282,7 +282,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.goto("/admin/bookings");
     await expect(page.getByText("No Bank Guest")).toBeVisible();
 
-    const confirmBtn = page.getByRole("button", { name: "Confirm" });
+    const confirmBtn = page.getByRole("button", { name: "Bevestigen" });
     await expect(confirmBtn).toBeDisabled();
   });
 });
