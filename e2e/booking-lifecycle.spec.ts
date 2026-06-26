@@ -43,6 +43,13 @@ test.describe("booking lifecycle — full admin funnel", () => {
   test.beforeEach(async () => {
     await clearBookings();
     await seedBankDetails();
+    // getSettings() is `use cache` — bust the tag after seeding so the page
+    // always reads the freshly-written bank details rather than a stale cache
+    // entry (e.g. the empty one written during global-setup's TRUNCATE, or left
+    // by test 260's TRUNCATE + revalidate call).
+    await fetch("http://localhost:3000/api/dev/revalidate-settings", {
+      method: "POST",
+    });
   });
 
   test("guest submits form → request appears in inbox with status 'requested'", async ({
@@ -139,8 +146,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
       schmidtCard.locator("span").filter({ hasText: /^Requested$/ }),
     ).toBeVisible();
 
-    // Open confirm dialog
-    await page.getByRole("button", { name: "Confirm" }).click();
+    // Open confirm dialog — scope to the card so stray bookings from parallel tests don't cause strict mode violations
+    await schmidtCard.getByRole("button", { name: "Confirm" }).click();
     await expect(
       page.getByRole("dialog", { name: /confirm booking/i }),
     ).toBeVisible();
@@ -267,6 +274,10 @@ test.describe("booking lifecycle — full admin funnel", () => {
       INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
       VALUES ('test-nobk-1', 'No Bank Guest', 'guest@example.com', 1, 'nl', '2028-01-01', '2028-01-05', 'requested', now())
     `;
+    // getSettings() is `use cache` — bust the tag so the page sees the truncated table
+    await fetch("http://localhost:3000/api/dev/revalidate-settings", {
+      method: "POST",
+    });
 
     await page.goto("/admin/bookings");
     await expect(page.getByText("No Bank Guest")).toBeVisible();

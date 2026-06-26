@@ -1,6 +1,16 @@
 import { test, expect } from "@playwright/test";
+import { neon } from "@neondatabase/serverless";
+
+async function deleteTestSubmissions() {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`DELETE FROM booking_request WHERE email = 'test@example.com'`;
+}
 
 test.describe("booking form — standalone page (/nl/book)", () => {
+  // "valid submission" test creates a real booking_request row — clean it up so
+  // parallel workers don't see a stray requested booking on /admin/bookings.
+  test.afterEach(deleteTestSubmissions);
+
   test.beforeEach(async ({ page }) => {
     await page.goto("/nl/book");
     // Wait for the form to finish streaming (booked-dates promise resolves)

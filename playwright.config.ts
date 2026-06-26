@@ -19,6 +19,7 @@ export default defineConfig({
     // A production build can take a couple of minutes on a cold CI runner.
     timeout: 180_000,
   },
+  retries: 1,
   use: {
     baseURL: "http://localhost:3000",
     locale: "nl",
