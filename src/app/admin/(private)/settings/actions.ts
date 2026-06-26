@@ -6,7 +6,13 @@ import { upsertSetting } from "@/lib/settings";
 export async function saveSettingsAction(formData: FormData) {
   await verifySession();
 
-  const keys = ["iban", "bank_name", "account_holder", "payment_deadline_days"];
+  const keys = [
+    "iban",
+    "bank_name",
+    "account_holder",
+    "payment_deadline_days",
+    "price_per_night",
+  ];
   await Promise.all(
     keys
       .filter((k) => {

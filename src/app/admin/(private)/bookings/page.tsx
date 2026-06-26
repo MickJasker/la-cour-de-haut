@@ -18,6 +18,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
+import {
+  calculateTotalNights,
+  calculateTourismTax,
+} from "@/app/[locale]/book/shared";
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
   requested: "Aangevraagd",
@@ -158,6 +162,29 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                     <p className="text-sm text-stone-500">
                       {booking.email}
                       {booking.phone ? ` · ${booking.phone}` : ""}
+                    </p>
+                    <p className="text-sm text-stone-500">
+                      Prijs per nacht bij boeking: €
+                      {booking.shownPriceAtBooking}
+                    </p>
+                    <p className="text-sm text-stone-500">
+                      Totaalprijs bij boeking: €
+                      {(
+                        Number(booking.shownPriceAtBooking) *
+                          booking.guestCount *
+                          calculateTotalNights(
+                            booking.startDate,
+                            booking.endDate,
+                          ) +
+                        calculateTourismTax(
+                          booking.guestCount,
+                          calculateTotalNights(
+                            booking.startDate,
+                            booking.endDate,
+                          ),
+                          Number(booking.shownPriceAtBooking),
+                        )
+                      ).toFixed(2)}
                     </p>
                   </div>
                   <div className="text-right text-sm text-stone-500 shrink-0">

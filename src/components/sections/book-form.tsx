@@ -32,16 +32,26 @@ import {
   submitBookingAction,
   type BookingActionState,
 } from "@/app/[locale]/book/action";
-import { formOpts } from "@/app/[locale]/book/shared";
+import {
+  calculateTotalNights,
+  calculateTourismTax,
+  formOpts,
+} from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
 
-const pricePerNight = 85; // This is a placeholder value. For a real application, you might want to fetch this from a config or database.
-
-export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
+export function BookForm({
+  bookedDates,
+  pricePerNight: pricePerNightPromise,
+}: {
+  bookedDates: Promise<string[]>;
+  pricePerNight: Promise<number>;
+}) {
   const t = useTranslations("booking");
   const locale = useLocale();
 
   const booked = use(bookedDates);
+  const pricePerNight = use(pricePerNightPromise);
+
   const [turnstileToken, setTurnstileToken] = useState("");
   const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -254,26 +264,31 @@ export function BookForm({ bookedDates }: { bookedDates: Promise<string[]> }) {
 
             <form.Subscribe>
               {(formState) => {
-                const totalNights =
-                  formState.values.stayDates.from &&
-                  formState.values.stayDates.to
-                    ? Math.ceil(
-                        (new Date(
-                          formState.values.stayDates.to + "T00:00:00",
-                        ).getTime() -
-                          new Date(
-                            formState.values.stayDates.from + "T00:00:00",
-                          ).getTime()) /
-                          (1000 * 60 * 60 * 24),
-                      ) || 1
-                    : 0;
+                const totalNights = calculateTotalNights(
+                  formState.values.stayDates?.from ?? "",
+                  formState.values.stayDates?.to ?? "",
+                );
 
                 return (
                   <p className={cn("text-sm", !totalNights && "invisible")}>
                     {t.rich("form.totalPrice", {
                       pricePerNight: currency.format(pricePerNight),
                       totalNights,
-                      totalPrice: currency.format(pricePerNight * totalNights),
+                      totalPrice: currency.format(
+                        pricePerNight * totalNights +
+                          calculateTourismTax(
+                            Number(formState.values.guestCount),
+                            totalNights,
+                            pricePerNight,
+                          ),
+                      ),
+                      tourismTax: currency.format(
+                        calculateTourismTax(
+                          Number(formState.values.guestCount),
+                          totalNights,
+                          pricePerNight,
+                        ),
+                      ),
                     })}
                   </p>
                 );

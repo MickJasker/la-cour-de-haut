@@ -64,6 +64,13 @@
       "when": 1782389621231,
       "tag": "0008_dazzling_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1782500066633,
+      "tag": "0009_serious_quicksilver",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "booking_request" ADD COLUMN "shown_price_at_booking" numeric NOT NULL;

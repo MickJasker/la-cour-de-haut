@@ -10,6 +10,7 @@ const knownSettings = z
     bank_name: z.string(),
     account_holder: z.string(),
     payment_deadline_days: z.coerce.number().int().positive(),
+    price_per_night: z.coerce.number().positive(),
   })
   .partial();
 

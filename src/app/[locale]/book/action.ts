@@ -6,7 +6,11 @@ import {
 } from "@tanstack/react-form-nextjs";
 import { getTranslations } from "@/i18n/server";
 import { Resend } from "resend";
-import { createBookingFormSchema } from "./shared";
+import {
+  calculateTotalNights,
+  calculateTourismTax,
+  createBookingFormSchema,
+} from "./shared";
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
@@ -79,6 +83,7 @@ async function sendOwnerNotification(data: {
   guestCount: string;
   startDate: string;
   endDate: string;
+  pricePerNight: number;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM ?? "noreply@lacourdehaut.fr";
@@ -88,6 +93,21 @@ async function sendOwnerNotification(data: {
 
   const resend = new Resend(apiKey);
 
+  const currencyFormatter = new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  });
+
+  const totalNights = calculateTotalNights(data.startDate, data.endDate);
+
+  const tourismTax = calculateTourismTax(
+    parseInt(data.guestCount),
+    totalNights,
+    data.pricePerNight,
+  );
+
+  const totalPrice = data.pricePerNight * totalNights + tourismTax;
+
   await resend.emails.send({
     from,
     to,
@@ -96,12 +116,15 @@ async function sendOwnerNotification(data: {
     html: `
       <h2>New booking request</h2>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Name</th><td>${esc(data.name)}</td></tr>
+        <tr><th align="left">Naam</th><td>${esc(data.name)}</td></tr>
         <tr><th align="left">Email</th><td><a href="mailto:${encodeURIComponent(data.email)}">${esc(data.email)}</a></td></tr>
-        <tr><th align="left">Phone</th><td>${esc(data.phone) || "—"}</td></tr>
-        <tr><th align="left">Guests</th><td>${esc(data.guestCount)}</td></tr>
-        <tr><th align="left">Check-in</th><td>${esc(data.startDate)}</td></tr>
-        <tr><th align="left">Check-out</th><td>${esc(data.endDate)}</td></tr>
+        <tr><th align="left">Telefoon</th><td>${esc(data.phone) || "—"}</td></tr>
+        <tr><th align="left">Gasten</th><td>${esc(data.guestCount)}</td></tr>
+        <tr><th align="left">Inchecken</th><td>${esc(data.startDate)}</td></tr>
+        <tr><th align="left">Uitchecken</th><td>${esc(data.endDate)}</td></tr>
+        <tr><th align="left">Nachten</th><td>${calculateTotalNights(data.startDate, data.endDate)}</td></tr>
+        <tr><th align="left">Toeristenbelasting</th><td>${currencyFormatter.format(tourismTax)}</td></tr>
+        <tr><th align="left">Totaalprijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p style="margin-top:24px">
         <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/admin">
@@ -156,6 +179,9 @@ export async function submitBookingAction(
     }
 
     const db = getDb();
+
+    const pricePerNight = await getPricePerNightAction();
+
     await db.insert(bookingRequest).values({
       id: crypto.randomUUID(),
       name: data.name,
@@ -165,6 +191,7 @@ export async function submitBookingAction(
       locale,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
+      shownPriceAtBooking: pricePerNight.toString(),
     });
 
     // 4. Owner notification (fire-and-forget — don't block on email failure)
@@ -175,6 +202,7 @@ export async function submitBookingAction(
       guestCount: data.guestCount,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
+      pricePerNight,
     }).catch(console.error);
 
     return { ...initialFormState, success: true };
@@ -189,4 +217,10 @@ export async function submitBookingAction(
 export async function getBookedDatesAction(): Promise<string[]> {
   const intervals = await getBusyIntervals();
   return [...new Set(intervals.flatMap(expandInterval))];
+}
+
+export async function getPricePerNightAction(): Promise<number> {
+  const settings = await import("@/lib/settings");
+  const { price_per_night } = await settings.getSettings();
+  return price_per_night ?? 0;
 }

@@ -5,7 +5,7 @@ import { BookForm } from "@/components/sections/book-form";
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { getBookedDatesAction } from "./action";
+import { getBookedDatesAction, getPricePerNightAction } from "./action";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
 
@@ -35,6 +35,7 @@ export default async function BookPage({
     namespace: "booking",
   });
   const bookedDates = getBookedDatesAction();
+  const pricePerNight = getPricePerNightAction();
 
   return (
     <>
@@ -57,7 +58,7 @@ export default async function BookPage({
             </div>
           }
         >
-          <BookForm bookedDates={bookedDates} />
+          <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
         </Suspense>
         <div className="h-22" />
       </main>

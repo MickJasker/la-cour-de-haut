@@ -29,8 +29,8 @@ test.describe("dashboard", () => {
   test("shows new request in openstaande acties", async ({ page }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('dash-req-1', 'Emma Leclerc', 'emma@example.com', 3, 'fr', '2028-07-01', '2028-07-08', 'requested', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('dash-req-1', 'Emma Leclerc', 'emma@example.com', 3, 'fr', '2028-07-01', '2028-07-08', 'requested', now(), 0)
     `;
 
     await page.goto("/admin");
@@ -45,7 +45,7 @@ test.describe("dashboard", () => {
   test("shows overdue payment in openstaande acties", async ({ page }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
       VALUES (
         'dash-hold-expired',
         'Lars Janssen',
@@ -55,7 +55,8 @@ test.describe("dashboard", () => {
         'on_hold',
         now() - interval '10 days',
         (now() - interval '3 days')::date,
-        now() - interval '10 days'
+        now() - interval '10 days',
+        0
       )
     `;
 
@@ -67,7 +68,7 @@ test.describe("dashboard", () => {
   test("shows approaching deadline in openstaande acties", async ({ page }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
       VALUES (
         'dash-hold-soon',
         'Ingrid Svensson',
@@ -77,7 +78,8 @@ test.describe("dashboard", () => {
         'on_hold',
         now(),
         (now() + interval '2 days')::date,
-        now()
+        now(),
+        0
       )
     `;
 
@@ -91,8 +93,8 @@ test.describe("dashboard", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('dash-conf-1', 'Kenji Watanabe', 'kenji@example.com', 2, 'en', '2028-10-01', '2028-10-08', 'confirmed', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('dash-conf-1', 'Kenji Watanabe', 'kenji@example.com', 2, 'en', '2028-10-01', '2028-10-08', 'confirmed', now(), 0)
     `;
 
     await page.goto("/admin");
@@ -140,8 +142,8 @@ test.describe("dashboard", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('dash-req-nav', 'Nav Test Guest', 'nav@example.com', 1, 'nl', '2028-11-01', '2028-11-07', 'requested', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('dash-req-nav', 'Nav Test Guest', 'nav@example.com', 1, 'nl', '2028-11-01', '2028-11-07', 'requested', now(), 0)
     `;
 
     await page.goto("/admin");

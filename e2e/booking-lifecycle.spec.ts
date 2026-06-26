@@ -22,7 +22,7 @@ async function clearBookings() {
 async function seedExpiredHold() {
   const sql = neon(process.env.DATABASE_URL!);
   await sql`
-    INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at)
+    INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
     VALUES (
       'expired-hold-1',
       'Jan Expired',
@@ -34,7 +34,8 @@ async function seedExpiredHold() {
       'on_hold',
       now() - interval '10 days',
       (now() - interval '2 days')::date,
-      now() - interval '10 days'
+      now() - interval '10 days',
+      0
     )
   `;
 }
@@ -133,8 +134,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
     // Seed a booking request
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('test-req-1', 'Anna Schmidt', 'anna@example.com', 2, 'de', '2027-09-01', '2027-09-07', 'requested', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('test-req-1', 'Anna Schmidt', 'anna@example.com', 2, 'de', '2027-09-01', '2027-09-07', 'requested', now(), 0)
     `;
 
     await page.goto("/admin/bookings");
@@ -170,8 +171,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('test-req-2', 'Peter Jones', 'peter@example.com', 3, 'en', '2027-10-01', '2027-10-05', 'requested', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('test-req-2', 'Peter Jones', 'peter@example.com', 3, 'en', '2027-10-01', '2027-10-05', 'requested', now(), 0)
     `;
 
     await page.goto("/admin/bookings");
@@ -196,8 +197,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
     const deadlineStr = deadline.toISOString().slice(0, 10);
 
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at)
-      VALUES ('test-hold-1', 'Sophie Martin', 'sophie@example.com', 2, 'fr', '2027-11-01', '2027-11-08', 'on_hold', now(), ${deadlineStr}::date, now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
+      VALUES ('test-hold-1', 'Sophie Martin', 'sophie@example.com', 2, 'fr', '2027-11-01', '2027-11-08', 'on_hold', now(), ${deadlineStr}::date, now(), 0)
     `;
 
     await page.goto("/admin/bookings");
@@ -224,8 +225,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at)
-      VALUES ('test-conf-1', 'Luca Rossi', 'luca@example.com', 4, 'en', '2027-12-01', '2027-12-10', 'confirmed', now(), now()::date, now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
+      VALUES ('test-conf-1', 'Luca Rossi', 'luca@example.com', 4, 'en', '2027-12-01', '2027-12-10', 'confirmed', now(), now()::date, now(), 0)
     `;
 
     await page.goto("/admin/bookings");
@@ -271,8 +272,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`TRUNCATE setting`;
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
-      VALUES ('test-nobk-1', 'No Bank Guest', 'guest@example.com', 1, 'nl', '2028-01-01', '2028-01-05', 'requested', now())
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      VALUES ('test-nobk-1', 'No Bank Guest', 'guest@example.com', 1, 'nl', '2028-01-01', '2028-01-05', 'requested', now(), 0)
     `;
     // getSettings() is `use cache` — bust the tag so the page sees the truncated table
     await fetch("http://localhost:3000/api/dev/revalidate/settings", {
@@ -294,10 +295,10 @@ test.describe("booking lifecycle — status filter", () => {
     await clearBookings();
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
       VALUES
-        ('f-req', 'Filter Requested', 'a@a.com', 1, 'nl', '2028-02-01', '2028-02-05', 'requested', now()),
-        ('f-dec', 'Filter Declined',  'b@b.com', 1, 'nl', '2028-02-01', '2028-02-05', 'declined',  now())
+        ('f-req', 'Filter Requested', 'a@a.com', 1, 'nl', '2028-02-01', '2028-02-05', 'requested', now(), 0),
+        ('f-dec', 'Filter Declined',  'b@b.com', 1, 'nl', '2028-02-01', '2028-02-05', 'declined',  now(), 0)
     `;
   });
 

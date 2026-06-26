@@ -9,6 +9,7 @@ import {
   pgEnum,
   integer,
   jsonb,
+  numeric,
 } from "drizzle-orm/pg-core";
 
 export type BusyInterval = { start: string; end: string };
@@ -136,6 +137,7 @@ export const bookingRequest = pgTable("booking_request", {
   paymentDeadline: date("payment_deadline"),
   ownerNotes: text("owner_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  shownPriceAtBooking: numeric("shown_price_at_booking").notNull(),
 });
 
 export const setting = pgTable("setting", {
