@@ -25,6 +25,8 @@ import { useLocale, useTranslations } from "@/i18n/provider";
 import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
@@ -277,8 +279,6 @@ export function BookForm({
                     Number(formState.values.guestCount),
                   );
 
-                const strong = (chunks: ReactNode) => <strong>{chunks}</strong>;
-
                 return (
                   <>
                     {discount > 0 ? (
@@ -293,25 +293,25 @@ export function BookForm({
                             pricePerNight: currency.format(pricePerNight),
                             totalNights,
                             rentalSubtotal: currency.format(rentalSubtotal),
-                            strong,
+                            strong: renderStrong,
                           })}
                         </p>
                         <p className="text-positive">
                           {t.rich("form.longStayDiscount", {
                             discount: currency.format(discount),
-                            strong,
+                            strong: renderStrong,
                           })}
                         </p>
                         <p>
                           {t.rich("form.tourismTaxLine", {
                             tourismTax: currency.format(tourismTax),
-                            strong,
+                            strong: renderStrong,
                           })}
                         </p>
                         <p className="font-medium">
                           {t.rich("form.totalLine", {
                             totalPrice: currency.format(totalPrice),
-                            strong,
+                            strong: renderStrong,
                           })}
                         </p>
                       </div>

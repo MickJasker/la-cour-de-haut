@@ -157,6 +157,13 @@ test.describe("booking form — long-stay discount", () => {
     const checkout = new Date(checkin);
     checkout.setDate(checkout.getDate() + nights);
     await page.locator(`button[aria-label="${toAriaLabel(checkin)}"]`).click();
+    // Navigate to the next month if checkout falls outside the currently visible month
+    if (
+      checkout.getMonth() !== checkin.getMonth() ||
+      checkout.getFullYear() !== checkin.getFullYear()
+    ) {
+      await page.locator(".rdp-button_next").click();
+    }
     await page.locator(`button[aria-label="${toAriaLabel(checkout)}"]`).click();
     await page.waitForFunction(() => {
       const from = (
