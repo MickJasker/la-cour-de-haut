@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
 import {
+  calculateDiscount,
   calculateTotalNights,
   calculateTourismTax,
 } from "@/app/[locale]/book/shared";
@@ -167,25 +168,40 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                       Prijs per nacht bij boeking: €
                       {booking.shownPriceAtBooking}
                     </p>
-                    <p className="text-sm text-stone-500">
-                      Totaalprijs bij boeking: €
-                      {(
-                        Number(booking.shownPriceAtBooking) *
-                          booking.guestCount *
-                          calculateTotalNights(
-                            booking.startDate,
-                            booking.endDate,
-                          ) +
-                        calculateTourismTax(
-                          booking.guestCount,
-                          calculateTotalNights(
-                            booking.startDate,
-                            booking.endDate,
-                          ),
-                          Number(booking.shownPriceAtBooking),
-                        )
-                      ).toFixed(2)}
-                    </p>
+                    {(() => {
+                      const nights = calculateTotalNights(
+                        booking.startDate,
+                        booking.endDate,
+                      );
+                      const pricePerNight = Number(booking.shownPriceAtBooking);
+                      const rentalSubtotal = pricePerNight * nights;
+                      const discount = calculateDiscount(
+                        nights,
+                        rentalSubtotal,
+                      );
+                      const discountedRental = rentalSubtotal - discount;
+                      const discountedPricePerNight =
+                        nights > 0 ? discountedRental / nights : pricePerNight;
+                      const tourismTax = calculateTourismTax(
+                        booking.guestCount,
+                        nights,
+                        discountedPricePerNight,
+                      );
+                      const total = discountedRental + tourismTax;
+                      return (
+                        <>
+                          {discount > 0 && (
+                            <p className="text-sm text-stone-500">
+                              10% korting (7+ nachten): −€
+                              {discount.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-sm text-stone-500">
+                            Totaalprijs bij boeking: €{total.toFixed(2)}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="text-right text-sm text-stone-500 shrink-0">
                     <p>

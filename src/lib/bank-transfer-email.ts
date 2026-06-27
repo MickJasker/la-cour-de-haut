@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import type { Settings } from "./settings";
 import {
+  calculateDiscount,
   calculateTotalNights,
   calculateTourismTax,
 } from "@/app/[locale]/book/shared";
@@ -33,6 +34,19 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
+    const nights = calculateTotalNights(p.startDate, p.endDate);
+    const pricePerNight = Number(p.settings.price_per_night);
+    const rentalSubtotal = pricePerNight * nights;
+    const discount = calculateDiscount(nights, rentalSubtotal);
+    const discountedRental = rentalSubtotal - discount;
+    const discountedPricePerNight =
+      nights > 0 ? discountedRental / nights : pricePerNight;
+    const tourismTax = calculateTourismTax(
+      p.guestCount,
+      nights,
+      discountedPricePerNight,
+    );
+    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Uw reservering bij La Cour de Haut`,
@@ -43,16 +57,9 @@ const templates: Record<
         <tr><th align="left">Aankomst</th><td>${esc(p.startDate)}</td></tr>
         <tr><th align="left">Vertrek</th><td>${esc(p.endDate)}</td></tr>
         <tr><th align="left">Gasten</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Aantal nachten</th><td>${calculateTotalNights(p.startDate, p.endDate)}</td></tr>
-        <tr></tr><th align="left">Totale prijs</th><td>${currencyFormatter.format(
-          Number(p.settings.price_per_night) *
-            calculateTotalNights(p.startDate, p.endDate) +
-            calculateTourismTax(
-              p.guestCount,
-              calculateTotalNights(p.startDate, p.endDate),
-              Number(p.settings.price_per_night),
-            ),
-        )}</td></tr>
+        <tr><th align="left">Aantal nachten</th><td>${nights}</td></tr>
+        ${discount > 0 ? `<tr><th align="left">10% korting (7+ nachten)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
+        <tr></tr><th align="left">Totale prijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p>Om uw reservering definitief te maken, verzoeken wij u het verschuldigde bedrag vóór <strong>${esc(p.paymentDeadline)}</strong> over te maken naar:</p>
       <table cellpadding="6" style="border-collapse:collapse">
@@ -71,6 +78,19 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
+    const nights = calculateTotalNights(p.startDate, p.endDate);
+    const pricePerNight = Number(p.settings.price_per_night);
+    const rentalSubtotal = pricePerNight * nights;
+    const discount = calculateDiscount(nights, rentalSubtotal);
+    const discountedRental = rentalSubtotal - discount;
+    const discountedPricePerNight =
+      nights > 0 ? discountedRental / nights : pricePerNight;
+    const tourismTax = calculateTourismTax(
+      p.guestCount,
+      nights,
+      discountedPricePerNight,
+    );
+    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Your reservation at La Cour de Haut`,
@@ -81,16 +101,9 @@ const templates: Record<
         <tr><th align="left">Check-in</th><td>${esc(p.startDate)}</td></tr>
         <tr><th align="left">Check-out</th><td>${esc(p.endDate)}</td></tr>
         <tr><th align="left">Guests</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Total nights</th><td>${calculateTotalNights(p.startDate, p.endDate)}</td></tr>
-        <tr><th align="left">Total price</th><td>${currencyFormatter.format(
-          Number(p.settings.price_per_night) *
-            calculateTotalNights(p.startDate, p.endDate) +
-            calculateTourismTax(
-              p.guestCount,
-              calculateTotalNights(p.startDate, p.endDate),
-              Number(p.settings.price_per_night),
-            ),
-        )}</td></tr>
+        <tr><th align="left">Total nights</th><td>${nights}</td></tr>
+        ${discount > 0 ? `<tr><th align="left">10% long-stay discount (7+ nights)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
+        <tr><th align="left">Total price</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p>To confirm your reservation, please transfer the agreed amount before <strong>${esc(p.paymentDeadline)}</strong> to:</p>
       <table cellpadding="6" style="border-collapse:collapse">
@@ -109,6 +122,19 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
+    const nights = calculateTotalNights(p.startDate, p.endDate);
+    const pricePerNight = Number(p.settings.price_per_night);
+    const rentalSubtotal = pricePerNight * nights;
+    const discount = calculateDiscount(nights, rentalSubtotal);
+    const discountedRental = rentalSubtotal - discount;
+    const discountedPricePerNight =
+      nights > 0 ? discountedRental / nights : pricePerNight;
+    const tourismTax = calculateTourismTax(
+      p.guestCount,
+      nights,
+      discountedPricePerNight,
+    );
+    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Votre réservation à La Cour de Haut`,
@@ -119,15 +145,8 @@ const templates: Record<
         <tr><th align="left">Arrivée</th><td>${esc(p.startDate)}</td></tr>
         <tr><th align="left">Départ</th><td>${esc(p.endDate)}</td></tr>
         <tr><th align="left">Voyageurs</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Prix total</th><td>${currencyFormatter.format(
-          Number(p.settings.price_per_night) *
-            calculateTotalNights(p.startDate, p.endDate) +
-            calculateTourismTax(
-              p.guestCount,
-              calculateTotalNights(p.startDate, p.endDate),
-              Number(p.settings.price_per_night),
-            ),
-        )}</td></tr>
+        ${discount > 0 ? `<tr><th align="left">Réduction long séjour 10% (7+ nuits)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
+        <tr><th align="left">Prix total</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p>Pour confirmer votre réservation, veuillez virer le montant convenu avant le <strong>${esc(p.paymentDeadline)}</strong> à :</p>
       <table cellpadding="6" style="border-collapse:collapse">
@@ -146,6 +165,20 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
+    const nights = calculateTotalNights(p.startDate, p.endDate);
+    const pricePerNight = Number(p.settings.price_per_night);
+    const rentalSubtotal = pricePerNight * nights;
+    const discount = calculateDiscount(nights, rentalSubtotal);
+    const discountedRental = rentalSubtotal - discount;
+    const discountedPricePerNight =
+      nights > 0 ? discountedRental / nights : pricePerNight;
+    const tourismTax = calculateTourismTax(
+      p.guestCount,
+      nights,
+      discountedPricePerNight,
+    );
+    const totalPrice = discountedRental + tourismTax;
+
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,
       html: `
@@ -155,16 +188,9 @@ const templates: Record<
         <tr><th align="left">Anreise</th><td>${esc(p.startDate)}</td></tr>
         <tr><th align="left">Abreise</th><td>${esc(p.endDate)}</td></tr>
         <tr><th align="left">Gäste</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Gesamtnächte</th><td>${calculateTotalNights(p.startDate, p.endDate)}</td></tr>
-        <tr><th align="left">Gesamtpreis</th><td>${currencyFormatter.format(
-          Number(p.settings.price_per_night) *
-            calculateTotalNights(p.startDate, p.endDate) +
-            calculateTourismTax(
-              p.guestCount,
-              calculateTotalNights(p.startDate, p.endDate),
-              Number(p.settings.price_per_night),
-            ),
-        )}</td></tr>
+        <tr><th align="left">Gesamtnächte</th><td>${nights}</td></tr>
+        ${discount > 0 ? `<tr><th align="left">10% Langzeitrabatt (7+ Nächte)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
+        <tr><th align="left">Gesamtpreis</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p>Um Ihre Reservierung zu bestätigen, bitten wir Sie, den vereinbarten Betrag bis zum <strong>${esc(p.paymentDeadline)}</strong> zu überweisen an:</p>
       <table cellpadding="6" style="border-collapse:collapse">
