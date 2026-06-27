@@ -41,9 +41,26 @@ function invalidate() {
 
 function parseBody(formData: FormData) {
   const raw = formData.get("body");
-  return localizedStringSchema.parse(
-    typeof raw === "string" ? JSON.parse(raw) : raw,
-  );
+  const parsed =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return raw;
+          }
+        })()
+      : raw;
+  return localizedStringSchema.parse(parsed);
+}
+
+function inferBodySource(body: ReturnType<typeof localizedStringSchema.parse>) {
+  return {
+    nl: "human" as const,
+    ...(body.en ? { en: "machine" as const } : {}),
+    ...(body.fr ? { fr: "machine" as const } : {}),
+    ...(body.de ? { de: "machine" as const } : {}),
+  };
 }
 
 export async function createReviewAction(
@@ -54,6 +71,12 @@ export async function createReviewAction(
   try {
     const data = await serverValidate(formData);
     const body = parseBody(formData);
+    const bodyValue = {
+      nl: body.nl.trim(),
+      ...(body.en ? { en: body.en.trim() } : {}),
+      ...(body.fr ? { fr: body.fr.trim() } : {}),
+      ...(body.de ? { de: body.de.trim() } : {}),
+    };
     const db = getDb();
     await db.insert(review).values({
       id: crypto.randomUUID(),
@@ -61,13 +84,8 @@ export async function createReviewAction(
       rating: data.rating,
       reviewDate: data.reviewDate,
       source: data.source,
-      body: {
-        nl: body.nl.trim(),
-        ...(body.en ? { en: body.en.trim() } : {}),
-        ...(body.fr ? { fr: body.fr.trim() } : {}),
-        ...(body.de ? { de: body.de.trim() } : {}),
-      },
-      bodySource: { nl: "human" },
+      body: bodyValue,
+      bodySource: inferBodySource(body),
       published: data.published,
       sortOrder: 0,
     });
@@ -90,6 +108,12 @@ export async function updateReviewAction(
   try {
     const data = await serverValidate(formData);
     const body = parseBody(formData);
+    const bodyValue = {
+      nl: body.nl.trim(),
+      ...(body.en ? { en: body.en.trim() } : {}),
+      ...(body.fr ? { fr: body.fr.trim() } : {}),
+      ...(body.de ? { de: body.de.trim() } : {}),
+    };
     const db = getDb();
     await db
       .update(review)
@@ -98,13 +122,8 @@ export async function updateReviewAction(
         rating: data.rating,
         reviewDate: data.reviewDate,
         source: data.source,
-        body: {
-          nl: body.nl.trim(),
-          ...(body.en ? { en: body.en.trim() } : {}),
-          ...(body.fr ? { fr: body.fr.trim() } : {}),
-          ...(body.de ? { de: body.de.trim() } : {}),
-        },
-        bodySource: { nl: "human" },
+        body: bodyValue,
+        bodySource: inferBodySource(body),
         published: data.published,
       })
       .where(eq(review.id, id));

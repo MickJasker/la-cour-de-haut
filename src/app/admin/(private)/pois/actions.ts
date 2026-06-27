@@ -36,9 +36,17 @@ const serverValidate = createServerValidate({
 
 function parseLocalizedField(formData: FormData, key: string) {
   const raw = formData.get(key);
-  return localizedStringSchema.parse(
-    typeof raw === "string" ? JSON.parse(raw) : raw,
-  );
+  const parsed =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return raw;
+          }
+        })()
+      : raw;
+  return localizedStringSchema.parse(parsed);
 }
 
 function buildLocalized(loc: ReturnType<typeof localizedStringSchema.parse>) {
@@ -47,6 +55,15 @@ function buildLocalized(loc: ReturnType<typeof localizedStringSchema.parse>) {
     ...(loc.en ? { en: loc.en.trim() } : {}),
     ...(loc.fr ? { fr: loc.fr.trim() } : {}),
     ...(loc.de ? { de: loc.de.trim() } : {}),
+  };
+}
+
+function inferSource(loc: ReturnType<typeof localizedStringSchema.parse>) {
+  return {
+    nl: "human" as const,
+    ...(loc.en ? { en: "machine" as const } : {}),
+    ...(loc.fr ? { fr: "machine" as const } : {}),
+    ...(loc.de ? { de: "machine" as const } : {}),
   };
 }
 
@@ -95,8 +112,8 @@ export async function createPoiAction(
       id: crypto.randomUUID(),
       title: buildLocalized(title),
       body: buildLocalized(body),
-      titleSource: { nl: "human" },
-      bodySource: { nl: "human" },
+      titleSource: inferSource(title),
+      bodySource: inferSource(body),
       imageUrl: blob.url,
       distanceKm: parseDistanceKm(data.distanceKm),
       sortOrder: parseSortOrder(formData.get("sortOrder")),
@@ -146,6 +163,8 @@ export async function updatePoiAction(
       .set({
         title: buildLocalized(title),
         body: buildLocalized(body),
+        titleSource: inferSource(title),
+        bodySource: inferSource(body),
         distanceKm: parseDistanceKm(data.distanceKm),
         sortOrder: parseSortOrder(formData.get("sortOrder")),
         published: data.published,

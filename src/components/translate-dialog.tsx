@@ -112,12 +112,14 @@ export function TranslateDialog(props: TranslateDialogProps) {
         const result = await translateTextAction(props.sourceText);
         setReviewTranslations(result);
       } else {
+        const hasTitle = props.sourceTitleText.trim().length > 0;
+        const hasBody = props.sourceBodyText.trim().length > 0;
         const [titleResult, bodyResult] = await Promise.all([
-          translateTextAction(props.sourceTitleText),
-          translateTextAction(props.sourceBodyText),
+          hasTitle ? translateTextAction(props.sourceTitleText) : null,
+          hasBody ? translateTextAction(props.sourceBodyText) : null,
         ]);
-        setPoiTitle(titleResult);
-        setPoiBody(bodyResult);
+        if (titleResult) setPoiTitle(titleResult);
+        if (bodyResult) setPoiBody(bodyResult);
       }
     });
   }

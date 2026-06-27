@@ -15,8 +15,8 @@ export async function translateToAllLocales(
     private_key: string;
   };
 
-  const { TranslationServiceClient } =
-    await import("@google-cloud/translate/build/src/v3");
+  const { v3 } = await import("@google-cloud/translate");
+  const { TranslationServiceClient } = v3;
 
   const client = new TranslationServiceClient({
     credentials: {
