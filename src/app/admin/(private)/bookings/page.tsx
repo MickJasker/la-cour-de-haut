@@ -19,9 +19,8 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
 import {
-  calculateDiscount,
+  calculatePriceBreakdown,
   calculateTotalNights,
-  calculateTourismTax,
 } from "@/app/[locale]/book/shared";
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
@@ -173,21 +172,11 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                         booking.startDate,
                         booking.endDate,
                       );
-                      const pricePerNight = Number(booking.shownPriceAtBooking);
-                      const rentalSubtotal = pricePerNight * nights;
-                      const discount = calculateDiscount(
+                      const { discount, totalPrice } = calculatePriceBreakdown(
+                        Number(booking.shownPriceAtBooking),
                         nights,
-                        rentalSubtotal,
-                      );
-                      const discountedRental = rentalSubtotal - discount;
-                      const discountedPricePerNight =
-                        nights > 0 ? discountedRental / nights : pricePerNight;
-                      const tourismTax = calculateTourismTax(
                         booking.guestCount,
-                        nights,
-                        discountedPricePerNight,
                       );
-                      const total = discountedRental + tourismTax;
                       return (
                         <>
                           {discount > 0 && (
@@ -197,7 +186,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                             </p>
                           )}
                           <p className="text-sm text-stone-500">
-                            Totaalprijs bij boeking: €{total.toFixed(2)}
+                            Totaalprijs bij boeking: €{totalPrice.toFixed(2)}
                           </p>
                         </>
                       );

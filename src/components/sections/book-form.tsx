@@ -33,9 +33,8 @@ import {
   type BookingActionState,
 } from "@/app/[locale]/book/action";
 import {
-  calculateDiscount,
+  calculatePriceBreakdown,
   calculateTotalNights,
-  calculateTourismTax,
   formOpts,
 } from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
@@ -271,19 +270,12 @@ export function BookForm({
                   formState.values.stayDates?.to ?? "",
                 );
 
-                const rentalSubtotal = pricePerNight * totalNights;
-                const discount = calculateDiscount(totalNights, rentalSubtotal);
-                const discountedRental = rentalSubtotal - discount;
-                const discountedPricePerNight =
-                  totalNights > 0
-                    ? discountedRental / totalNights
-                    : pricePerNight;
-                const tourismTax = calculateTourismTax(
-                  Number(formState.values.guestCount),
-                  totalNights,
-                  discountedPricePerNight,
-                );
-                const totalPrice = discountedRental + tourismTax;
+                const { discount, tourismTax, totalPrice } =
+                  calculatePriceBreakdown(
+                    pricePerNight,
+                    totalNights,
+                    Number(formState.values.guestCount),
+                  );
 
                 return (
                   <>

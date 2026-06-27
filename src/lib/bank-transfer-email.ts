@@ -2,9 +2,8 @@ import "server-only";
 import { Resend } from "resend";
 import type { Settings } from "./settings";
 import {
-  calculateDiscount,
+  calculatePriceBreakdown,
   calculateTotalNights,
-  calculateTourismTax,
 } from "@/app/[locale]/book/shared";
 
 const esc = (s: string) =>
@@ -35,18 +34,11 @@ const templates: Record<
       currency: "EUR",
     });
     const nights = calculateTotalNights(p.startDate, p.endDate);
-    const pricePerNight = Number(p.settings.price_per_night);
-    const rentalSubtotal = pricePerNight * nights;
-    const discount = calculateDiscount(nights, rentalSubtotal);
-    const discountedRental = rentalSubtotal - discount;
-    const discountedPricePerNight =
-      nights > 0 ? discountedRental / nights : pricePerNight;
-    const tourismTax = calculateTourismTax(
-      p.guestCount,
+    const { discount, totalPrice } = calculatePriceBreakdown(
+      Number(p.settings.price_per_night),
       nights,
-      discountedPricePerNight,
+      p.guestCount,
     );
-    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Uw reservering bij La Cour de Haut`,
@@ -79,18 +71,11 @@ const templates: Record<
       currency: "EUR",
     });
     const nights = calculateTotalNights(p.startDate, p.endDate);
-    const pricePerNight = Number(p.settings.price_per_night);
-    const rentalSubtotal = pricePerNight * nights;
-    const discount = calculateDiscount(nights, rentalSubtotal);
-    const discountedRental = rentalSubtotal - discount;
-    const discountedPricePerNight =
-      nights > 0 ? discountedRental / nights : pricePerNight;
-    const tourismTax = calculateTourismTax(
-      p.guestCount,
+    const { discount, totalPrice } = calculatePriceBreakdown(
+      Number(p.settings.price_per_night),
       nights,
-      discountedPricePerNight,
+      p.guestCount,
     );
-    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Your reservation at La Cour de Haut`,
@@ -123,18 +108,11 @@ const templates: Record<
       currency: "EUR",
     });
     const nights = calculateTotalNights(p.startDate, p.endDate);
-    const pricePerNight = Number(p.settings.price_per_night);
-    const rentalSubtotal = pricePerNight * nights;
-    const discount = calculateDiscount(nights, rentalSubtotal);
-    const discountedRental = rentalSubtotal - discount;
-    const discountedPricePerNight =
-      nights > 0 ? discountedRental / nights : pricePerNight;
-    const tourismTax = calculateTourismTax(
-      p.guestCount,
+    const { discount, totalPrice } = calculatePriceBreakdown(
+      Number(p.settings.price_per_night),
       nights,
-      discountedPricePerNight,
+      p.guestCount,
     );
-    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Votre réservation à La Cour de Haut`,
@@ -166,18 +144,11 @@ const templates: Record<
       currency: "EUR",
     });
     const nights = calculateTotalNights(p.startDate, p.endDate);
-    const pricePerNight = Number(p.settings.price_per_night);
-    const rentalSubtotal = pricePerNight * nights;
-    const discount = calculateDiscount(nights, rentalSubtotal);
-    const discountedRental = rentalSubtotal - discount;
-    const discountedPricePerNight =
-      nights > 0 ? discountedRental / nights : pricePerNight;
-    const tourismTax = calculateTourismTax(
-      p.guestCount,
+    const { discount, totalPrice } = calculatePriceBreakdown(
+      Number(p.settings.price_per_night),
       nights,
-      discountedPricePerNight,
+      p.guestCount,
     );
-    const totalPrice = discountedRental + tourismTax;
 
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,
