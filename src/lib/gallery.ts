@@ -5,8 +5,9 @@ import { del } from "@vercel/blob";
 
 /**
  * Returns the next sort-order value for a new gallery image.
- * Queries the current maximum and adds 10, defaulting to 10 when the table
- * is empty. Single source of truth used by both upload and reorder actions.
+ * Fetches the row with the highest sort_order using ORDER BY DESC LIMIT 1,
+ * then returns that value + 10, defaulting to 10 when the table is empty.
+ * Called by uploadGalleryImageAction to place new images at the end of the list.
  */
 export async function nextSortOrder(): Promise<number> {
   const db = getDb();
@@ -44,7 +45,15 @@ export async function deleteImage(id: string): Promise<void> {
 
   const { imageUrl } = row;
 
-  if (imageUrl.includes("blob.vercel-storage.com")) {
+  let isVercelBlob = false;
+  try {
+    isVercelBlob = new URL(imageUrl).hostname.endsWith(
+      "blob.vercel-storage.com",
+    );
+  } catch {
+    // Malformed URL — treat as non-Blob and skip blob deletion.
+  }
+  if (isVercelBlob) {
     await del(imageUrl);
   }
 
@@ -56,7 +65,8 @@ export async function deleteImage(id: string): Promise<void> {
     // UI can inform the user that manual cleanup of the DB row is required.
     throw new Error(
       `Gallery image blob was deleted from storage but the database record (id=${id}) could not be removed. ` +
-        `Please delete the DB row manually. Original error: ${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        `Please delete the DB row manually.`,
+      { cause: dbError },
     );
   }
 }
