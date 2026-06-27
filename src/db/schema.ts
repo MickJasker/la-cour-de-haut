@@ -208,6 +208,36 @@ export const poi = pgTable("poi", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export type LocalizedText = {
+  type: "localizedText";
+  nl: string;
+  en?: string;
+  fr?: string;
+  de?: string;
+};
+export type ImageUrl = {
+  type: "imageUrl";
+  url: string;
+};
+export type ContentBlockValue = LocalizedText | ImageUrl;
+
+export type LocalizedSource = {
+  nl: "human" | "machine";
+  en?: "human" | "machine";
+  fr?: "human" | "machine";
+  de?: "human" | "machine";
+};
+
+export const contentBlock = pgTable("content_block", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").$type<ContentBlockValue>().notNull(),
+  valueSource: jsonb("value_source").$type<LocalizedSource>(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+});
+
 export type ReviewSource = "airbnb" | "natuurhuisje" | "direct" | "google";
 
 export const review = pgTable("review", {

@@ -1,0 +1,1 @@
+ALTER TABLE "content_block" ALTER COLUMN "value_source" DROP NOT NULL;

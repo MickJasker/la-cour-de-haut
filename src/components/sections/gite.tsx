@@ -2,7 +2,7 @@ import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 import Image from "next/image";
 import { getDb } from "@/db";
-import { galleryImage } from "@/db/schema";
+import { galleryImage, contentBlock } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { GiteDialog } from "./gite-dialog";
 import { cacheLife, cacheTag } from "next/cache";
@@ -11,16 +11,28 @@ export async function GiteSection({ locale }: { locale: Locale }) {
   "use cache";
   cacheLife("hours");
   cacheTag("gallery");
+  cacheTag("content");
   const t = await getTranslations({ locale, namespace: "sections.gite" });
 
   const db = getDb();
+  const descRow = await db
+    .select({ value: contentBlock.value })
+    .from(contentBlock)
+    .where(eq(contentBlock.key, "description"))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+  const description =
+    descRow?.value?.type === "localizedText"
+      ? (descRow.value[locale] ?? descRow.value.nl ?? "")
+      : "";
+
   const allPublished = await db
     .select({ id: galleryImage.id, imageUrl: galleryImage.imageUrl })
     .from(galleryImage)
     .where(eq(galleryImage.published, true))
     .orderBy(asc(galleryImage.sortOrder));
 
-  if (allPublished.length === 0) return null;
+  if (allPublished.length === 0 && !description) return null;
 
   // Each image renders exactly once; responsive grid placement recreates the
   // staggered desktop masonry while stacking image1/image2 on mobile.
@@ -38,14 +50,9 @@ export async function GiteSection({ locale }: { locale: Locale }) {
         <div className="max-md:contents md:col-start-2 md:col-end-9 lg:col-end-7 md:grid md:grid-cols-subgrid gap-4 md:gap-6">
           <div className="space-y-6 md:pt-30 md:row-start-1 md:col-start-1 md:col-end-9 lg:col-end-7">
             <h2 className="text-style-display-large">{t("title")}</h2>
-            <p className="text-style-body-large">
-              {/* TODO: replace with proper content */}
-              lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec
-              euismod, nisl eget consectetur sagittis, nisl nunc consectetur
-              nisi, euismod aliquam nisl nunc euismod nisi. Donec euismod, nisl
-              eget consectetur sagittis, nisl nunc consectetur nisi, euismod
-              aliquam nisl nunc euismod nisi.
-            </p>
+            {description && (
+              <p className="text-style-body-large">{description}</p>
+            )}
           </div>
 
           {image3 && (
