@@ -56,6 +56,10 @@ export function createBookingFormSchema(t: (key: string) => string) {
 
 const MAX_PER_PERSON_PER_NIGHT = 4.5; // This is a placeholder value. For a real application, you might want to fetch this from a config or database.
 
+export function calculateDiscount(nights: number, rentalTotal: number): number {
+  return nights >= 7 ? rentalTotal * 0.1 : 0;
+}
+
 export function calculateTourismTax(
   guestCount: number,
   nights: number,
@@ -69,6 +73,38 @@ export function calculateTourismTax(
   const subtotalTaxableAmount =
     taxableAmountPerPersonPerNight * guestCount * nights;
   return subtotalTaxableAmount * 1.1;
+}
+
+export type PriceBreakdown = {
+  rentalSubtotal: number;
+  discount: number;
+  discountedRental: number;
+  tourismTax: number;
+  totalPrice: number;
+};
+
+export function calculatePriceBreakdown(
+  pricePerNight: number,
+  nights: number,
+  guestCount: number,
+): PriceBreakdown {
+  const rentalSubtotal = pricePerNight * nights;
+  const discount = calculateDiscount(nights, rentalSubtotal);
+  const discountedRental = rentalSubtotal - discount;
+  const discountedPricePerNight =
+    nights > 0 ? discountedRental / nights : pricePerNight;
+  const tourismTax = calculateTourismTax(
+    guestCount,
+    nights,
+    discountedPricePerNight,
+  );
+  return {
+    rentalSubtotal,
+    discount,
+    discountedRental,
+    tourismTax,
+    totalPrice: discountedRental + tourismTax,
+  };
 }
 
 export function calculateTotalNights(from: string, to: string): number {

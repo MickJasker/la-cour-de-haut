@@ -19,8 +19,8 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { TriangleAlert } from "lucide-react";
 import {
+  calculatePriceBreakdown,
   calculateTotalNights,
-  calculateTourismTax,
 } from "@/app/[locale]/book/shared";
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
@@ -167,25 +167,30 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                       Prijs per nacht bij boeking: €
                       {booking.shownPriceAtBooking}
                     </p>
-                    <p className="text-sm text-stone-500">
-                      Totaalprijs bij boeking: €
-                      {(
-                        Number(booking.shownPriceAtBooking) *
-                          booking.guestCount *
-                          calculateTotalNights(
-                            booking.startDate,
-                            booking.endDate,
-                          ) +
-                        calculateTourismTax(
-                          booking.guestCount,
-                          calculateTotalNights(
-                            booking.startDate,
-                            booking.endDate,
-                          ),
-                          Number(booking.shownPriceAtBooking),
-                        )
-                      ).toFixed(2)}
-                    </p>
+                    {(() => {
+                      const nights = calculateTotalNights(
+                        booking.startDate,
+                        booking.endDate,
+                      );
+                      const { discount, totalPrice } = calculatePriceBreakdown(
+                        Number(booking.shownPriceAtBooking),
+                        nights,
+                        booking.guestCount,
+                      );
+                      return (
+                        <>
+                          {discount > 0 && (
+                            <p className="text-sm text-stone-500">
+                              10% korting (7+ nachten): −€
+                              {discount.toFixed(2)}
+                            </p>
+                          )}
+                          <p className="text-sm text-stone-500">
+                            Totaalprijs bij boeking: €{totalPrice.toFixed(2)}
+                          </p>
+                        </>
+                      );
+                    })()}
                   </div>
                   <div className="text-right text-sm text-stone-500 shrink-0">
                     <p>

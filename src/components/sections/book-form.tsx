@@ -25,6 +25,8 @@ import { useLocale, useTranslations } from "@/i18n/provider";
 import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+
+const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
 import { CircleCheckBig } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
@@ -33,8 +35,8 @@ import {
   type BookingActionState,
 } from "@/app/[locale]/book/action";
 import {
+  calculatePriceBreakdown,
   calculateTotalNights,
-  calculateTourismTax,
   formOpts,
 } from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
@@ -270,28 +272,60 @@ export function BookForm({
                   formState.values.stayDates?.to ?? "",
                 );
 
+                const { rentalSubtotal, discount, tourismTax, totalPrice } =
+                  calculatePriceBreakdown(
+                    pricePerNight,
+                    totalNights,
+                    Number(formState.values.guestCount),
+                  );
+
                 return (
-                  <p className={cn("text-sm", !totalNights && "invisible")}>
-                    {t.rich("form.totalPrice", {
-                      pricePerNight: currency.format(pricePerNight),
-                      totalNights,
-                      totalPrice: currency.format(
-                        pricePerNight * totalNights +
-                          calculateTourismTax(
-                            Number(formState.values.guestCount),
+                  <>
+                    {discount > 0 ? (
+                      <div
+                        className={cn(
+                          "text-sm space-y-0.5",
+                          !totalNights && "invisible",
+                        )}
+                      >
+                        <p>
+                          {t.rich("form.rentalSubtotalLine", {
+                            pricePerNight: currency.format(pricePerNight),
                             totalNights,
-                            pricePerNight,
-                          ),
-                      ),
-                      tourismTax: currency.format(
-                        calculateTourismTax(
-                          Number(formState.values.guestCount),
+                            rentalSubtotal: currency.format(rentalSubtotal),
+                            strong: renderStrong,
+                          })}
+                        </p>
+                        <p className="text-positive">
+                          {t.rich("form.longStayDiscount", {
+                            discount: currency.format(discount),
+                            strong: renderStrong,
+                          })}
+                        </p>
+                        <p>
+                          {t.rich("form.tourismTaxLine", {
+                            tourismTax: currency.format(tourismTax),
+                            strong: renderStrong,
+                          })}
+                        </p>
+                        <p className="font-medium">
+                          {t.rich("form.totalLine", {
+                            totalPrice: currency.format(totalPrice),
+                            strong: renderStrong,
+                          })}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className={cn("text-sm", !totalNights && "invisible")}>
+                        {t.rich("form.totalPrice", {
+                          pricePerNight: currency.format(pricePerNight),
                           totalNights,
-                          pricePerNight,
-                        ),
-                      ),
-                    })}
-                  </p>
+                          totalPrice: currency.format(totalPrice),
+                          tourismTax: currency.format(tourismTax),
+                        })}
+                      </p>
+                    )}
+                  </>
                 );
               }}
             </form.Subscribe>
