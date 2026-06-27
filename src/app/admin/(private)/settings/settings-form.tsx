@@ -24,7 +24,28 @@ import {
   settingsFormClientSchema,
   type SettingsFormValues,
 } from "./shared";
+import {
+  settingsRegistry,
+  sectionMeta,
+  type FieldMeta,
+  type SettingKey,
+} from "@/lib/settings-registry";
 import type { Settings } from "@/lib/settings";
+
+/** Group registry entries by section, preserving insertion order. */
+function groupBySection(): Array<[string, Array<[SettingKey, FieldMeta]>]> {
+  const map = new Map<string, Array<[SettingKey, FieldMeta]>>();
+  for (const [key, def] of Object.entries(settingsRegistry) as Array<
+    [SettingKey, FieldMeta]
+  >) {
+    const group = map.get(def.section) ?? [];
+    group.push([key, def]);
+    map.set(def.section, group);
+  }
+  return [...map.entries()];
+}
+
+const sections = groupBySection();
 
 export function SettingsForm({ settings }: { settings: Settings }) {
   const [state, formAction, isPending] = useActionState<
@@ -34,17 +55,12 @@ export function SettingsForm({ settings }: { settings: Settings }) {
 
   const form = useForm({
     ...settingsFormOpts,
-    defaultValues: {
-      account_holder: settings.account_holder ?? "",
-      iban: settings.iban ?? "",
-      bank_name: settings.bank_name ?? "",
-      payment_deadline_days: settings.payment_deadline_days
-        ? String(settings.payment_deadline_days)
-        : "",
-      price_per_night: settings.price_per_night
-        ? String(settings.price_per_night)
-        : "",
-    } satisfies SettingsFormValues,
+    defaultValues: Object.fromEntries(
+      (Object.keys(settingsRegistry) as SettingKey[]).map((key) => {
+        const raw = settings[key as keyof Settings];
+        return [key, raw !== undefined && raw !== null ? String(raw) : ""];
+      }),
+    ) as SettingsFormValues,
     validators: { onDynamic: settingsFormClientSchema },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -66,116 +82,46 @@ export function SettingsForm({ settings }: { settings: Settings }) {
       }}
     >
       <FieldGroup>
-        <FieldSet>
-          <h2 className="text-style-eyebrow-medium">Bankgegevens</h2>
-          <p className="text-sm text-stone-500">
-            Deze gegevens worden opgenomen in de overschrijvingse-mail die naar
-            gasten wordt verstuurd wanneer u een boeking bevestigt.
-          </p>
+        {sections.map(([sectionKey, fields], idx) => {
+          const meta = sectionMeta[sectionKey];
+          return (
+            <div key={sectionKey}>
+              {idx > 0 && <Separator />}
+              <FieldSet>
+                <h2 className="text-style-eyebrow-medium">{meta?.label}</h2>
+                {meta?.description && (
+                  <p className="text-sm text-stone-500">{meta.description}</p>
+                )}
 
-          <form.Field name="account_holder">
-            {(field) => (
-              <Field data-field="account_holder" className="space-y-1">
-                <FieldLabel htmlFor="account_holder">Rekeninghouder</FieldLabel>
-                <Input
-                  id="account_holder"
-                  name={field.name}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="La Cour de Haut"
-                />
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Field name="iban">
-            {(field) => (
-              <Field data-field="iban">
-                <FieldLabel htmlFor="iban">IBAN</FieldLabel>
-                <Input
-                  id="iban"
-                  name={field.name}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="NL91 ABNA 0417 1643 00"
-                />
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Field name="bank_name">
-            {(field) => (
-              <Field data-field="bank_name">
-                <FieldLabel htmlFor="bank_name">Banknaam</FieldLabel>
-                <Input
-                  id="bank_name"
-                  name={field.name}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder="ABN AMRO"
-                />
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-
-          <form.Field name="payment_deadline_days">
-            {(field) => (
-              <Field data-field="payment_deadline_days">
-                <FieldLabel htmlFor="payment_deadline_days">
-                  Betalingstermijn (dagen)
-                </FieldLabel>
-                <Input
-                  id="payment_deadline_days"
-                  name={field.name}
-                  type="number"
-                  min="1"
-                  max="90"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <p className="text-xs text-stone-400">
-                  Aantal dagen vanaf vandaag dat de gast heeft om te betalen
-                  wanneer u een boeking bevestigt.
-                </p>
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-        </FieldSet>
-
-        <Separator />
-
-        <FieldSet>
-          <h2 className="text-style-eyebrow-medium">Tarieven</h2>
-
-          <form.Field name="price_per_night">
-            {(field) => (
-              <Field data-field="price_per_night">
-                <FieldLabel htmlFor="price_per_night">
-                  Prijs per nacht
-                </FieldLabel>
-                <Input
-                  id="price_per_night"
-                  name={field.name}
-                  type="number"
-                  min="1"
-                  step="0.01"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                />
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-        </FieldSet>
+                {fields.map(([key, def]) => (
+                  <form.Field name={key} key={key}>
+                    {(field) => (
+                      <Field data-field={key} className="space-y-1">
+                        <FieldLabel htmlFor={key}>{def.label}</FieldLabel>
+                        <Input
+                          id={key}
+                          name={field.name}
+                          type={def.inputType}
+                          value={field.state.value as string}
+                          onChange={(e) => field.handleChange(e.target.value)}
+                          onBlur={field.handleBlur}
+                          placeholder={def.placeholder}
+                          min={def.min}
+                          max={def.max}
+                          step={def.step}
+                        />
+                        {def.hint && (
+                          <p className="text-xs text-stone-400">{def.hint}</p>
+                        )}
+                        <FieldError errors={field.state.meta.errors} />
+                      </Field>
+                    )}
+                  </form.Field>
+                ))}
+              </FieldSet>
+            </div>
+          );
+        })}
 
         <FieldSet>
           <div className="flex items-center gap-4">
