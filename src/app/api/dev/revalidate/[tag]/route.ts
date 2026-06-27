@@ -12,7 +12,13 @@ import type { NextRequest } from "next/server";
 // Gate: available in development always; in production only when E2E_TESTING
 // is set (i.e. a CI test run against `next start`), never in real deploys.
 
-const KNOWN_TAGS = new Set(["gallery", "reviews", "settings", "poi"]);
+const KNOWN_TAGS = new Set([
+  "gallery",
+  "reviews",
+  "settings",
+  "poi",
+  "content",
+]);
 
 export async function POST(
   _req: NextRequest,
