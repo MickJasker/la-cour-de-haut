@@ -313,9 +313,9 @@ export function BookForm({
 
             <Turnstile
               ref={turnstileRef}
-              siteKey={
+              siteKey={(
                 process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
-              }
+              ).trim()}
               options={{ size: "invisible", execution: "render" }}
               onSuccess={setTurnstileToken}
               onExpire={() => {
