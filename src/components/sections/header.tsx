@@ -13,6 +13,13 @@ import { createPortal } from "react-dom";
 
 const LOCALES = ["fr", "en", "nl", "de"] as const;
 
+const LOCALE_LABEL: Record<string, string> = {
+  fr: "Français",
+  en: "English",
+  nl: "Nederlands",
+  de: "Deutsch",
+};
+
 export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
   const pathname = usePathname();
@@ -50,7 +57,10 @@ export function Header({ action }: { action: ReactNode }) {
         >
           info@lacourdehaut.fr
         </a>
-        <div className="max-md:hidden md:col-start-2 lg:col-start-8 col-span-3 p-1 rounded-full bg-olive-800 justify-self-start">
+        <nav
+          aria-label="Language"
+          className="max-md:hidden md:col-start-2 lg:col-start-8 col-span-3 p-1 rounded-full bg-olive-800 justify-self-start"
+        >
           <div className="flex relative gap-1">
             <div
               className="absolute w-10 h-full top-0 left-0 transition-transform ease-in-out duration-200 pointer-events-none"
@@ -64,12 +74,13 @@ export function Header({ action }: { action: ReactNode }) {
               <LanguageLink
                 key={loc}
                 locale={loc}
+                isActive={loc === optimisticLocale}
                 currentPathname={pathname}
                 onNavigate={() => switchLocale(loc)}
               />
             ))}
           </div>
-        </div>
+        </nav>
         {action}
       </header>
       {mainEl && createPortal(<div className="h-22" />, mainEl)}
@@ -79,10 +90,12 @@ export function Header({ action }: { action: ReactNode }) {
 
 function LanguageLink({
   locale,
+  isActive,
   currentPathname,
   onNavigate,
 }: {
   locale: string;
+  isActive: boolean;
   currentPathname: string | null;
   onNavigate: ComponentProps<typeof Link>["onNavigate"];
 }) {
@@ -95,10 +108,12 @@ function LanguageLink({
 
   return (
     <Link
-      className="w-10 p-1 text-center rounded-full font-bold relative"
+      className="w-10 p-1 text-center rounded-full font-bold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800"
       href={href}
       scroll={false}
       onNavigate={onNavigate}
+      aria-label={`Switch to ${LOCALE_LABEL[locale]}`}
+      aria-current={isActive ? "page" : undefined}
     >
       {locale.toUpperCase()}
     </Link>
