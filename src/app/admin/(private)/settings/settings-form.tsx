@@ -32,7 +32,11 @@ import {
 } from "@/lib/settings-registry";
 import type { Settings } from "@/lib/settings";
 
-/** Group registry entries by section, preserving insertion order. */
+/**
+ * Group registry entries by section.
+ * Render order follows `sectionMeta` key order, not registry insertion order,
+ * so `sectionMeta` is the authoritative source for section sequencing.
+ */
 function groupBySection(): Array<[string, Array<[SettingKey, FieldMeta]>]> {
   const map = new Map<string, Array<[SettingKey, FieldMeta]>>();
   for (const [key, def] of Object.entries(settingsRegistry) as Array<
@@ -42,7 +46,10 @@ function groupBySection(): Array<[string, Array<[SettingKey, FieldMeta]>]> {
     group.push([key, def]);
     map.set(def.section, group);
   }
-  return [...map.entries()];
+  // Re-order by sectionMeta so its insertion order governs render sequence.
+  return Object.keys(sectionMeta)
+    .filter((s) => map.has(s))
+    .map((s) => [s, map.get(s)!]);
 }
 
 const sections = groupBySection();

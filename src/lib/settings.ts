@@ -41,9 +41,9 @@ async function upsertSetting(key: string, value: string) {
 
 export async function saveSettings(data: Record<string, string>) {
   await Promise.all(
-    Object.keys(settingsRegistry).map((key) =>
-      upsertSetting(key, data[key] ?? ""),
-    ),
+    Object.keys(settingsRegistry)
+      .filter((key) => key in data)
+      .map((key) => upsertSetting(key, data[key]!)),
   );
   updateTag("settings");
 }
