@@ -38,9 +38,16 @@ type PoiTranslateDialogProps = {
   onTranslated?: (translations: PoiTranslations) => void;
 };
 
+type ContentTranslateDialogProps = {
+  mode: "content";
+  sourceText: string;
+  onTranslated?: (translations: Translations) => void;
+};
+
 type TranslateDialogProps =
   | ReviewTranslateDialogProps
-  | PoiTranslateDialogProps;
+  | PoiTranslateDialogProps
+  | ContentTranslateDialogProps;
 
 const textareaCls =
   "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y";
@@ -101,14 +108,14 @@ export function TranslateDialog(props: TranslateDialogProps) {
   });
 
   const canTranslate =
-    props.mode === "review"
+    props.mode === "review" || props.mode === "content"
       ? props.sourceText.trim().length > 0
       : props.sourceTitleText.trim().length > 0 ||
         props.sourceBodyText.trim().length > 0;
 
   function handleFetch() {
     startTransition(async () => {
-      if (props.mode === "review") {
+      if (props.mode === "review" || props.mode === "content") {
         const result = await translateTextAction(props.sourceText);
         setReviewTranslations(result);
       } else {
@@ -132,6 +139,8 @@ export function TranslateDialog(props: TranslateDialogProps) {
         } else {
           props.onTranslated?.(reviewTranslations);
         }
+      } else if (props.mode === "content") {
+        props.onTranslated?.(reviewTranslations);
       } else {
         if (props.poiId) {
           await translatePoiAction(props.poiId, {
@@ -169,7 +178,7 @@ export function TranslateDialog(props: TranslateDialogProps) {
             {isPending ? "Bezig met vertalen…" : "Vertalen"}
           </Button>
 
-          {props.mode === "review" ? (
+          {props.mode === "review" || props.mode === "content" ? (
             <LangFields
               prefix="review"
               values={reviewTranslations}
