@@ -1,6 +1,20 @@
 "use client";
 
-import { useTransition, useState, useId } from "react";
+import {
+  initialFormState,
+  mergeForm,
+  revalidateLogic,
+  useForm,
+  useTransform,
+} from "@tanstack/react-form-nextjs";
+import {
+  useActionState,
+  useState,
+  startTransition,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import Image from "next/image";
 import {
   DndContext,
@@ -17,9 +31,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
 import {
   createPoiAction,
@@ -27,7 +43,9 @@ import {
   togglePoiPublishedAction,
   deletePoiAction,
   reorderPoisAction,
+  type PoiActionState,
 } from "./actions";
+import { poiFormOpts, poiFormClientSchema } from "./shared";
 import type { poi } from "@/db/schema";
 
 type Poi = typeof poi.$inferSelect;
@@ -123,99 +141,176 @@ function PoiForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [isPending, startTransition] = useTransition();
   const [file, setFile] = useState<File | null>(null);
-  const [published, setPublished] = useState(editing?.published ?? false);
-  const titleId = useId();
-  const bodyId = useId();
-  const distanceId = useId();
-  const publishedId = useId();
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const data = new FormData(form);
-    if (file) data.set("file", file);
+  const boundAction = editing
+    ? updatePoiAction.bind(null, editing.id)
+    : createPoiAction;
 
-    startTransition(async () => {
-      if (editing) {
-        await updatePoiAction(editing.id, data);
-      } else {
-        await createPoiAction(data);
-        form.reset();
-        setFile(null);
+  const [state, formAction, isPending] = useActionState<
+    PoiActionState,
+    FormData
+  >(boundAction, { ...initialFormState, success: false });
+
+  const defaults = editing
+    ? {
+        title: editing.title,
+        body: editing.body,
+        distanceKm:
+          editing.distanceKm != null ? String(editing.distanceKm) : "",
+        published: editing.published,
       }
-      onSaved();
-    });
-  }
+    : undefined;
+
+  const form = useForm({
+    ...poiFormOpts,
+    ...(defaults ? { defaultValues: defaults } : {}),
+    validators: { onDynamic: poiFormClientSchema },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    transform: useTransform(
+      (baseForm) =>
+        state.values !== undefined ? mergeForm(baseForm, state) : baseForm,
+      [state],
+    ),
+    onSubmit: ({ value }) => {
+      // Build FormData manually so we can attach the File object (drag-and-drop
+      // sets file state, but the input has no name so native FormData misses it)
+      const fd = new FormData();
+      fd.set("title", value.title);
+      fd.set("body", value.body);
+      if (value.distanceKm) fd.set("distanceKm", value.distanceKm);
+      fd.set("published", String(value.published));
+      if (file) fd.set("file", file);
+      startTransition(() => formAction(fd));
+    },
+  });
+
+  const onSavedRef = useRef(onSaved);
+  useLayoutEffect(() => {
+    onSavedRef.current = onSaved;
+  });
+
+  useEffect(() => {
+    if (state.success) onSavedRef.current();
+  }, [state.success]);
+
+  const inputCls =
+    "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
 
   return (
     <form
-      onSubmit={handleSubmit}
+      noValidate
       className="space-y-4 border border-stone-200 rounded-lg p-5 bg-stone-50"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
     >
       <h2 className="text-sm font-semibold text-stone-700">
         {editing ? "POI bewerken" : "Nieuwe POI toevoegen"}
       </h2>
 
-      <div className="space-y-1">
-        <Label htmlFor={titleId}>Titel</Label>
-        <input
-          id={titleId}
-          name="title"
-          required
-          defaultValue={editing?.title ?? ""}
-          className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+      <FieldGroup>
+        <FieldSet>
+          <form.Field name="title">
+            {(field) => (
+              <Field data-field="title">
+                <Label htmlFor="poi-title">Titel</Label>
+                <input
+                  id="poi-title"
+                  name={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  className={inputCls}
+                />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+        </FieldSet>
 
-      <div className="space-y-1">
-        <Label htmlFor={bodyId}>Beschrijving</Label>
-        <textarea
-          id={bodyId}
-          name="body"
-          required
-          rows={3}
-          defaultValue={editing?.body ?? ""}
-          className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+        <FieldSet>
+          <form.Field name="body">
+            {(field) => (
+              <Field data-field="body">
+                <Label htmlFor="poi-body">Beschrijving</Label>
+                <textarea
+                  id="poi-body"
+                  name={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  rows={3}
+                  className={inputCls}
+                />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+        </FieldSet>
 
-      <div className="space-y-1">
-        <Label htmlFor={distanceId}>Afstand (km)</Label>
-        <input
-          id={distanceId}
-          name="distanceKm"
-          type="number"
-          min={0}
-          defaultValue={editing?.distanceKm ?? ""}
-          className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-      </div>
+        <FieldSet>
+          <form.Field name="distanceKm">
+            {(field) => (
+              <Field data-field="distanceKm">
+                <Label htmlFor="poi-distance">Afstand (km)</Label>
+                <input
+                  id="poi-distance"
+                  name={field.name}
+                  type="number"
+                  min={0}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  className={inputCls}
+                />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+        </FieldSet>
 
-      <div className="space-y-1">
-        <Label>Afbeelding{editing ? " (leeg laten om te behouden)" : ""}</Label>
-        <ImageDropzone
-          file={file}
-          onChange={setFile}
-          existingUrl={editing?.imageUrl}
-          required={!editing && !file}
-        />
-      </div>
+        <FieldSet>
+          <Label>
+            Afbeelding{editing ? " (leeg laten om te behouden)" : ""}
+          </Label>
+          <ImageDropzone
+            file={file}
+            onChange={setFile}
+            existingUrl={editing?.imageUrl}
+            required={!editing && !file}
+          />
+        </FieldSet>
 
-      <input
-        type="hidden"
-        name="published"
-        value={published ? "true" : "false"}
-      />
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id={publishedId}
-          checked={published}
-          onCheckedChange={(checked) => setPublished(checked === true)}
-        />
-        <Label htmlFor={publishedId}>Gepubliceerd</Label>
-      </div>
+        <FieldSet>
+          <form.Field name="published">
+            {(field) => (
+              <Field data-field="published">
+                <input
+                  type="hidden"
+                  name={field.name}
+                  value={String(field.state.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="poi-published"
+                    checked={field.state.value}
+                    onCheckedChange={(checked) =>
+                      field.handleChange(checked === true)
+                    }
+                  />
+                  <Label htmlFor="poi-published">Gepubliceerd</Label>
+                </div>
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
+            )}
+          </form.Field>
+        </FieldSet>
+      </FieldGroup>
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
@@ -332,6 +427,7 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
   const [serverPois, setServerPois] = useState(pois);
   const [items, setItems] = useState(pois);
   const [editing, setEditing] = useState<Poi | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [, startTransition] = useTransition();
 
   if (serverPois !== pois) {
@@ -363,10 +459,13 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
   return (
     <div className="space-y-8">
       <PoiForm
-        key={editing?.id ?? "new"}
+        key={editing?.id ?? formKey}
         editing={editing}
         onCancel={() => setEditing(null)}
-        onSaved={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null);
+          setFormKey((k) => k + 1);
+        }}
       />
 
       {items.length === 0 ? (

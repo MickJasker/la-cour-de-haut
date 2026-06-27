@@ -59,10 +59,10 @@ export function SourceForm(props: Props) {
     ),
   });
 
+  const onSuccess = props.onSuccess;
   useEffect(() => {
-    if (state.success) props.onSuccess?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.success]);
+    if (state.success) onSuccess?.();
+  }, [state.success, onSuccess]);
 
   return (
     <form
