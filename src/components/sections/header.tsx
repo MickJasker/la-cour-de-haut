@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   ComponentProps,
   ReactNode,
@@ -15,6 +15,7 @@ const LOCALES = ["fr", "en", "nl", "de"] as const;
 
 export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
+  const pathname = usePathname();
   const [, startTransition] = useTransition();
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
   const mainEl = useSyncExternalStore(
@@ -63,6 +64,7 @@ export function Header({ action }: { action: ReactNode }) {
               <LanguageLink
                 key={loc}
                 locale={loc}
+                currentPathname={pathname}
                 onNavigate={() => switchLocale(loc)}
               />
             ))}
@@ -77,15 +79,25 @@ export function Header({ action }: { action: ReactNode }) {
 
 function LanguageLink({
   locale,
+  currentPathname,
   onNavigate,
 }: {
   locale: string;
+  currentPathname: string | null;
   onNavigate: ComponentProps<typeof Link>["onNavigate"];
 }) {
+  // Strip the leading /<currentLocale> segment so we can swap in the new locale
+  // e.g. /fr/book → /book, /fr → ""
+  const withoutLocale = currentPathname
+    ? currentPathname.replace(/^\/[^/]+/, "")
+    : "";
+  const href = `/${locale}${withoutLocale}`;
+
   return (
     <Link
       className="w-10 p-1 text-center rounded-full font-bold relative"
-      href={`/${locale}`}
+      href={href}
+      scroll={false}
       onNavigate={onNavigate}
     >
       {locale.toUpperCase()}
