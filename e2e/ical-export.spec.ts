@@ -19,12 +19,17 @@ async function seedToken() {
 
 async function clearTestBookings() {
   const sql = neon(process.env.DATABASE_URL!);
-  await sql`
-    DELETE FROM booking_request WHERE id LIKE 'ical-test-%'
-  `;
+  await sql`DELETE FROM booking_request WHERE id LIKE 'ical-test-%'`;
+}
+
+async function clearAllBookings() {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`TRUNCATE booking_request`;
 }
 
 test.describe("iCal export feed", () => {
+  test.describe.configure({ mode: "serial" });
+
   test.beforeEach(async () => {
     await clearTokens();
     await seedToken();
@@ -50,6 +55,9 @@ test.describe("iCal export feed", () => {
   test("empty feed is a valid VCALENDAR with no VEVENTs", async ({
     request,
   }) => {
+    // Truncate all bookings immediately before this check — prefix-based
+    // cleanup misses rows seeded by parallel booking-lifecycle workers.
+    await clearAllBookings();
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
     expect(body).toContain("BEGIN:VCALENDAR");

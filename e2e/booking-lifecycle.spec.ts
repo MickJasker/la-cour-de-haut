@@ -315,4 +315,8 @@ test.describe("booking lifecycle — status filter", () => {
     await expect(page.getByText("Filter Requested")).toBeVisible();
     await expect(page.getByText("Filter Declined")).toBeVisible();
   });
+
+  test.afterAll(async () => {
+    await clearBookings();
+  });
 });

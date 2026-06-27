@@ -117,6 +117,17 @@ test.describe("booking form — standalone page (/nl/book)", () => {
 });
 
 test.describe("booking form — long-stay discount", () => {
+  test.beforeAll(async () => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO setting (key, value) VALUES ('price_per_night', '150')
+      ON CONFLICT (key) DO UPDATE SET value = '150'
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+  });
+
   test.afterEach(async () => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`DELETE FROM booking_request WHERE email = 'test@example.com'`;
