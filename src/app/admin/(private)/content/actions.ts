@@ -41,6 +41,11 @@ async function upsertLocalizedText(
   en: string,
   fr: string,
   de: string,
+  sources: {
+    en?: "human" | "machine";
+    fr?: "human" | "machine";
+    de?: "human" | "machine";
+  } = {},
 ) {
   const value = {
     type: "localizedText" as const,
@@ -51,9 +56,9 @@ async function upsertLocalizedText(
   };
   const valueSource = {
     nl: "human" as const,
-    ...(en ? { en: "human" as const } : {}),
-    ...(fr ? { fr: "human" as const } : {}),
-    ...(de ? { de: "human" as const } : {}),
+    ...(en ? { en: sources.en ?? "human" } : {}),
+    ...(fr ? { fr: sources.fr ?? "human" } : {}),
+    ...(de ? { de: sources.de ?? "human" } : {}),
   };
   const db = getDb();
   await db
@@ -63,6 +68,17 @@ async function upsertLocalizedText(
       target: contentBlock.key,
       set: { value, valueSource, updatedAt: new Date() },
     });
+}
+
+function readSources(formData: FormData) {
+  const raw = (k: string) => formData.get(k);
+  const toSource = (v: FormDataEntryValue | null) =>
+    v === "machine" ? ("machine" as const) : ("human" as const);
+  return {
+    en: toSource(raw("enSource")),
+    fr: toSource(raw("frSource")),
+    de: toSource(raw("deSource")),
+  };
 }
 
 export async function updateDescriptionAction(
@@ -78,6 +94,7 @@ export async function updateDescriptionAction(
       data.en ?? "",
       data.fr ?? "",
       data.de ?? "",
+      readSources(formData),
     );
     invalidate();
     return { ...initialFormState, success: true };
@@ -102,6 +119,7 @@ export async function updateHeroDescriptionAction(
       data.en ?? "",
       data.fr ?? "",
       data.de ?? "",
+      readSources(formData),
     );
     invalidate();
     return { ...initialFormState, success: true };

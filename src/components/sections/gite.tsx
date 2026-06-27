@@ -27,7 +27,11 @@ export async function GiteSection({ locale }: { locale: Locale }) {
       : "";
 
   const allPublished = await db
-    .select({ id: galleryImage.id, imageUrl: galleryImage.imageUrl })
+    .select({
+      id: galleryImage.id,
+      imageUrl: galleryImage.imageUrl,
+      altText: galleryImage.altText,
+    })
     .from(galleryImage)
     .where(eq(galleryImage.published, true))
     .orderBy(asc(galleryImage.sortOrder));
@@ -59,7 +63,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative max-md:hidden aspect-3/2 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-7">
               <Image
                 src={image3.imageUrl}
-                alt=""
+                alt={image3.altText?.[locale] ?? image3.altText?.nl ?? ""}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -71,7 +75,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative aspect-3/2 md:col-span-full">
               <Image
                 src={image2.imageUrl}
-                alt=""
+                alt={image2.altText?.[locale] ?? image2.altText?.nl ?? ""}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -85,7 +89,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative aspect-3/2 md:col-span-full">
               <Image
                 src={image1.imageUrl}
-                alt=""
+                alt={image1.altText?.[locale] ?? image1.altText?.nl ?? ""}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -97,7 +101,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="max-md:hidden relative aspect-3/2 md:col-start-1 md:col-end-9 lg:col-start-1 lg:col-end-6">
               <Image
                 src={image4.imageUrl}
-                alt=""
+                alt={image4.altText?.[locale] ?? image4.altText?.nl ?? ""}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"

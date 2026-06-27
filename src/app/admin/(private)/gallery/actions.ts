@@ -3,10 +3,11 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { put } from "@vercel/blob";
 import { getDb } from "@/db";
-import { galleryImage } from "@/db/schema";
+import { galleryImage, type AltText } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { deleteImage, nextSortOrder } from "@/lib/gallery";
+import { translateToAllLocales } from "@/lib/translate";
 
 export async function uploadGalleryImageAction(formData: FormData) {
   await verifySession();
@@ -47,6 +48,35 @@ export async function togglePublishedAction(id: string, published: boolean) {
 export async function deleteGalleryImageAction(id: string) {
   await verifySession();
   await deleteImage(id);
+  revalidatePath("/admin/gallery");
+  updateTag("gallery");
+}
+
+export async function translateAltTextAction(
+  text: string,
+): Promise<{ en: string; fr: string; de: string }> {
+  await verifySession();
+  return translateToAllLocales(text);
+}
+
+export async function saveAltTextAction(
+  id: string,
+  altText: AltText,
+): Promise<void> {
+  await verifySession();
+  const db = getDb();
+  await db
+    .update(galleryImage)
+    .set({
+      altText,
+      altTextSource: {
+        nl: "human",
+        en: "machine",
+        fr: "machine",
+        de: "machine",
+      },
+    })
+    .where(eq(galleryImage.id, id));
   revalidatePath("/admin/gallery");
   updateTag("gallery");
 }

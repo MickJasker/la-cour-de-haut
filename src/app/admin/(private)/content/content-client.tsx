@@ -21,7 +21,7 @@ import {
   type UploadHeroActionState,
 } from "./actions";
 import { contentFormOpts, contentFormClientSchema } from "./shared";
-import type { LocalizedText } from "@/db/schema";
+import type { LocalizedText, LocalizedSource } from "@/db/schema";
 
 const inputCls =
   "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y";
@@ -29,10 +29,12 @@ const inputCls =
 function LocalizedTextForm({
   id,
   initialValue,
+  initialValueSource,
   action,
 }: {
   id: string;
   initialValue: LocalizedText | null;
+  initialValueSource: LocalizedSource | null;
   action: (prev: unknown, formData: FormData) => Promise<ContentActionState>;
 }) {
   const [state, formAction, isPending] = useActionState<
@@ -47,6 +49,9 @@ function LocalizedTextForm({
       en: initialValue?.en ?? "",
       fr: initialValue?.fr ?? "",
       de: initialValue?.de ?? "",
+      enSource: (initialValueSource?.en ?? null) as "human" | "machine" | null,
+      frSource: (initialValueSource?.fr ?? null) as "human" | "machine" | null,
+      deSource: (initialValueSource?.de ?? null) as "human" | "machine" | null,
     },
     validators: { onDynamic: contentFormClientSchema },
     validationLogic: revalidateLogic({
@@ -64,6 +69,9 @@ function LocalizedTextForm({
       fd.set("en", value.en ?? "");
       fd.set("fr", value.fr ?? "");
       fd.set("de", value.de ?? "");
+      fd.set("enSource", value.enSource ?? "machine");
+      fd.set("frSource", value.frSource ?? "machine");
+      fd.set("deSource", value.deSource ?? "machine");
       startTransition(() => formAction(fd));
     },
   });
@@ -113,9 +121,18 @@ function LocalizedTextForm({
                 sourceText={nl}
                 initialTranslations={{ en, fr, de }}
                 onTranslated={(t) => {
-                  form.setFieldValue("en", t.en);
-                  form.setFieldValue("fr", t.fr);
-                  form.setFieldValue("de", t.de);
+                  if (form.getFieldValue("enSource") !== "human") {
+                    form.setFieldValue("en", t.en);
+                    form.setFieldValue("enSource", "machine");
+                  }
+                  if (form.getFieldValue("frSource") !== "human") {
+                    form.setFieldValue("fr", t.fr);
+                    form.setFieldValue("frSource", "machine");
+                  }
+                  if (form.getFieldValue("deSource") !== "human") {
+                    form.setFieldValue("de", t.de);
+                    form.setFieldValue("deSource", "machine");
+                  }
                 }}
               />
             )}
@@ -136,11 +153,15 @@ function LocalizedTextForm({
 
 export function ContentClient({
   description,
+  descriptionValueSource,
   heroDescription,
+  heroDescriptionValueSource,
   heroImageUrl,
 }: {
   description: LocalizedText | null;
+  descriptionValueSource: LocalizedSource | null;
   heroDescription: LocalizedText | null;
+  heroDescriptionValueSource: LocalizedSource | null;
   heroImageUrl: string | null;
 }) {
   const [heroFile, setHeroFile] = useState<File | null>(null);
@@ -171,6 +192,7 @@ export function ContentClient({
         <LocalizedTextForm
           id="hero-desc"
           initialValue={heroDescription}
+          initialValueSource={heroDescriptionValueSource}
           action={updateHeroDescriptionAction}
         />
 
@@ -197,6 +219,7 @@ export function ContentClient({
         <LocalizedTextForm
           id="gite-desc"
           initialValue={description}
+          initialValueSource={descriptionValueSource}
           action={updateDescriptionAction}
         />
       </section>

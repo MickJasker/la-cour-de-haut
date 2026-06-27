@@ -31,11 +31,13 @@ export default async function ContentAdminPage() {
           description={
             descRow?.value?.type === "localizedText" ? descRow.value : null
           }
+          descriptionValueSource={descRow?.valueSource ?? null}
           heroDescription={
             heroDescRow?.value?.type === "localizedText"
               ? heroDescRow.value
               : null
           }
+          heroDescriptionValueSource={heroDescRow?.valueSource ?? null}
           heroImageUrl={
             heroImageRow?.value?.type === "imageUrl"
               ? heroImageRow.value.url
