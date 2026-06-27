@@ -38,10 +38,10 @@ export function Header({ action }: { action: ReactNode }) {
     <>
       <header className="fixed bottom-0 left-0 w-full bg-olive-900 text-olive-50 z-10 p-6 md:px-0 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:items-center">
         <a
-          href="tel:+33684337094"
+          href="tel:+33673100089"
           className="max-lg:hidden md:col-start-2 col-span-3"
         >
-          +33 6 84 33 70 94
+          +33 6 731 00 89
         </a>
         <a
           href="mailto:info@lacourdehaut.fr"
