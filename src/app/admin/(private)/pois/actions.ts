@@ -11,7 +11,11 @@ import { getDb } from "@/db";
 import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { poiFormOpts, poiFormServerSchema } from "./shared";
+import {
+  poiFormOpts,
+  poiFormServerSchema,
+  localizedStringSchema,
+} from "./shared";
 
 export type PoiActionState = {
   success: boolean;
@@ -29,6 +33,39 @@ const serverValidate = createServerValidate({
     }
   },
 });
+
+function parseLocalizedField(formData: FormData, key: string) {
+  const raw = formData.get(key);
+  const parsed =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return raw;
+          }
+        })()
+      : raw;
+  return localizedStringSchema.parse(parsed);
+}
+
+function buildLocalized(loc: ReturnType<typeof localizedStringSchema.parse>) {
+  return {
+    nl: loc.nl.trim(),
+    ...(loc.en ? { en: loc.en.trim() } : {}),
+    ...(loc.fr ? { fr: loc.fr.trim() } : {}),
+    ...(loc.de ? { de: loc.de.trim() } : {}),
+  };
+}
+
+function inferSource(loc: ReturnType<typeof localizedStringSchema.parse>) {
+  return {
+    nl: "human" as const,
+    ...(loc.en ? { en: "machine" as const } : {}),
+    ...(loc.fr ? { fr: "machine" as const } : {}),
+    ...(loc.de ? { de: "machine" as const } : {}),
+  };
+}
 
 function parseDistanceKm(raw: string | undefined): number | null {
   if (!raw || raw.trim() === "") return null;
@@ -68,11 +105,15 @@ export async function createPoiAction(
       access: "public",
     });
 
+    const title = parseLocalizedField(formData, "title");
+    const body = parseLocalizedField(formData, "body");
     const db = getDb();
     await db.insert(poi).values({
       id: crypto.randomUUID(),
-      title: data.title.trim(),
-      body: data.body.trim(),
+      title: buildLocalized(title),
+      body: buildLocalized(body),
+      titleSource: inferSource(title),
+      bodySource: inferSource(body),
       imageUrl: blob.url,
       distanceKm: parseDistanceKm(data.distanceKm),
       sortOrder: parseSortOrder(formData.get("sortOrder")),
@@ -115,11 +156,15 @@ export async function updatePoiAction(
       imageUrl = blob.url;
     }
 
+    const title = parseLocalizedField(formData, "title");
+    const body = parseLocalizedField(formData, "body");
     await db
       .update(poi)
       .set({
-        title: data.title.trim(),
-        body: data.body.trim(),
+        title: buildLocalized(title),
+        body: buildLocalized(body),
+        titleSource: inferSource(title),
+        bodySource: inferSource(body),
         distanceKm: parseDistanceKm(data.distanceKm),
         sortOrder: parseSortOrder(formData.get("sortOrder")),
         published: data.published,
@@ -175,6 +220,33 @@ export async function reorderPoisAction(ids: string[]) {
         .where(eq(poi.id, id)),
     ),
   );
+  revalidatePath("/admin/pois");
+  updateTag("poi");
+}
+
+export async function translatePoiAction(
+  id: string,
+  translations: {
+    title: { en: string; fr: string; de: string };
+    body: { en: string; fr: string; de: string };
+  },
+): Promise<void> {
+  await verifySession();
+  const db = getDb();
+  const [row] = await db
+    .select({ title: poi.title, body: poi.body })
+    .from(poi)
+    .where(eq(poi.id, id));
+  if (!row) return;
+  await db
+    .update(poi)
+    .set({
+      title: { ...row.title, ...translations.title },
+      body: { ...row.body, ...translations.body },
+      titleSource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
+      bodySource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
+    })
+    .where(eq(poi.id, id));
   revalidatePath("/admin/pois");
   updateTag("poi");
 }

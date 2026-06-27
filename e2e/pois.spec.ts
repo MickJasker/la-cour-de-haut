@@ -30,12 +30,20 @@ async function seedPoi(opts: {
   published: boolean;
 }) {
   const sql = neon(process.env.DATABASE_URL!);
+  const title = JSON.stringify({ nl: opts.title ?? "Mont Saint Michel" });
+  const body = JSON.stringify({
+    nl: opts.body ?? "Bezoek het sprookjeseiland.",
+  });
+  const titleSource = JSON.stringify({ nl: "human" });
+  const bodySource = JSON.stringify({ nl: "human" });
   await sql`
-    INSERT INTO poi (id, title, body, image_url, distance_km, sort_order, published, created_at)
+    INSERT INTO poi (id, title, body, title_source, body_source, image_url, distance_km, sort_order, published, created_at)
     VALUES (
       ${opts.id},
-      ${opts.title ?? "Mont Saint Michel"},
-      ${opts.body ?? "Bezoek het sprookjeseiland."},
+      ${title}::jsonb,
+      ${body}::jsonb,
+      ${titleSource}::jsonb,
+      ${bodySource}::jsonb,
       ${opts.imageUrl ?? PLACEHOLDER_URL},
       ${opts.distanceKm ?? null},
       ${opts.sortOrder ?? 0},

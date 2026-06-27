@@ -46,6 +46,7 @@ import {
   type PoiActionState,
 } from "./actions";
 import { poiFormOpts, poiFormClientSchema } from "./shared";
+import { TranslateDialog } from "@/components/translate-dialog";
 import type { poi } from "@/db/schema";
 
 type Poi = typeof poi.$inferSelect;
@@ -179,8 +180,8 @@ function PoiForm({
       // Build FormData manually so we can attach the File object (drag-and-drop
       // sets file state, but the input has no name so native FormData misses it)
       const fd = new FormData();
-      fd.set("title", value.title);
-      fd.set("body", value.body);
+      fd.set("title", JSON.stringify(value.title));
+      fd.set("body", JSON.stringify(value.body));
       if (value.distanceKm) fd.set("distanceKm", value.distanceKm);
       fd.set("published", String(value.published));
       if (file) fd.set("file", file);
@@ -215,13 +216,12 @@ function PoiForm({
 
       <FieldGroup>
         <FieldSet>
-          <form.Field name="title">
+          <form.Field name="title.nl">
             {(field) => (
               <Field data-field="title">
                 <Label htmlFor="poi-title">Titel</Label>
                 <input
                   id="poi-title"
-                  name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -234,13 +234,12 @@ function PoiForm({
         </FieldSet>
 
         <FieldSet>
-          <form.Field name="body">
+          <form.Field name="body.nl">
             {(field) => (
               <Field data-field="body">
                 <Label htmlFor="poi-body">Beschrijving</Label>
                 <textarea
                   id="poi-body"
-                  name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -272,6 +271,31 @@ function PoiForm({
               </Field>
             )}
           </form.Field>
+        </FieldSet>
+
+        <FieldSet>
+          <form.Subscribe
+            selector={(s) => ({ title: s.values.title, body: s.values.body })}
+          >
+            {({ title, body }) => (
+              <TranslateDialog
+                mode="poi"
+                poiId={editing?.id}
+                sourceTitleText={title.nl}
+                sourceBodyText={body.nl}
+                onTranslated={(t) => {
+                  form.setFieldValue("title", {
+                    ...form.getFieldValue("title"),
+                    ...t.title,
+                  });
+                  form.setFieldValue("body", {
+                    ...form.getFieldValue("body"),
+                    ...t.body,
+                  });
+                }}
+              />
+            )}
+          </form.Subscribe>
         </FieldSet>
 
         <FieldSet>
@@ -369,7 +393,7 @@ function PoiRow({
       <div className="relative w-16 h-16 shrink-0">
         <Image
           src={item.imageUrl}
-          alt={item.title}
+          alt={item.title.nl}
           fill
           className="object-cover rounded"
           sizes="64px"
@@ -377,9 +401,9 @@ function PoiRow({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-semibold text-stone-800 truncate">
-          {item.title}
+          {item.title.nl}
         </p>
-        <p className="text-xs text-stone-500 truncate">{item.body}</p>
+        <p className="text-xs text-stone-500 truncate">{item.body.nl}</p>
         {item.distanceKm != null && (
           <p className="text-xs text-stone-400">{item.distanceKm} km</p>
         )}
