@@ -61,11 +61,21 @@ export async function updateDescriptionAction(
   return { errors: null, success: true };
 }
 
-export async function uploadHeroImageAction(formData: FormData) {
+export type UploadHeroActionState = {
+  error: string | null;
+  success: boolean;
+};
+
+export async function uploadHeroImageAction(
+  _prev: UploadHeroActionState | null,
+  formData: FormData,
+): Promise<UploadHeroActionState> {
   await verifySession();
 
-  const file = formData.get("file") as File | null;
-  if (!file || file.size === 0) return;
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Geen geldig bestand opgegeven", success: false };
+  }
 
   const db = getDb();
   const existing = await db
@@ -79,12 +89,6 @@ export async function uploadHeroImageAction(formData: FormData) {
     access: "public",
   });
 
-  const existingUrl =
-    existing?.value?.type === "imageUrl" ? existing.value.url : null;
-  if (existingUrl?.includes("blob.vercel-storage.com")) {
-    await del(existingUrl);
-  }
-
   const heroValue = { type: "imageUrl" as const, url: blob.url };
   await db
     .insert(contentBlock)
@@ -94,5 +98,12 @@ export async function uploadHeroImageAction(formData: FormData) {
       set: { value: heroValue, valueSource: null, updatedAt: new Date() },
     });
 
+  const existingUrl =
+    existing?.value?.type === "imageUrl" ? existing.value.url : null;
+  if (existingUrl?.includes("blob.vercel-storage.com")) {
+    await del(existingUrl);
+  }
+
   invalidate();
+  return { error: null, success: true };
 }

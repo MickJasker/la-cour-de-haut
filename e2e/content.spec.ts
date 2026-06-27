@@ -78,16 +78,20 @@ test.describe("content: gîte description — public", () => {
     await sql`
       INSERT INTO gallery_image (id, image_url, sort_order, published, created_at)
       VALUES ('gite-content-img', 'https://picsum.photos/seed/ct/800/600', 0, true, now())
-      ON CONFLICT (id) DO NOTHING
+      ON CONFLICT (id) DO UPDATE SET image_url = EXCLUDED.image_url
     `;
-    const res = await fetch(
-      "http://localhost:3000/api/dev/revalidate/gallery",
-      { method: "POST" },
-    );
-    if (!res.ok) throw new Error("Failed to revalidate gallery cache");
-    await gotoFresh(page, "/nl");
-    await expect(page.locator("[data-testid='gite-section']")).toBeVisible();
-    // No crash — page loaded
+    try {
+      const res = await fetch(
+        "http://localhost:3000/api/dev/revalidate/gallery",
+        { method: "POST" },
+      );
+      if (!res.ok) throw new Error("Failed to revalidate gallery cache");
+      await gotoFresh(page, "/nl");
+      await expect(page.locator("[data-testid='gite-section']")).toBeVisible();
+      // No crash — page loaded
+    } finally {
+      await sql`DELETE FROM gallery_image WHERE id = 'gite-content-img'`;
+    }
   });
 
   test("description falls back to Dutch when requested locale key is absent", async ({

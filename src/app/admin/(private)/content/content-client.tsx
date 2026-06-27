@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import * as React from "react";
+import { useActionState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,7 @@ import {
   updateDescriptionAction,
   uploadHeroImageAction,
   type ContentActionState,
+  type UploadHeroActionState,
 } from "./actions";
 import type { LocalizedText } from "@/db/schema";
 
@@ -26,14 +28,17 @@ export function ContentClient({
     FormData
   >(updateDescriptionAction, null);
 
-  const [uploadPending, startUpload] = useTransition();
+  const [uploadState, uploadAction, uploadPending] = useActionState<
+    UploadHeroActionState | null,
+    FormData
+  >(uploadHeroImageAction, null);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const fd = new FormData();
     fd.append("file", file);
-    startUpload(() => uploadHeroImageAction(fd));
+    React.startTransition(() => uploadAction(fd));
   }
 
   return (
@@ -125,6 +130,9 @@ export function ContentClient({
         </label>
         {uploadPending && (
           <p className="text-sm text-stone-500">Afbeelding uploaden…</p>
+        )}
+        {uploadState?.error && (
+          <p className="text-sm text-red-600">{uploadState.error}</p>
         )}
       </section>
     </div>
