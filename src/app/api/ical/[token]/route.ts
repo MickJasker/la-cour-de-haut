@@ -1,6 +1,7 @@
 import { getDb } from "@/db";
-import { icalExportToken, bookingRequest } from "@/db/schema";
-import { and, eq, gte, isNull, or } from "drizzle-orm";
+import { icalExportToken } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getDirectBookings } from "@/lib/availability";
 
 export async function GET(
   _req: Request,
@@ -25,26 +26,7 @@ export async function GET(
     .where(eq(icalExportToken.id, row.id))
     .catch(console.error);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const bookings = await db
-    .select({
-      id: bookingRequest.id,
-      startDate: bookingRequest.startDate,
-      endDate: bookingRequest.endDate,
-    })
-    .from(bookingRequest)
-    .where(
-      or(
-        and(
-          eq(bookingRequest.status, "on_hold"),
-          or(
-            isNull(bookingRequest.paymentDeadline),
-            gte(bookingRequest.paymentDeadline, today),
-          ),
-        ),
-        eq(bookingRequest.status, "confirmed"),
-      ),
-    );
+  const bookings = await getDirectBookings();
 
   // RFC 5545 §3.3.5 — basic date-time stamp: YYYYMMDDTHHmmssZ
   const dtstamp = new Date()
