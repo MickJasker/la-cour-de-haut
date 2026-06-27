@@ -17,7 +17,7 @@ const mulish = Mulish({
 const ptSerif = PT_Serif({
   variable: "--font-pt-serif",
   subsets: ["latin"],
-  weight: ["700"],
+  weight: ["400", "700"],
 });
 
 export function generateStaticParams() {

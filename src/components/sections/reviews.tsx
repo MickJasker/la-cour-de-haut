@@ -66,7 +66,7 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
                 className="bg-cream-50 rounded-xl p-6 shadow-sm flex flex-col gap-4 md:col-span-4"
               >
                 <Stars rating={r.rating} />
-                <blockquote className="text-stone-700 flex-1 italic">
+                <blockquote className="text-stone-700 flex-1 font-display italic">
                   &ldquo;{body}&rdquo;
                 </blockquote>
                 <footer className="text-sm text-stone-500 text-right">
