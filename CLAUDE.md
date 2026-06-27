@@ -1,5 +1,13 @@
 @AGENTS.md
 
+## Start here
+
+Gîte vacation-rental site (Normandy) — an **inquiry-and-confirmation funnel**, not a booking engine; no online payments. Single owner manages requests + content via `/admin`.
+
+- **Domain model, booking lifecycle, iCal sync, i18n** → read `CONTEXT.md` first.
+- **Why things are the way they are** → `docs/adr/` (10 ADRs).
+- **Stack:** Next.js 16 (App Router) · React 19 · Drizzle ORM + Neon Postgres · Better Auth · Tailwind · native i18n (no next-intl). Package manager: **pnpm**.
+
 ## Pre-Commit / CI Checklist
 
 Always run typecheck, lint, format, and the relevant tests locally BEFORE committing or pushing. Verify CI will pass — do not push code that fails build/typecheck/format.
@@ -16,6 +24,18 @@ The lefthook `pre-commit` hook already runs **format, lint, and typecheck** auto
 ## Environment & Config
 
 Use existing env var names already present in the codebase (e.g., `NEXT_PUBLIC_APP_URL`) — grep for existing names before introducing new ones. Never assume a secret like `DATABASE_URL` exists in CI/GitHub without verifying it is set.
+
+The DB client (`src/db/index.ts`) accesses `DATABASE_URL` **lazily**, because `neon()` throws at module load if it's unset — which crashes `next build` during prerender. Keep DB access lazy/request-time; never read `DATABASE_URL` at module top-level in code that runs during the build.
+
+## Commands
+
+- `pnpm dev` — dev server (http://localhost:3000)
+- `pnpm db:generate` — generate a migration from `src/db/schema.ts` changes
+- `pnpm db:migrate` — apply migrations (`drizzle/`); also runs inside `pnpm build`
+- `pnpm db:push` — push schema directly (prototyping only, skips migration files)
+- `pnpm seed-owner` / `pnpm seed-ical-sources` — seed scripts (`scripts/*.mts`)
+
+Migrations need the **unpooled** connection (`DATABASE_URL_UNPOOLED`) — PgBouncer blocks DDL. `drizzle-kit` does not read `.env.local` automatically (the config loads it manually via `process.loadEnvFile`).
 
 ## UI / Design Guidelines
 
