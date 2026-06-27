@@ -295,6 +295,9 @@ export function BookForm({
                 );
               }}
             </form.Subscribe>
+            <p className="text-sm text-muted-foreground">
+              {t("form.price_includes")}
+            </p>
           </div>
 
           <FieldSet>

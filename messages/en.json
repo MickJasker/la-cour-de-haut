@@ -64,6 +64,7 @@
       "datesUnavailable": "The selected dates are no longer available. Please choose different dates.",
       "pricePerNight": "Price per night: <strong>{price}</strong>",
       "totalPrice": "Total price: <strong>{pricePerNight}</strong> x {totalNights} nights = <strong>{totalPrice}</strong> including tourism tax: <strong>{tourismTax}</strong>",
+      "price_includes": "The rental price includes end-of-stay cleaning, bed and bath linen, energy consumption and free WiFi.",
       "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment."
     },
     "fieldErrors": {
