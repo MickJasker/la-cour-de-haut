@@ -46,7 +46,9 @@
     "rightsTitle": "Uw rechten",
     "rightsBody": "U heeft het recht op inzage, rectificatie en verwijdering van uw persoonsgegevens. Voor vragen of verzoeken kunt u contact opnemen via: info@lacourdehaut.fr.",
     "contactTitle": "Contact",
-    "contactBody": "La Cour de Haut — info@lacourdehaut.fr"
+    "contactBody": "La Cour de Haut — info@lacourdehaut.fr",
+    "turnstileTitle": "Spambeveiliging (Cloudflare Turnstile)",
+    "turnstileBody": "Om ons boekingsformulier te beschermen tegen spam en misbruik, gebruiken wij Cloudflare Turnstile in onzichtbare modus. Turnstile kan technische informatie verzamelen (zoals IP-adres en browsergegevens) om te beoordelen of een verzoek van een mens afkomstig is. Zie voor meer informatie het <link>Cloudflare Turnstile Privacy Addendum</link>."
   },
   "booking": {
     "form": {

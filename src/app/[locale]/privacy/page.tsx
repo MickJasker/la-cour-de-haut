@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { getTranslations } from "@/i18n/server";
 import type { Locale } from "@/i18n/routing";
 
@@ -60,6 +61,24 @@ export default async function PrivacyPage({
         <section className="space-y-2">
           <h2 className="text-style-eyebrow-large">{t("contactTitle")}</h2>
           <p>{t("contactBody")}</p>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-style-eyebrow-large">{t("turnstileTitle")}</h2>
+          <p>
+            {t.rich("turnstileBody", {
+              link: (chunks: ReactNode) => (
+                <a
+                  href="https://www.cloudflare.com/cloudflare-turnstile-privacy-addendum/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:opacity-75 transition-opacity"
+                >
+                  {chunks}
+                </a>
+              ),
+            })}
+          </p>
         </section>
       </article>
     </main>
