@@ -41,7 +41,7 @@ export async function PoiSection({ locale }: { locale: Locale }) {
               <div className="relative aspect-3/2 rounded-md overflow-hidden">
                 <Image
                   src={item.imageUrl}
-                  alt={item.title}
+                  alt={item.title[locale] ?? item.title.nl}
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"
@@ -58,9 +58,11 @@ export async function PoiSection({ locale }: { locale: Locale }) {
                 )}
               </div>
               <h3 className="text-style-display-small font-bold!">
-                {item.title}
+                {item.title[locale] ?? item.title.nl}
               </h3>
-              <p className="text-style-body-medium">{item.body}</p>
+              <p className="text-style-body-medium">
+                {item.body[locale] ?? item.body.nl}
+              </p>
             </article>
           ))}
         </div>
