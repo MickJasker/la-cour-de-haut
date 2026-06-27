@@ -51,7 +51,7 @@ const templates: Record<
         <tr><th align="left">Gasten</th><td>${p.guestCount}</td></tr>
         <tr><th align="left">Aantal nachten</th><td>${nights}</td></tr>
         ${discount > 0 ? `<tr><th align="left">10% korting (7+ nachten)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
-        <tr></tr><th align="left">Totale prijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
+        <tr><th align="left">Totale prijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p>Om uw reservering definitief te maken, verzoeken wij u het verschuldigde bedrag vóór <strong>${esc(p.paymentDeadline)}</strong> over te maken naar:</p>
       <table cellpadding="6" style="border-collapse:collapse">

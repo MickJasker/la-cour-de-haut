@@ -65,6 +65,9 @@
       "pricePerNight": "Preis pro Nacht: <strong>{price}</strong>",
       "totalPrice": "Gesamtpreis: <strong>{pricePerNight}</strong> x {totalNights} Nächte = <strong>{totalPrice}</strong> inklusive Kurtaxe: <strong>{tourismTax}</strong>",
       "longStayDiscount": "10% Langzeitrabatt (7+ Nächte): −<strong>{discount}</strong>",
+      "rentalSubtotalLine": "<strong>{pricePerNight}</strong> × {totalNights} Nächte = <strong>{rentalSubtotal}</strong>",
+      "tourismTaxLine": "Kurtaxe: <strong>{tourismTax}</strong>",
+      "totalLine": "Gesamt: <strong>{totalPrice}</strong>",
       "price_includes": "Der Mietpreis beinhaltet die Endreinigung, Bett- und Badwäsche, Energieverbrauch und kostenloses WLAN.",
       "disclaimer": "Nach dem Absenden des Buchungsformulars werden wir uns mit Ihnen in Verbindung setzen, um die Verfügbarkeit zu bestätigen und weitere Details sowie Zahlungsanweisungen bereitzustellen. Ihre Buchung wird erst nach unserer Bestätigung und dem Erhalt der Zahlung endgültig."
     },

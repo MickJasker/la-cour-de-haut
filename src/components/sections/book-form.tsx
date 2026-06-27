@@ -270,30 +270,58 @@ export function BookForm({
                   formState.values.stayDates?.to ?? "",
                 );
 
-                const { discount, tourismTax, totalPrice } =
+                const { rentalSubtotal, discount, tourismTax, totalPrice } =
                   calculatePriceBreakdown(
                     pricePerNight,
                     totalNights,
                     Number(formState.values.guestCount),
                   );
 
+                const strong = (chunks: ReactNode) => <strong>{chunks}</strong>;
+
                 return (
                   <>
-                    <p className={cn("text-sm", !totalNights && "invisible")}>
-                      {t.rich("form.totalPrice", {
-                        pricePerNight: currency.format(pricePerNight),
-                        totalNights,
-                        totalPrice: currency.format(totalPrice),
-                        tourismTax: currency.format(tourismTax),
-                      })}
-                    </p>
-                    {totalNights >= 7 && (
-                      <p className="text-sm text-positive">
-                        {t.rich("form.longStayDiscount", {
-                          discount: currency.format(discount),
-                          strong: (chunks: ReactNode) => (
-                            <strong>{chunks}</strong>
-                          ),
+                    {discount > 0 ? (
+                      <div
+                        className={cn(
+                          "text-sm space-y-0.5",
+                          !totalNights && "invisible",
+                        )}
+                      >
+                        <p>
+                          {t.rich("form.rentalSubtotalLine", {
+                            pricePerNight: currency.format(pricePerNight),
+                            totalNights,
+                            rentalSubtotal: currency.format(rentalSubtotal),
+                            strong,
+                          })}
+                        </p>
+                        <p className="text-positive">
+                          {t.rich("form.longStayDiscount", {
+                            discount: currency.format(discount),
+                            strong,
+                          })}
+                        </p>
+                        <p>
+                          {t.rich("form.tourismTaxLine", {
+                            tourismTax: currency.format(tourismTax),
+                            strong,
+                          })}
+                        </p>
+                        <p className="font-medium">
+                          {t.rich("form.totalLine", {
+                            totalPrice: currency.format(totalPrice),
+                            strong,
+                          })}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className={cn("text-sm", !totalNights && "invisible")}>
+                        {t.rich("form.totalPrice", {
+                          pricePerNight: currency.format(pricePerNight),
+                          totalNights,
+                          totalPrice: currency.format(totalPrice),
+                          tourismTax: currency.format(tourismTax),
                         })}
                       </p>
                     )}

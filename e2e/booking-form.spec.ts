@@ -116,6 +116,83 @@ test.describe("booking form — standalone page (/nl/book)", () => {
   });
 });
 
+test.describe("booking form — long-stay discount", () => {
+  test.afterEach(async () => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`DELETE FROM booking_request WHERE email = 'test@example.com'`;
+  });
+
+  const dutchDays = [
+    "zondag",
+    "maandag",
+    "dinsdag",
+    "woensdag",
+    "donderdag",
+    "vrijdag",
+    "zaterdag",
+  ];
+  const dutchMonths = [
+    "januari",
+    "februari",
+    "maart",
+    "april",
+    "mei",
+    "juni",
+    "juli",
+    "augustus",
+    "september",
+    "oktober",
+    "november",
+    "december",
+  ];
+  const toAriaLabel = (d: Date) =>
+    `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]} ${d.getFullYear()}`;
+
+  async function selectDates(
+    page: import("@playwright/test").Page,
+    nights: number,
+  ) {
+    const checkin = new Date();
+    checkin.setDate(checkin.getDate() + 2);
+    const checkout = new Date(checkin);
+    checkout.setDate(checkout.getDate() + nights);
+    await page.locator(`button[aria-label="${toAriaLabel(checkin)}"]`).click();
+    await page.locator(`button[aria-label="${toAriaLabel(checkout)}"]`).click();
+    await page.waitForFunction(() => {
+      const from = (
+        document.querySelector(
+          "input[name='stayDates.from']",
+        ) as HTMLInputElement | null
+      )?.value;
+      const to = (
+        document.querySelector(
+          "input[name='stayDates.to']",
+        ) as HTMLInputElement | null
+      )?.value;
+      return !!from && !!to && from !== to;
+    });
+  }
+
+  test("no discount line shown for stays under 7 nights", async ({ page }) => {
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    await selectDates(page, 6);
+    await expect(
+      page.getByText("10% korting", { exact: false }),
+    ).not.toBeVisible();
+  });
+
+  test("discount line and breakdown shown for 7+ night stays", async ({
+    page,
+  }) => {
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    await selectDates(page, 7);
+    await expect(page.getByText("10% korting", { exact: false })).toBeVisible();
+    await expect(page.getByText("Totaal:", { exact: false })).toBeVisible();
+  });
+});
+
 test.describe("booking form — modal", () => {
   test("form fields are present inside the booking dialog", async ({
     page,
