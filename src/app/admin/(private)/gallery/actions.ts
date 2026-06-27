@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
-import { put, del } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
+import { deleteImage, nextSortOrder } from "@/lib/gallery";
 
 export async function uploadGalleryImageAction(formData: FormData) {
   await verifySession();
@@ -19,13 +20,7 @@ export async function uploadGalleryImageAction(formData: FormData) {
   });
 
   const db = getDb();
-  const maxRow = await db
-    .select({ sortOrder: galleryImage.sortOrder })
-    .from(galleryImage)
-    .orderBy(desc(galleryImage.sortOrder))
-    .limit(1);
-
-  const nextSort = maxRow.length > 0 ? (maxRow[0]?.sortOrder ?? 0) + 10 : 10;
+  const nextSort = await nextSortOrder();
 
   await db.insert(galleryImage).values({
     id: crypto.randomUUID(),
@@ -51,19 +46,7 @@ export async function togglePublishedAction(id: string, published: boolean) {
 
 export async function deleteGalleryImageAction(id: string) {
   await verifySession();
-  const db = getDb();
-  const [row] = await db
-    .select({ imageUrl: galleryImage.imageUrl })
-    .from(galleryImage)
-    .where(eq(galleryImage.id, id));
-
-  if (!row) return;
-
-  if (row.imageUrl.includes("blob.vercel-storage.com")) {
-    await del(row.imageUrl);
-  }
-  await db.delete(galleryImage).where(eq(galleryImage.id, id));
-
+  await deleteImage(id);
   revalidatePath("/admin/gallery");
   updateTag("gallery");
 }
