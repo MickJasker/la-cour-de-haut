@@ -32,6 +32,7 @@ type Review = typeof review.$inferSelect;
 const SOURCE_LABELS: Record<string, string> = {
   airbnb: "AirBnB",
   natuurhuisje: "Natuurhuisje",
+  google: "Google",
   direct: "direct",
 };
 

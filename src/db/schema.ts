@@ -208,7 +208,7 @@ export const poi = pgTable("poi", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export type ReviewSource = "airbnb" | "natuurhuisje" | "direct";
+export type ReviewSource = "airbnb" | "natuurhuisje" | "direct" | "google";
 
 export const review = pgTable("review", {
   id: text("id").primaryKey(),

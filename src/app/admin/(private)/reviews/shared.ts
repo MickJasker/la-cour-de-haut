@@ -6,7 +6,7 @@ export const reviewFormOpts = formOptions({
     authorName: "",
     rating: 5 as number,
     reviewDate: "",
-    source: "airbnb" as "airbnb" | "natuurhuisje" | "direct",
+    source: "airbnb" as "airbnb" | "natuurhuisje" | "direct" | "google",
     body: { nl: "" } as { nl: string; en?: string; fr?: string; de?: string },
     published: false as boolean,
   },
@@ -23,7 +23,7 @@ export const reviewFormClientSchema = z.object({
   authorName: z.string().min(1, "Vereist"),
   rating: z.number().int().min(1).max(5),
   reviewDate: z.string().min(1, "Vereist"),
-  source: z.enum(["airbnb", "natuurhuisje", "direct"]),
+  source: z.enum(["airbnb", "natuurhuisje", "direct", "google"]),
   body: localizedStringSchema,
   published: z.boolean(),
 });
@@ -48,7 +48,7 @@ export const reviewFormServerSchema = z.object({
     .string()
     .min(1, "Vereist")
     .regex(/^\d{4}-\d{2}-\d{2}/, "Ongeldige datum"),
-  source: z.enum(["airbnb", "natuurhuisje", "direct"]),
+  source: z.enum(["airbnb", "natuurhuisje", "direct", "google"]),
   body: z.preprocess(parseJson, localizedStringSchema),
   published: z.preprocess((v) => v === "true" || v === true, z.boolean()),
 });

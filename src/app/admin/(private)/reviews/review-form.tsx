@@ -161,7 +161,11 @@ export function ReviewForm({ existing }: { existing?: Review }) {
                   value={field.state.value}
                   onChange={(e) =>
                     field.handleChange(
-                      e.target.value as "airbnb" | "natuurhuisje" | "direct",
+                      e.target.value as
+                        | "airbnb"
+                        | "natuurhuisje"
+                        | "direct"
+                        | "google",
                     )
                   }
                   onBlur={field.handleBlur}
@@ -169,6 +173,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
                 >
                   <option value="airbnb">AirBnB</option>
                   <option value="natuurhuisje">Natuurhuisje</option>
+                  <option value="google">Google</option>
                   <option value="direct">direct</option>
                 </select>
                 <FieldError errors={field.state.meta.errors} />
