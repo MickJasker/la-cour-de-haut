@@ -1,10 +1,22 @@
+import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
 
-export const contentFormSchema = z.object({
-  descriptionNl: z.string().min(1, "Vereist"),
-  descriptionEn: z.string(),
-  descriptionFr: z.string(),
-  descriptionDe: z.string(),
+export const contentFormOpts = formOptions({
+  defaultValues: {
+    nl: "",
+    en: "",
+    fr: "",
+    de: "",
+  },
 });
 
-export type ContentFormValues = z.infer<typeof contentFormSchema>;
+export const contentFormClientSchema = z.object({
+  nl: z.string().min(1, "Vereist"),
+  en: z.string(),
+  fr: z.string(),
+  de: z.string(),
+});
+
+export const contentFormServerSchema = contentFormClientSchema;
+
+export type ContentFormValues = z.infer<typeof contentFormClientSchema>;

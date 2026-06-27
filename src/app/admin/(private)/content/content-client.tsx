@@ -1,12 +1,18 @@
 "use client";
 
-import * as React from "react";
-import { useActionState, useState } from "react";
-import Image from "next/image";
+import {
+  initialFormState,
+  mergeForm,
+  revalidateLogic,
+  useForm,
+  useTransform,
+} from "@tanstack/react-form-nextjs";
+import { useActionState, useState, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { TranslateDialog } from "@/components/translate-dialog";
+import { ImageDropzone } from "../image-dropzone";
 import {
   updateDescriptionAction,
   updateHeroDescriptionAction,
@@ -14,6 +20,7 @@ import {
   type ContentActionState,
   type UploadHeroActionState,
 } from "./actions";
+import { contentFormOpts, contentFormClientSchema } from "./shared";
 import type { LocalizedText } from "@/db/schema";
 
 const inputCls =
@@ -26,61 +33,99 @@ function LocalizedTextForm({
 }: {
   id: string;
   initialValue: LocalizedText | null;
-  action: (
-    prev: ContentActionState | null,
-    formData: FormData,
-  ) => Promise<ContentActionState>;
+  action: (prev: unknown, formData: FormData) => Promise<ContentActionState>;
 }) {
   const [state, formAction, isPending] = useActionState<
-    ContentActionState | null,
+    ContentActionState,
     FormData
-  >(action, null);
+  >(action, { ...initialFormState, success: false });
 
-  const [nl, setNl] = useState(initialValue?.nl ?? "");
-  const [en, setEn] = useState(initialValue?.en ?? "");
-  const [fr, setFr] = useState(initialValue?.fr ?? "");
-  const [de, setDe] = useState(initialValue?.de ?? "");
+  const form = useForm({
+    ...contentFormOpts,
+    defaultValues: {
+      nl: initialValue?.nl ?? "",
+      en: initialValue?.en ?? "",
+      fr: initialValue?.fr ?? "",
+      de: initialValue?.de ?? "",
+    },
+    validators: { onDynamic: contentFormClientSchema },
+    validationLogic: revalidateLogic({
+      mode: "submit",
+      modeAfterSubmission: "change",
+    }),
+    transform: useTransform(
+      (baseForm) =>
+        state.values !== undefined ? mergeForm(baseForm, state) : baseForm,
+      [state],
+    ),
+    onSubmit: ({ value }) => {
+      const fd = new FormData();
+      fd.set("nl", value.nl);
+      fd.set("en", value.en ?? "");
+      fd.set("fr", value.fr ?? "");
+      fd.set("de", value.de ?? "");
+      startTransition(() => formAction(fd));
+    },
+  });
 
   return (
     <form
-      action={formAction}
+      id={id}
+      noValidate
       className="space-y-4 border border-stone-200 rounded-lg p-5 bg-stone-50"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void form.handleSubmit();
+      }}
     >
       <FieldGroup>
         <FieldSet>
-          <Field>
-            <Label htmlFor={`${id}-nl`}>Beschrijving (NL)</Label>
-            <textarea
-              id={`${id}-nl`}
-              name="descriptionNl"
-              rows={5}
-              value={nl}
-              onChange={(e) => setNl(e.target.value)}
-              className={inputCls}
-            />
-            {state?.errors?.descriptionNl && (
-              <FieldError errors={[state.errors.descriptionNl]} />
+          <form.Field name="nl">
+            {(field) => (
+              <Field>
+                <Label htmlFor={`${id}-nl`}>Beschrijving (NL)</Label>
+                <textarea
+                  id={`${id}-nl`}
+                  rows={5}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  className={inputCls}
+                />
+                <FieldError errors={field.state.meta.errors} />
+              </Field>
             )}
-          </Field>
+          </form.Field>
         </FieldSet>
 
         <FieldSet>
-          <TranslateDialog
-            mode="content"
-            sourceText={nl}
-            initialTranslations={{ en, fr, de }}
-            onTranslated={(t) => {
-              setEn(t.en);
-              setFr(t.fr);
-              setDe(t.de);
-            }}
-          />
+          <form.Subscribe
+            selector={(s) => ({
+              nl: s.values.nl,
+              en: s.values.en,
+              fr: s.values.fr,
+              de: s.values.de,
+            })}
+          >
+            {({ nl, en, fr, de }) => (
+              <TranslateDialog
+                mode="content"
+                sourceText={nl}
+                initialTranslations={{ en, fr, de }}
+                onTranslated={(t) => {
+                  form.setFieldValue("en", t.en);
+                  form.setFieldValue("fr", t.fr);
+                  form.setFieldValue("de", t.de);
+                }}
+              />
+            )}
+          </form.Subscribe>
         </FieldSet>
-
-        <input type="hidden" name="descriptionEn" value={en} />
-        <input type="hidden" name="descriptionFr" value={fr} />
-        <input type="hidden" name="descriptionDe" value={de} />
       </FieldGroup>
+
+      {typeof state.errorMap?.onServer === "string" && (
+        <p className="text-destructive text-sm">{state.errorMap.onServer}</p>
+      )}
 
       <Button type="submit" disabled={isPending}>
         {isPending ? "Opslaan…" : "Opslaan"}
@@ -98,17 +143,23 @@ export function ContentClient({
   heroDescription: LocalizedText | null;
   heroImageUrl: string | null;
 }) {
+  const [heroFile, setHeroFile] = useState<File | null>(null);
   const [uploadState, uploadAction, uploadPending] = useActionState<
     UploadHeroActionState | null,
     FormData
   >(uploadHeroImageAction, null);
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  // Clear local file preview once upload completes so existingUrl takes over
+  if (!uploadPending && uploadState?.success && heroFile) {
+    setHeroFile(null);
+  }
+
+  function handleFileChange(file: File | null) {
     if (!file) return;
+    setHeroFile(file);
     const fd = new FormData();
     fd.append("file", file);
-    React.startTransition(() => uploadAction(fd));
+    startTransition(() => uploadAction(fd));
   }
 
   return (
@@ -125,28 +176,12 @@ export function ContentClient({
 
         <div className="border border-stone-200 rounded-lg p-5 bg-stone-50 space-y-4">
           <p className="text-sm font-medium text-stone-700">Afbeelding</p>
-          {heroImageUrl && (
-            <div className="relative w-full aspect-video max-w-md">
-              <Image
-                src={heroImageUrl}
-                alt="Huidige hero afbeelding"
-                fill
-                className="object-cover rounded"
-                sizes="(max-width: 768px) 100vw, 448px"
-              />
-            </div>
-          )}
-          <label className="block">
-            <span className="sr-only">Hero afbeelding uploaden</span>
-            <input
-              data-testid="hero-file-input"
-              type="file"
-              accept="image/*"
-              disabled={uploadPending}
-              onChange={handleImageChange}
-              className="block text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200"
-            />
-          </label>
+          <ImageDropzone
+            file={heroFile}
+            onChange={handleFileChange}
+            existingUrl={heroImageUrl ?? undefined}
+            testId="hero-file-input"
+          />
           {uploadPending && (
             <p className="text-sm text-stone-500">Afbeelding uploaden…</p>
           )}

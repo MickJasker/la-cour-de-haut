@@ -1,16 +1,34 @@
 "use server";
 
+import {
+  createServerValidate,
+  ServerValidateError,
+  initialFormState,
+} from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
+import { contentFormOpts, contentFormServerSchema } from "./shared";
 
 export type ContentActionState = {
-  errors: { descriptionNl?: string } | null;
   success: boolean;
+  errorMap: { onServer?: unknown };
+  values: unknown;
+  errors: unknown[];
 };
+
+const serverValidate = createServerValidate({
+  ...contentFormOpts,
+  onServerValidate: ({ value }) => {
+    const result = contentFormServerSchema.safeParse(value);
+    if (!result.success) {
+      return result.error.issues[0]?.message ?? "Validatie mislukt";
+    }
+  },
+});
 
 function invalidate() {
   revalidatePath("/admin/content");
@@ -23,9 +41,7 @@ async function upsertLocalizedText(
   en: string,
   fr: string,
   de: string,
-): Promise<ContentActionState> {
-  if (!nl) return { errors: { descriptionNl: "Vereist" }, success: false };
-
+) {
   const value = {
     type: "localizedText" as const,
     nl,
@@ -39,7 +55,6 @@ async function upsertLocalizedText(
     ...(fr ? { fr: "human" as const } : {}),
     ...(de ? { de: "human" as const } : {}),
   };
-
   const db = getDb();
   await db
     .insert(contentBlock)
@@ -48,44 +63,54 @@ async function upsertLocalizedText(
       target: contentBlock.key,
       set: { value, valueSource, updatedAt: new Date() },
     });
-
-  return { errors: null, success: true };
 }
 
 export async function updateDescriptionAction(
-  _prev: ContentActionState | null,
+  _prev: unknown,
   formData: FormData,
 ): Promise<ContentActionState> {
   await verifySession();
-
-  const nl = (formData.get("descriptionNl") as string | null)?.trim() ?? "";
-  const en = (formData.get("descriptionEn") as string | null)?.trim() ?? "";
-  const fr = (formData.get("descriptionFr") as string | null)?.trim() ?? "";
-  const de = (formData.get("descriptionDe") as string | null)?.trim() ?? "";
-
-  const result = await upsertLocalizedText("description", nl, en, fr, de);
-  if (!result.success) return result;
-
-  invalidate();
-  return result;
+  try {
+    const data = await serverValidate(formData);
+    await upsertLocalizedText(
+      "description",
+      data.nl,
+      data.en ?? "",
+      data.fr ?? "",
+      data.de ?? "",
+    );
+    invalidate();
+    return { ...initialFormState, success: true };
+  } catch (e) {
+    if (e instanceof ServerValidateError) {
+      return { ...e.formState, success: false };
+    }
+    throw e;
+  }
 }
 
 export async function updateHeroDescriptionAction(
-  _prev: ContentActionState | null,
+  _prev: unknown,
   formData: FormData,
 ): Promise<ContentActionState> {
   await verifySession();
-
-  const nl = (formData.get("descriptionNl") as string | null)?.trim() ?? "";
-  const en = (formData.get("descriptionEn") as string | null)?.trim() ?? "";
-  const fr = (formData.get("descriptionFr") as string | null)?.trim() ?? "";
-  const de = (formData.get("descriptionDe") as string | null)?.trim() ?? "";
-
-  const result = await upsertLocalizedText("hero_description", nl, en, fr, de);
-  if (!result.success) return result;
-
-  invalidate();
-  return result;
+  try {
+    const data = await serverValidate(formData);
+    await upsertLocalizedText(
+      "hero_description",
+      data.nl,
+      data.en ?? "",
+      data.fr ?? "",
+      data.de ?? "",
+    );
+    invalidate();
+    return { ...initialFormState, success: true };
+  } catch (e) {
+    if (e instanceof ServerValidateError) {
+      return { ...e.formState, success: false };
+    }
+    throw e;
+  }
 }
 
 export type UploadHeroActionState = {
