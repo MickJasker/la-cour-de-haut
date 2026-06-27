@@ -1,3 +1,4 @@
+import "server-only";
 import ical, { type VEvent } from "node-ical";
 import type { BusyInterval } from "@/db/schema";
 
