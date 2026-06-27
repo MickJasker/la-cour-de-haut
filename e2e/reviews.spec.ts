@@ -116,7 +116,9 @@ test.describe("reviews: admin validation", () => {
   }) => {
     await page.goto("/admin/reviews/new");
     await page.getByRole("button", { name: /opslaan/i }).click();
-    await expect(page.getByText("Vereist")).toBeVisible();
+    await expect(
+      page.locator("[data-field='authorName']").getByText("Vereist"),
+    ).toBeVisible();
   });
 
   test("shows inline error when review body is empty on submit", async ({
