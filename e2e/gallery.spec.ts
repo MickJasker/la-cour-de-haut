@@ -31,16 +31,19 @@ async function seedImage(opts: {
   imageUrl?: string;
   sortOrder: number;
   published: boolean;
+  altText?: { nl: string; en?: string; fr?: string; de?: string };
 }) {
   const sql = neon(process.env.DATABASE_URL!);
+  const altTextJson = opts.altText ? JSON.stringify(opts.altText) : null;
   await sql`
-    INSERT INTO gallery_image (id, image_url, sort_order, published, created_at)
+    INSERT INTO gallery_image (id, image_url, sort_order, published, created_at, alt_text)
     VALUES (
       ${opts.id},
       ${opts.imageUrl ?? PLACEHOLDER_URL},
       ${opts.sortOrder},
       ${opts.published},
-      now()
+      now(),
+      ${altTextJson}::jsonb
     )
   `;
 }
@@ -108,6 +111,50 @@ test.describe("gallery: public section", () => {
     ).toBeVisible();
   });
 
+  test("published image alt text appears on the public page", async ({
+    page,
+  }) => {
+    await seedImage({
+      id: "gal-alt-nl",
+      sortOrder: 1,
+      published: true,
+      altText: { nl: "Mooie zwembad" },
+    });
+    await gotoFresh(page, "/nl");
+    const section = page.locator("[data-testid='gite-section']");
+    await expect(section.locator("img[alt='Mooie zwembad']")).toBeVisible();
+  });
+
+  test("published image shows locale alt text when translation exists", async ({
+    page,
+  }) => {
+    await seedImage({
+      id: "gal-alt-en",
+      sortOrder: 1,
+      published: true,
+      altText: { nl: "Mooie zwembad", en: "Beautiful pool" },
+    });
+    await gotoFresh(page, "/en");
+    const section = page.locator("[data-testid='gite-section']");
+    await expect(section.locator("img[alt='Beautiful pool']")).toBeVisible();
+  });
+
+  test("published image falls back to Dutch alt text when locale translation is missing", async ({
+    page,
+  }) => {
+    await seedImage({
+      id: "gal-alt-fallback",
+      sortOrder: 1,
+      published: true,
+      altText: { nl: "Terras bij zonsondergang" },
+    });
+    await gotoFresh(page, "/fr");
+    const section = page.locator("[data-testid='gite-section']");
+    await expect(
+      section.locator("img[alt='Terras bij zonsondergang']"),
+    ).toBeVisible();
+  });
+
   test("'Bekijk meer foto's' button opens dialog showing all published photos", async ({
     page,
   }) => {
@@ -161,6 +208,41 @@ test.describe("gallery: admin", () => {
       1,
       { timeout: 15000 },
     );
+  });
+
+  test("owner can open the alt text dialog for an image", async ({ page }) => {
+    await seedImage({ id: "gal-alt-dialog", sortOrder: 1, published: false });
+    await page.goto("/admin/gallery");
+    await page
+      .locator("[data-testid='gallery-row-gal-alt-dialog']")
+      .getByRole("button", { name: /alt.?tekst/i })
+      .click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(
+      page.getByRole("dialog").getByLabel(/alt.?tekst/i),
+    ).toBeVisible();
+  });
+
+  test("Vertalen & opslaan saves alt text and it appears on the public page", async ({
+    page,
+  }) => {
+    await seedImage({
+      id: "gal-alt-save",
+      sortOrder: 1,
+      published: true,
+    });
+    await page.goto("/admin/gallery");
+    await page
+      .locator("[data-testid='gallery-row-gal-alt-save']")
+      .getByRole("button", { name: /alt.?tekst/i })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel(/alt.?tekst/i).fill("Zonnebloemenveld");
+    await dialog.getByRole("button", { name: /vertalen.*opslaan/i }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 15000 });
+    await gotoFresh(page, "/nl");
+    const section = page.locator("[data-testid='gite-section']");
+    await expect(section.locator("img[alt='Zonnebloemenveld']")).toBeVisible();
   });
 
   test("owner can toggle published status", async ({ page }) => {

@@ -169,12 +169,21 @@ export const icalExportToken = pgTable("ical_export_token", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export type AltText = {
+  nl: string;
+  en?: string;
+  fr?: string;
+  de?: string;
+};
+
 export const galleryImage = pgTable("gallery_image", {
   id: text("id").primaryKey(),
   imageUrl: text("image_url").notNull(),
   sortOrder: integer("sort_order").notNull().default(0),
   published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  altText: jsonb("alt_text").$type<AltText>(),
+  altTextSource: jsonb("alt_text_source").$type<LocalizedSource>(),
 });
 
 export const poi = pgTable("poi", {

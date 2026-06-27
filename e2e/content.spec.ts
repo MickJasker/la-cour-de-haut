@@ -195,6 +195,77 @@ test.describe("content: admin", () => {
     await expect(section.getByText("Opgeslagen beschrijving.")).toBeVisible();
   });
 
+  test("auto-translated description locales are saved with machine source", async ({
+    page,
+  }) => {
+    await page.goto("/admin/content");
+    const giteSection = page.locator("[data-testid='admin-gite-section']");
+    await giteSection
+      .getByLabel("Beschrijving (NL)")
+      .fill("Een mooie gîte in de Normandische heuvels.");
+    // Step 1: open translate dialog
+    await giteSection
+      .getByRole("button", { name: /automatisch vertalen/i })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    // Step 2: fetch translations
+    await dialog.getByRole("button", { name: /^vertalen$/i }).click();
+    // Step 3: confirm and close
+    await dialog.getByRole("button", { name: /opslaan/i }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 15000 });
+    // Step 4: save the form
+    await giteSection.getByRole("button", { name: /^opslaan$/i }).click();
+    await page.waitForLoadState("networkidle", { timeout: 10000 });
+    // Verify DB: EN/FR/DE source must be "machine", not "human"
+    const sql = neon(process.env.DATABASE_URL!);
+    const [row] = await sql`
+      SELECT value_source FROM content_block WHERE key = 'description'
+    `;
+    const src = row?.value_source as Record<string, string> | undefined;
+    expect(src?.nl).toBe("human");
+    expect(src?.en).toBe("machine");
+    expect(src?.fr).toBe("machine");
+    expect(src?.de).toBe("machine");
+  });
+
+  test("manually entered EN description is not overwritten by auto-translate", async ({
+    page,
+  }) => {
+    await seedLocalizedText({
+      key: "description",
+      value: {
+        nl: "Oorspronkelijke tekst.",
+        en: "Hand-written English.",
+      },
+    });
+    // Mark EN as human in the DB
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      UPDATE content_block
+      SET value_source = '{"nl":"human","en":"human"}'::jsonb
+      WHERE key = 'description'
+    `;
+    await page.goto("/admin/content");
+    const giteSection = page.locator("[data-testid='admin-gite-section']");
+    // Open translate dialog, fetch, confirm
+    await giteSection
+      .getByRole("button", { name: /automatisch vertalen/i })
+      .click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByRole("button", { name: /^vertalen$/i }).click();
+    await dialog.getByRole("button", { name: /opslaan/i }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 15000 });
+    await giteSection.getByRole("button", { name: /^opslaan$/i }).click();
+    await page.waitForLoadState("networkidle", { timeout: 10000 });
+    // EN must still be the hand-written value
+    const [row] = await sql`
+      SELECT value FROM content_block WHERE key = 'description'
+    `;
+    const val = row?.value as Record<string, string> | undefined;
+    expect(val?.en).toBe("Hand-written English.");
+  });
+
   test("empty Dutch description shows a validation error", async ({ page }) => {
     await page.goto("/admin/content");
     const giteSection = page.locator("[data-testid='admin-gite-section']");

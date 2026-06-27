@@ -20,16 +20,88 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   uploadGalleryImageAction,
   togglePublishedAction,
   deleteGalleryImageAction,
   reorderGalleryImagesAction,
+  translateAltTextAction,
+  saveAltTextAction,
 } from "./actions";
-import type { galleryImage } from "@/db/schema";
+import type { galleryImage, AltText } from "@/db/schema";
 
 type GalleryImage = typeof galleryImage.$inferSelect;
+
+function GalleryAltTextDialog({
+  imageId,
+  initialAltText,
+}: {
+  imageId: string;
+  initialAltText: AltText | null | undefined;
+}) {
+  const [open, setOpen] = useState(false);
+  const [nl, setNl] = useState(initialAltText?.nl ?? "");
+  const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Reset nl to the latest server value when the dialog opens (avoids stale
+  // state after a background RSC re-render updates initialAltText).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setNl(initialAltText?.nl ?? "");
+  }
+
+  function handleSave() {
+    setSaveError(null);
+    startTransition(async () => {
+      try {
+        const translations = await translateAltTextAction(nl);
+        await saveAltTextAction(imageId, { nl, ...translations });
+        setOpen(false);
+      } catch {
+        setSaveError("Opslaan mislukt. Probeer het opnieuw.");
+      }
+    });
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm" type="button">
+          Alt-tekst
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Alt-tekst bewerken</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Label htmlFor={`alt-${imageId}`}>Alt-tekst (NL)</Label>
+          <Input
+            id={`alt-${imageId}`}
+            value={nl}
+            onChange={(e) => setNl(e.target.value)}
+            placeholder="Beschrijf de afbeelding in het Nederlands"
+          />
+          {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+          <Button onClick={handleSave} disabled={isPending || nl.trim() === ""}>
+            {isPending ? "Vertalen…" : "Vertalen & opslaan"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 function GalleryRow({
   image,
@@ -96,6 +168,10 @@ function GalleryRow({
             Gepubliceerd
           </Label>
         </div>
+        <GalleryAltTextDialog
+          imageId={image.id}
+          initialAltText={image.altText}
+        />
         <Button
           variant="ghost"
           size="sm"
