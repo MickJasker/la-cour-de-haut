@@ -25,6 +25,7 @@ import {
   ArrowDownToLine,
   ImageIcon,
   MapPin,
+  Form,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -52,7 +53,7 @@ export function AppSidebar() {
                   asChild
                 >
                   <Link href="/admin">
-                    <SquareDashedText />
+                    <Form />
                     Dashboard
                   </Link>
                 </SidebarMenuButton>
@@ -122,12 +123,6 @@ export function AppSidebar() {
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   variant={
