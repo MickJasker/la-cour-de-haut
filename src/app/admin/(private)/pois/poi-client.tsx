@@ -216,20 +216,14 @@ function PoiForm({
 
       <FieldGroup>
         <FieldSet>
-          <form.Field name="title">
+          <form.Field name="title.nl">
             {(field) => (
               <Field data-field="title">
                 <Label htmlFor="poi-title">Titel</Label>
                 <input
                   id="poi-title"
-                  name={field.name}
-                  value={field.state.value.nl}
-                  onChange={(e) =>
-                    field.handleChange({
-                      ...field.state.value,
-                      nl: e.target.value,
-                    })
-                  }
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   className={inputCls}
                 />
@@ -240,20 +234,14 @@ function PoiForm({
         </FieldSet>
 
         <FieldSet>
-          <form.Field name="body">
+          <form.Field name="body.nl">
             {(field) => (
               <Field data-field="body">
                 <Label htmlFor="poi-body">Beschrijving</Label>
                 <textarea
                   id="poi-body"
-                  name={field.name}
-                  value={field.state.value.nl}
-                  onChange={(e) =>
-                    field.handleChange({
-                      ...field.state.value,
-                      nl: e.target.value,
-                    })
-                  }
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   rows={3}
                   className={inputCls}

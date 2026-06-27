@@ -178,20 +178,14 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         </FieldSet>
 
         <FieldSet>
-          <form.Field name="body">
+          <form.Field name="body.nl">
             {(field) => (
               <Field data-field="body">
                 <Label htmlFor="body">Recensie</Label>
                 <textarea
                   id="body"
-                  name={field.name}
-                  value={field.state.value.nl}
-                  onChange={(e) =>
-                    field.handleChange({
-                      ...field.state.value,
-                      nl: e.target.value,
-                    })
-                  }
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
                   rows={5}
                   placeholder="Plak de recensietekst hier…"
