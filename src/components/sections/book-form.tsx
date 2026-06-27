@@ -222,6 +222,7 @@ export function BookForm({
                   <Calendar
                     className="p-0 min-h-100"
                     mode="range"
+                    excludeDisabled
                     startMonth={addDays(new Date(), 1)}
                     endMonth={addMonths(new Date(), 12)}
                     disabled={[
