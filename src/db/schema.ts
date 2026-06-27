@@ -179,8 +179,28 @@ export const galleryImage = pgTable("gallery_image", {
 
 export const poi = pgTable("poi", {
   id: text("id").primaryKey(),
-  title: text("title").notNull(),
-  body: text("body").notNull(),
+  title: jsonb("title")
+    .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
+    .notNull(),
+  body: jsonb("body")
+    .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
+    .notNull(),
+  titleSource: jsonb("title_source")
+    .$type<{
+      nl: "human" | "machine";
+      en?: "human" | "machine";
+      fr?: "human" | "machine";
+      de?: "human" | "machine";
+    }>()
+    .notNull(),
+  bodySource: jsonb("body_source")
+    .$type<{
+      nl: "human" | "machine";
+      en?: "human" | "machine";
+      fr?: "human" | "machine";
+      de?: "human" | "machine";
+    }>()
+    .notNull(),
   imageUrl: text("image_url").notNull(),
   distanceKm: integer("distance_km"),
   sortOrder: integer("sort_order").notNull().default(0),

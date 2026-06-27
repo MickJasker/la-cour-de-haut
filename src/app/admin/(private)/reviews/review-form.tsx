@@ -7,7 +7,7 @@ import {
   useForm,
   useTransform,
 } from "@tanstack/react-form-nextjs";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ import {
   type ReviewActionState,
 } from "./actions";
 import { reviewFormOpts, reviewFormClientSchema } from "./shared";
+import { TranslateDialog } from "@/components/translate-dialog";
 import type { review } from "@/db/schema";
 
 type Review = typeof review.$inferSelect;
@@ -47,7 +48,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         rating: existing.rating,
         reviewDate: existing.reviewDate,
         source: existing.source as "airbnb" | "natuurhuisje" | "direct",
-        body: existing.body?.nl ?? "",
+        body: existing.body ?? { nl: "" },
         published: existing.published,
       }
     : undefined;
@@ -65,6 +66,16 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         state.values !== undefined ? mergeForm(baseForm, state) : baseForm,
       [state],
     ),
+    onSubmit: ({ value }) => {
+      const fd = new FormData();
+      fd.set("authorName", value.authorName);
+      fd.set("rating", String(value.rating));
+      fd.set("reviewDate", value.reviewDate);
+      fd.set("source", value.source);
+      fd.set("body", JSON.stringify(value.body));
+      fd.set("published", String(value.published));
+      startTransition(() => formAction(fd));
+    },
   });
 
   useEffect(() => {
@@ -73,9 +84,9 @@ export function ReviewForm({ existing }: { existing?: Review }) {
 
   return (
     <form
-      action={formAction}
       noValidate
-      onSubmit={() => {
+      onSubmit={(e) => {
+        e.preventDefault();
         void form.handleSubmit();
       }}
     >
@@ -167,13 +178,12 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         </FieldSet>
 
         <FieldSet>
-          <form.Field name="body">
+          <form.Field name="body.nl">
             {(field) => (
               <Field data-field="body">
                 <Label htmlFor="body">Recensie</Label>
                 <textarea
                   id="body"
-                  name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
@@ -210,6 +220,22 @@ export function ReviewForm({ existing }: { existing?: Review }) {
               </Field>
             )}
           </form.Field>
+        </FieldSet>
+
+        <FieldSet>
+          <form.Subscribe selector={(s) => s.values.body}>
+            {(body) => (
+              <TranslateDialog
+                mode="review"
+                reviewId={existing?.id}
+                sourceText={body.nl}
+                onTranslated={(t) => {
+                  const current = form.getFieldValue("body");
+                  form.setFieldValue("body", { ...current, ...t });
+                }}
+              />
+            )}
+          </form.Subscribe>
         </FieldSet>
 
         <FieldSet>

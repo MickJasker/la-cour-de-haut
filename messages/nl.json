@@ -65,6 +65,7 @@
       "pricePerNight": "Prijs per nacht: <strong>{price}</strong>",
       "totalPrice": "Totale prijs: <strong>{pricePerNight}</strong> x {totalNights} nachten = <strong>{totalPrice}</strong> inclusief toeristenbelasting: <strong>{tourismTax}</strong>",
       "longStayDiscount": "10% korting (7+ nachten): −<strong>{discount}</strong>",
+      "price_includes": "De huurprijs is inclusief eindschoonmaak, bed- en badlinnen, energieverbruik en gratis wifi.",
       "disclaimer": "Na het indienen van het boekingsformulier nemen we contact met u op om de beschikbaarheid te bevestigen en verdere details en betalingsinstructies te verstrekken. Uw boeking is pas definitief na onze bevestiging en ontvangst van betaling."
     },
     "fieldErrors": {
