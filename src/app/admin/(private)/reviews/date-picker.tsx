@@ -12,23 +12,22 @@ import {
 import { cn } from "@/lib/utils";
 
 export function DatePicker({
+  value,
+  onChange,
   name,
-  defaultValue,
 }: {
-  name: string;
-  defaultValue?: string;
+  value: string;
+  onChange: (value: string) => void;
+  name?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<Date | undefined>(
-    defaultValue ? new Date(defaultValue + "T00:00:00") : undefined,
-  );
 
+  const selected = value ? new Date(value + "T00:00:00") : undefined;
   const formatted = selected ? format(selected, "d MMMM yyyy") : null;
-  const isoValue = selected ? format(selected, "yyyy-MM-dd") : "";
 
   return (
     <>
-      <input type="hidden" name={name} value={isoValue} />
+      {name && <input type="hidden" name={name} value={value} />}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <button
@@ -48,7 +47,7 @@ export function DatePicker({
             mode="single"
             selected={selected}
             onSelect={(date) => {
-              setSelected(date);
+              onChange(date ? format(date, "yyyy-MM-dd") : "");
               setOpen(false);
             }}
             captionLayout="dropdown"

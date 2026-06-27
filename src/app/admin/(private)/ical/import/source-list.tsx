@@ -63,8 +63,8 @@ function SourceRow({ source }: { source: Source }) {
   }
 
   return (
-    <li className="rounded-md border border-stone-200 bg-cream-50 p-4 space-y-2">
-      <div className="flex items-start justify-between gap-4">
+    <li className="rounded-md border border-stone-200 bg-cream-50 p-4 space-y-2 overflow-hidden">
+      <div className="flex flex-col items-start justify-between gap-4">
         <div className="space-y-1 min-w-0">
           <p className="font-medium text-sm truncate">{source.name}</p>
           <p className="text-xs text-stone-500 font-mono truncate">

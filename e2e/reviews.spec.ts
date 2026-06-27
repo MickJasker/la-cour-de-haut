@@ -108,6 +108,43 @@ test.describe("reviews: public section", () => {
   });
 });
 
+test.describe("reviews: admin validation", () => {
+  test.use({ storageState: "e2e/.auth/owner.json" });
+
+  test("shows inline error when author name is empty on submit", async ({
+    page,
+  }) => {
+    await page.goto("/admin/reviews/new");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-field='authorName']").getByText("Vereist"),
+    ).toBeVisible();
+  });
+
+  test("shows inline error when review body is empty on submit", async ({
+    page,
+  }) => {
+    await page.goto("/admin/reviews/new");
+    await page.getByLabel(/auteur/i).fill("Test");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-field='body']").getByText("Vereist"),
+    ).toBeVisible();
+  });
+
+  test("shows inline error when date is not selected on submit", async ({
+    page,
+  }) => {
+    await page.goto("/admin/reviews/new");
+    await page.getByLabel(/auteur/i).fill("Test");
+    await page.getByLabel(/recensie/i).fill("Mooie plek.");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-field='reviewDate']").getByText("Vereist"),
+    ).toBeVisible();
+  });
+});
+
 test.describe("reviews: admin", () => {
   test.use({ storageState: "e2e/.auth/owner.json" });
 

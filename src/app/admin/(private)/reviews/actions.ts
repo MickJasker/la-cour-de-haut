@@ -1,20 +1,32 @@
 "use server";
 
+import {
+  createServerValidate,
+  ServerValidateError,
+  initialFormState,
+} from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { z } from "zod";
 import { getDb } from "@/db";
 import { review } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { redirect } from "next/navigation";
+import { reviewFormOpts, reviewFormServerSchema } from "./shared";
 
-const ReviewSchema = z.object({
-  authorName: z.string().min(1),
-  rating: z.coerce.number().int().min(1).max(5),
-  reviewDate: z.string().regex(/^\d{4}-\d{2}-\d{2}/),
-  source: z.enum(["airbnb", "natuurhuisje", "direct"]),
-  body: z.string().min(1),
-  published: z.coerce.boolean().optional().default(false),
+export type ReviewActionState = {
+  success: boolean;
+  errorMap: { onServer?: unknown };
+  values: unknown;
+  errors: unknown[];
+};
+
+const serverValidate = createServerValidate({
+  ...reviewFormOpts,
+  onServerValidate: ({ value }) => {
+    const result = reviewFormServerSchema.safeParse(value);
+    if (!result.success) {
+      return result.error.issues[0]?.message ?? "Validatie mislukt";
+    }
+  },
 });
 
 function invalidate() {
@@ -22,61 +34,64 @@ function invalidate() {
   updateTag("reviews");
 }
 
-export async function createReviewAction(formData: FormData) {
+export async function createReviewAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ReviewActionState> {
   await verifySession();
-  const parsed = ReviewSchema.parse({
-    authorName: formData.get("authorName"),
-    rating: formData.get("rating"),
-    reviewDate: formData.get("reviewDate"),
-    source: formData.get("source"),
-    body: formData.get("body"),
-    published: formData.get("published") === "on",
-  });
-
-  const db = getDb();
-  await db.insert(review).values({
-    id: crypto.randomUUID(),
-    authorName: parsed.authorName,
-    rating: parsed.rating,
-    reviewDate: parsed.reviewDate,
-    source: parsed.source,
-    body: { nl: parsed.body },
-    bodySource: { nl: "human" },
-    published: parsed.published,
-    sortOrder: 0,
-  });
-
-  invalidate();
-  redirect("/admin/reviews");
+  try {
+    const data = await serverValidate(formData);
+    const db = getDb();
+    await db.insert(review).values({
+      id: crypto.randomUUID(),
+      authorName: data.authorName,
+      rating: data.rating,
+      reviewDate: data.reviewDate,
+      source: data.source,
+      body: { nl: data.body },
+      bodySource: { nl: "human" },
+      published: data.published,
+      sortOrder: 0,
+    });
+    invalidate();
+    return { ...initialFormState, success: true };
+  } catch (e) {
+    if (e instanceof ServerValidateError) {
+      return { ...e.formState, success: false };
+    }
+    throw e;
+  }
 }
 
-export async function updateReviewAction(id: string, formData: FormData) {
+export async function updateReviewAction(
+  id: string,
+  _prev: unknown,
+  formData: FormData,
+): Promise<ReviewActionState> {
   await verifySession();
-  const parsed = ReviewSchema.parse({
-    authorName: formData.get("authorName"),
-    rating: formData.get("rating"),
-    reviewDate: formData.get("reviewDate"),
-    source: formData.get("source"),
-    body: formData.get("body"),
-    published: formData.get("published") === "on",
-  });
-
-  const db = getDb();
-  await db
-    .update(review)
-    .set({
-      authorName: parsed.authorName,
-      rating: parsed.rating,
-      reviewDate: parsed.reviewDate,
-      source: parsed.source,
-      body: { nl: parsed.body },
-      bodySource: { nl: "human" },
-      published: parsed.published,
-    })
-    .where(eq(review.id, id));
-
-  invalidate();
-  redirect("/admin/reviews");
+  try {
+    const data = await serverValidate(formData);
+    const db = getDb();
+    await db
+      .update(review)
+      .set({
+        authorName: data.authorName,
+        rating: data.rating,
+        reviewDate: data.reviewDate,
+        source: data.source,
+        body: { nl: data.body },
+        bodySource: { nl: "human" },
+        published: data.published,
+      })
+      .where(eq(review.id, id));
+    invalidate();
+    return { ...initialFormState, success: true };
+  } catch (e) {
+    if (e instanceof ServerValidateError) {
+      return { ...e.formState, success: false };
+    }
+    throw e;
+  }
 }
 
 export async function deleteReviewAction(id: string) {

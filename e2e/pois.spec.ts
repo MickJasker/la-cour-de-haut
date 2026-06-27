@@ -136,6 +136,29 @@ test.describe("pois: public section", () => {
   });
 });
 
+test.describe("pois: admin validation", () => {
+  test.use({ storageState: "e2e/.auth/owner.json" });
+
+  test("shows inline error when title is empty on submit", async ({ page }) => {
+    await page.goto("/admin/pois");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-field='title']").getByText("Vereist"),
+    ).toBeVisible();
+  });
+
+  test("shows inline error when description is empty on submit", async ({
+    page,
+  }) => {
+    await page.goto("/admin/pois");
+    await page.getByLabel(/titel/i).fill("Test POI");
+    await page.getByRole("button", { name: /opslaan/i }).click();
+    await expect(
+      page.locator("[data-field='body']").getByText("Vereist"),
+    ).toBeVisible();
+  });
+});
+
 test.describe("pois: admin", () => {
   test.use({ storageState: "e2e/.auth/owner.json" });
 
