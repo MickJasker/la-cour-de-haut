@@ -41,6 +41,7 @@ type PoiTranslateDialogProps = {
 type ContentTranslateDialogProps = {
   mode: "content";
   sourceText: string;
+  initialTranslations?: { en?: string; fr?: string; de?: string };
   onTranslated?: (translations: Translations) => void;
 };
 
@@ -84,16 +85,20 @@ function LangFields({
   );
 }
 
-export function TranslateDialog(props: TranslateDialogProps) {
+function TranslateDialogInner(props: TranslateDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Review state
-  const [reviewTranslations, setReviewTranslations] = useState<Translations>({
-    en: "",
-    fr: "",
-    de: "",
-  });
+  // Review / content state
+  const [reviewTranslations, setReviewTranslations] = useState<Translations>(
+    props.mode === "content"
+      ? {
+          en: props.initialTranslations?.en ?? "",
+          fr: props.initialTranslations?.fr ?? "",
+          de: props.initialTranslations?.de ?? "",
+        }
+      : { en: "", fr: "", de: "" },
+  );
 
   // POI state
   const [poiTitle, setPoiTitle] = useState<Translations>({
@@ -226,4 +231,12 @@ export function TranslateDialog(props: TranslateDialogProps) {
       </DialogContent>
     </Dialog>
   );
+}
+
+export function TranslateDialog(props: TranslateDialogProps) {
+  const key =
+    props.mode === "content"
+      ? `${props.initialTranslations?.en ?? ""}|${props.initialTranslations?.fr ?? ""}|${props.initialTranslations?.de ?? ""}`
+      : props.mode;
+  return <TranslateDialogInner key={key} {...props} />;
 }

@@ -68,6 +68,7 @@ function LocalizedTextForm({
           <TranslateDialog
             mode="content"
             sourceText={nl}
+            initialTranslations={{ en, fr, de }}
             onTranslated={(t) => {
               setEn(t.en);
               setFr(t.fr);
@@ -76,32 +77,9 @@ function LocalizedTextForm({
           />
         </FieldSet>
 
-        {(
-          [
-            { label: "EN", fieldName: "descriptionEn", value: en, set: setEn },
-            { label: "FR", fieldName: "descriptionFr", value: fr, set: setFr },
-            { label: "DE", fieldName: "descriptionDe", value: de, set: setDe },
-          ] as const
-        ).map(({ label, fieldName, value, set }) => (
-          <FieldSet key={fieldName}>
-            <Field>
-              <Label
-                htmlFor={`${id}-${fieldName}`}
-                className="text-xs uppercase tracking-wide text-stone-500"
-              >
-                {label}
-              </Label>
-              <textarea
-                id={`${id}-${fieldName}`}
-                name={fieldName}
-                rows={4}
-                value={value}
-                onChange={(e) => set(e.target.value)}
-                className={inputCls}
-              />
-            </Field>
-          </FieldSet>
-        ))}
+        <input type="hidden" name="descriptionEn" value={en} />
+        <input type="hidden" name="descriptionFr" value={fr} />
+        <input type="hidden" name="descriptionDe" value={de} />
       </FieldGroup>
 
       <Button type="submit" disabled={isPending}>
