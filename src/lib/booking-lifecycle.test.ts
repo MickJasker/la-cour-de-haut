@@ -4,21 +4,21 @@ import type { Mock } from "vitest";
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
-vi.mock("@/lib/settings", () => ({
+vi.mock("./settings", () => ({
   getSettings: vi.fn(),
   hasBankDetails: vi.fn(),
 }));
-vi.mock("@/lib/bank-transfer-email", () => ({
+vi.mock("./bank-transfer-email", () => ({
   sendBankTransferEmail: vi.fn(),
 }));
-vi.mock("@/lib/availability", () => ({ getBusyIntervals: vi.fn() }));
-vi.mock("@/lib/availability-utils", () => ({ hasConflict: vi.fn() }));
+vi.mock("./availability", () => ({ getBusyIntervals: vi.fn() }));
+vi.mock("./availability-utils", () => ({ hasConflict: vi.fn() }));
 
 import { getDb } from "@/db";
-import { getSettings, hasBankDetails } from "@/lib/settings";
-import { sendBankTransferEmail } from "@/lib/bank-transfer-email";
-import { getBusyIntervals } from "@/lib/availability";
-import { hasConflict } from "@/lib/availability-utils";
+import { getSettings, hasBankDetails } from "./settings";
+import { sendBankTransferEmail } from "./bank-transfer-email";
+import { getBusyIntervals } from "./availability";
+import { hasConflict } from "./availability-utils";
 import { applyTransition } from "./booking-lifecycle";
 
 const FUTURE_DATE = "2099-01-01";
@@ -84,6 +84,22 @@ describe("applyTransition — confirm", () => {
     await expect(
       applyTransition("bk-1", "confirm", { paymentDeadline: FUTURE_DATE }),
     ).rejects.toThrow("SMTP down");
+  });
+
+  it("rolls back DB status when email send fails", async () => {
+    const db = makeMockDb();
+    (getDb as Mock).mockReturnValue(db);
+    (sendBankTransferEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+
+    await expect(
+      applyTransition("bk-1", "confirm", { paymentDeadline: FUTURE_DATE }),
+    ).rejects.toThrow("SMTP down");
+
+    // Second _set call should restore original status
+    expect(db._set).toHaveBeenCalledTimes(2);
+    expect(db._set).toHaveBeenLastCalledWith(
+      expect.objectContaining({ status: "requested" }),
+    );
   });
 
   it("throws when paymentDeadline is missing", async () => {

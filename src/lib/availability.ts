@@ -86,6 +86,7 @@ export async function getDirectBookings(): Promise<
  * A never-synced source that fails contributes no intervals (fail-open).
  */
 export async function getBusyIntervals(): Promise<BusyInterval[]> {
+  await connection();
   const db = getDb();
 
   const [sources, holds] = await Promise.all([

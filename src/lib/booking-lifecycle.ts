@@ -1,3 +1,4 @@
+import "server-only";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -75,16 +76,36 @@ export async function applyTransition(
     })
     .where(eq(bookingRequest.id, bookingId));
 
+  // blockInFeed / releaseFromFeed: availability is computed from DB status, so
+  // the update above already blocks or releases dates in getBusyIntervals().
+  // A future integration (e.g. push to external calendar) would go here.
+
   if (result.sideEffects.sendBankTransferEmail) {
     settings ??= await getSettings();
-    await sendBankTransferEmail({
-      guest: { name: booking.name, email: booking.email },
-      startDate: booking.startDate,
-      endDate: booking.endDate,
-      guestCount: booking.guestCount,
-      paymentDeadline: opts.paymentDeadline!,
-      locale: booking.locale,
-      settings,
-    });
+    try {
+      await sendBankTransferEmail({
+        guest: { name: booking.name, email: booking.email },
+        startDate: booking.startDate,
+        endDate: booking.endDate,
+        guestCount: booking.guestCount,
+        paymentDeadline: opts.paymentDeadline!,
+        locale: booking.locale,
+        settings,
+      });
+    } catch (err) {
+      // Compensate: restore original status so the transition looks un-applied
+      // from the admin's perspective and can be retried.
+      await db
+        .update(bookingRequest)
+        .set({
+          status: booking.status as DbBookingStatus,
+          ...(action === "confirm" && {
+            confirmedAt: null,
+            paymentDeadline: null,
+          }),
+        })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
   }
 }
