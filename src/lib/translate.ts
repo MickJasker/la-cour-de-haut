@@ -2,6 +2,10 @@ export async function translateToAllLocales(
   text: string,
   sourceLocale = "nl",
 ): Promise<{ en: string; fr: string; de: string }> {
+  if (process.env.E2E_TESTING) {
+    return { en: `${text} [en]`, fr: `${text} [fr]`, de: `${text} [de]` };
+  }
+
   const credsJson = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
   if (!credsJson) {
     throw new Error(
@@ -52,9 +56,13 @@ export async function translateToAllLocales(
     }),
   ]);
 
-  return {
-    en: enResult[0].translations![0].translatedText!,
-    fr: frResult[0].translations![0].translatedText!,
-    de: deResult[0].translations![0].translatedText!,
-  };
+  const en = enResult[0].translations?.[0]?.translatedText;
+  const fr = frResult[0].translations?.[0]?.translatedText;
+  const de = deResult[0].translations?.[0]?.translatedText;
+
+  if (!en || !fr || !de) {
+    throw new Error("Google Translate returned an empty translation response");
+  }
+
+  return { en, fr, de };
 }

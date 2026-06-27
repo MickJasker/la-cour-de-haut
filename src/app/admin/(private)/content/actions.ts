@@ -72,6 +72,9 @@ async function upsertLocalizedText(
 
 function readSources(formData: FormData) {
   const raw = (k: string) => formData.get(k);
+  // The client sends "machine" for auto-translated locales and "human" for
+  // manually edited ones. Any other value (missing field, null) is treated as
+  // "human" — the conservative default for data we don't know the origin of.
   const toSource = (v: FormDataEntryValue | null) =>
     v === "machine" ? ("machine" as const) : ("human" as const);
   return {

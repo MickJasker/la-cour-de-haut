@@ -134,6 +134,13 @@ function LocalizedTextForm({
                     form.setFieldValue("deSource", "machine");
                   }
                 }}
+                onLocaleEdited={(locale) => {
+                  if (locale === "en") form.setFieldValue("enSource", "human");
+                  else if (locale === "fr")
+                    form.setFieldValue("frSource", "human");
+                  else if (locale === "de")
+                    form.setFieldValue("deSource", "human");
+                }}
               />
             )}
           </form.Subscribe>

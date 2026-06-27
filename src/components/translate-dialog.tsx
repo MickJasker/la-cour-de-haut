@@ -43,6 +43,7 @@ type ContentTranslateDialogProps = {
   sourceText: string;
   initialTranslations?: { en?: string; fr?: string; de?: string };
   onTranslated?: (translations: Translations) => void;
+  onLocaleEdited?: (locale: "en" | "fr" | "de") => void;
 };
 
 type TranslateDialogProps =
@@ -57,10 +58,12 @@ function LangFields({
   prefix,
   values,
   onChange,
+  onUserEdit,
 }: {
   prefix: string;
   values: Translations;
   onChange: (next: Translations) => void;
+  onUserEdit?: (lang: "en" | "fr" | "de") => void;
 }) {
   return (
     <div className="space-y-3">
@@ -76,7 +79,10 @@ function LangFields({
             id={`${prefix}-${lang}`}
             rows={3}
             value={values[lang]}
-            onChange={(e) => onChange({ ...values, [lang]: e.target.value })}
+            onChange={(e) => {
+              onChange({ ...values, [lang]: e.target.value });
+              onUserEdit?.(lang);
+            }}
             className={textareaCls}
           />
         </div>
@@ -88,6 +94,7 @@ function LangFields({
 function TranslateDialogInner(props: TranslateDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Review / content state
   const [reviewTranslations, setReviewTranslations] = useState<Translations>(
@@ -119,19 +126,24 @@ function TranslateDialogInner(props: TranslateDialogProps) {
         props.sourceBodyText.trim().length > 0;
 
   function handleFetch() {
+    setFetchError(null);
     startTransition(async () => {
-      if (props.mode === "review" || props.mode === "content") {
-        const result = await translateTextAction(props.sourceText);
-        setReviewTranslations(result);
-      } else {
-        const hasTitle = props.sourceTitleText.trim().length > 0;
-        const hasBody = props.sourceBodyText.trim().length > 0;
-        const [titleResult, bodyResult] = await Promise.all([
-          hasTitle ? translateTextAction(props.sourceTitleText) : null,
-          hasBody ? translateTextAction(props.sourceBodyText) : null,
-        ]);
-        if (titleResult) setPoiTitle(titleResult);
-        if (bodyResult) setPoiBody(bodyResult);
+      try {
+        if (props.mode === "review" || props.mode === "content") {
+          const result = await translateTextAction(props.sourceText);
+          setReviewTranslations(result);
+        } else {
+          const hasTitle = props.sourceTitleText.trim().length > 0;
+          const hasBody = props.sourceBodyText.trim().length > 0;
+          const [titleResult, bodyResult] = await Promise.all([
+            hasTitle ? translateTextAction(props.sourceTitleText) : null,
+            hasBody ? translateTextAction(props.sourceBodyText) : null,
+          ]);
+          if (titleResult) setPoiTitle(titleResult);
+          if (bodyResult) setPoiBody(bodyResult);
+        }
+      } catch {
+        setFetchError("Vertalen mislukt. Probeer het opnieuw.");
       }
     });
   }
@@ -183,11 +195,18 @@ function TranslateDialogInner(props: TranslateDialogProps) {
             {isPending ? "Bezig met vertalen…" : "Vertalen"}
           </Button>
 
+          {fetchError && (
+            <p className="text-sm text-destructive">{fetchError}</p>
+          )}
+
           {props.mode === "review" || props.mode === "content" ? (
             <LangFields
               prefix="review"
               values={reviewTranslations}
               onChange={setReviewTranslations}
+              onUserEdit={
+                props.mode === "content" ? props.onLocaleEdited : undefined
+              }
             />
           ) : (
             <>

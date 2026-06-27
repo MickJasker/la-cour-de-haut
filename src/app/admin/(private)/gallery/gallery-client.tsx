@@ -51,12 +51,26 @@ function GalleryAltTextDialog({
   const [open, setOpen] = useState(false);
   const [nl, setNl] = useState(initialAltText?.nl ?? "");
   const [isPending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Reset nl to the latest server value when the dialog opens (avoids stale
+  // state after a background RSC re-render updates initialAltText).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setNl(initialAltText?.nl ?? "");
+  }
 
   function handleSave() {
+    setSaveError(null);
     startTransition(async () => {
-      const translations = await translateAltTextAction(nl);
-      await saveAltTextAction(imageId, { nl, ...translations });
-      setOpen(false);
+      try {
+        const translations = await translateAltTextAction(nl);
+        await saveAltTextAction(imageId, { nl, ...translations });
+        setOpen(false);
+      } catch {
+        setSaveError("Opslaan mislukt. Probeer het opnieuw.");
+      }
     });
   }
 
@@ -79,6 +93,7 @@ function GalleryAltTextDialog({
             onChange={(e) => setNl(e.target.value)}
             placeholder="Beschrijf de afbeelding in het Nederlands"
           />
+          {saveError && <p className="text-sm text-destructive">{saveError}</p>}
           <Button onClick={handleSave} disabled={isPending || nl.trim() === ""}>
             {isPending ? "Vertalen…" : "Vertalen & opslaan"}
           </Button>
