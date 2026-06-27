@@ -2,18 +2,117 @@
 
 import { useTransition, useState, useId } from "react";
 import Image from "next/image";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   createPoiAction,
   updatePoiAction,
   togglePoiPublishedAction,
   deletePoiAction,
+  reorderPoisAction,
 } from "./actions";
 import type { poi } from "@/db/schema";
 
 type Poi = typeof poi.$inferSelect;
+
+function ImageDropzone({
+  file,
+  onChange,
+  existingUrl,
+  required,
+}: {
+  file: File | null;
+  onChange: (f: File | null) => void;
+  existingUrl?: string;
+  required?: boolean;
+}) {
+  const [isDragOver, setIsDragOver] = useState(false);
+  const preview = file ? URL.createObjectURL(file) : (existingUrl ?? null);
+
+  return (
+    <div className="space-y-2">
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
+        onDragLeave={() => setIsDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOver(false);
+          const f = e.dataTransfer.files?.[0] ?? null;
+          if (f && f.type.startsWith("image/")) onChange(f);
+        }}
+        className={cn(
+          "relative border-2 border-dashed rounded-lg p-6 text-center transition-colors",
+          isDragOver
+            ? "border-primary bg-primary/5"
+            : "border-stone-200 hover:border-stone-400",
+        )}
+      >
+        <input
+          data-testid="poi-file-input"
+          type="file"
+          accept="image/*"
+          required={required}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+        />
+        <p className="text-sm text-stone-500 pointer-events-none">
+          Sleep een afbeelding hierheen, of{" "}
+          <span className="text-primary underline">bladeren</span>
+        </p>
+        <p className="text-xs text-stone-400 mt-1 pointer-events-none">
+          PNG, JPG, WebP
+        </p>
+      </div>
+
+      {preview && (
+        <div className="flex items-center gap-3">
+          <div className="relative w-16 h-16 shrink-0">
+            <Image
+              src={preview}
+              alt="Voorvertoning"
+              fill
+              className="object-cover rounded"
+              sizes="64px"
+              unoptimized={!!file}
+            />
+          </div>
+          {file && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm text-stone-600 truncate">{file.name}</p>
+              <button
+                type="button"
+                onClick={() => onChange(null)}
+                className="text-xs text-stone-400 hover:text-stone-700"
+              >
+                Verwijderen
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function PoiForm({
   editing,
@@ -30,7 +129,6 @@ function PoiForm({
   const titleId = useId();
   const bodyId = useId();
   const distanceId = useId();
-  const sortOrderId = useId();
   const publishedId = useId();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -83,51 +181,26 @@ function PoiForm({
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <Label htmlFor={distanceId}>Afstand (km)</Label>
-          <input
-            id={distanceId}
-            name="distanceKm"
-            type="number"
-            min={0}
-            defaultValue={editing?.distanceKm ?? ""}
-            className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-        <div className="space-y-1">
-          <Label htmlFor={sortOrderId}>Volgorde</Label>
-          <input
-            id={sortOrderId}
-            name="sortOrder"
-            type="number"
-            defaultValue={editing?.sortOrder ?? 0}
-            className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
+      <div className="space-y-1">
+        <Label htmlFor={distanceId}>Afstand (km)</Label>
+        <input
+          id={distanceId}
+          name="distanceKm"
+          type="number"
+          min={0}
+          defaultValue={editing?.distanceKm ?? ""}
+          className="w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
       </div>
 
       <div className="space-y-1">
         <Label>Afbeelding{editing ? " (leeg laten om te behouden)" : ""}</Label>
-        <input
-          data-testid="poi-file-input"
-          type="file"
-          accept="image/*"
-          required={!editing}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="block text-sm text-stone-600"
+        <ImageDropzone
+          file={file}
+          onChange={setFile}
+          existingUrl={editing?.imageUrl}
+          required={!editing && !file}
         />
-        {editing && (
-          <div className="relative w-16 h-16 mt-1">
-            <Image
-              src={editing.imageUrl}
-              alt={editing.title}
-              fill
-              className="object-cover rounded"
-              sizes="64px"
-            />
-          </div>
-        )}
       </div>
 
       <input
@@ -169,12 +242,30 @@ function PoiRow({
 }) {
   const [isPending, startTransition] = useTransition();
   const [published, setPublished] = useState(item.published);
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   return (
     <li
+      ref={setNodeRef}
+      style={style}
       data-testid={`poi-row-${item.id}`}
       className="flex items-center gap-4 rounded-md border border-stone-200 bg-white p-3"
     >
+      <button
+        {...attributes}
+        {...listeners}
+        type="button"
+        aria-label="Slepen om te herordenen"
+        className="cursor-grab text-stone-400 hover:text-stone-600 shrink-0"
+      >
+        ⠿
+      </button>
       <div className="relative w-16 h-16 shrink-0">
         <Image
           src={item.imageUrl}
@@ -241,6 +332,7 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
   const [serverPois, setServerPois] = useState(pois);
   const [items, setItems] = useState(pois);
   const [editing, setEditing] = useState<Poi | null>(null);
+  const [, startTransition] = useTransition();
 
   if (serverPois !== pois) {
     setServerPois(pois);
@@ -250,6 +342,22 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
   function handleDelete(id: string) {
     setItems((prev) => prev.filter((p) => p.id !== id));
     if (editing?.id === id) setEditing(null);
+  }
+
+  const sensors = useSensors(useSensor(PointerSensor));
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex((p) => p.id === active.id);
+    const newIndex = items.findIndex((p) => p.id === over.id);
+    const reordered = arrayMove(items, oldIndex, newIndex);
+    setItems(reordered);
+
+    startTransition(() => {
+      void reorderPoisAction(reordered.map((p) => p.id));
+    });
   }
 
   return (
@@ -266,16 +374,27 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
           Nog geen POI&apos;s aangemaakt.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {items.map((item) => (
-            <PoiRow
-              key={item.id}
-              item={item}
-              onDelete={handleDelete}
-              onEdit={setEditing}
-            />
-          ))}
-        </ul>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={items.map((p) => p.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ul className="space-y-2">
+              {items.map((item) => (
+                <PoiRow
+                  key={item.id}
+                  item={item}
+                  onDelete={handleDelete}
+                  onEdit={setEditing}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );
