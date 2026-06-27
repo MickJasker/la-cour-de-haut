@@ -4,8 +4,8 @@ const mockTranslateText = vi.fn();
 function MockClient() {}
 MockClient.prototype.translateText = mockTranslateText;
 
-vi.mock("@google-cloud/translate/build/src/v3", () => ({
-  TranslationServiceClient: MockClient,
+vi.mock("@google-cloud/translate", () => ({
+  v3: { TranslationServiceClient: MockClient },
 }));
 
 // Import after mock is registered
