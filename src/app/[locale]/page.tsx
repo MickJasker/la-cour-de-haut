@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Header } from "@/components/sections/header";
 import { Hero } from "@/components/sections/hero";
 import { GiteSection } from "@/components/sections/gite";
@@ -6,7 +7,27 @@ import { PoiSection } from "@/components/sections/poi";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
-import type { Locale } from "@/i18n/routing";
+import { locales, type Locale } from "@/i18n/routing";
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    alternates: {
+      canonical: `${BASE_URL}/${locale}`,
+      languages: Object.fromEntries([
+        ...locales.map((loc) => [loc, `${BASE_URL}/${loc}`]),
+        ["x-default", `${BASE_URL}/nl`],
+      ]),
+    },
+    openGraph: { url: `${BASE_URL}/${locale}` },
+  };
+}
 
 export default async function HomePage({
   params,
