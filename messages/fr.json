@@ -46,7 +46,9 @@
     "rightsTitle": "Vos droits",
     "rightsBody": "Vous avez le droit d'accéder, de rectifier et de supprimer vos données personnelles. Pour toute question ou demande, contactez-nous à : info@lacourdehaut.fr.",
     "contactTitle": "Contact",
-    "contactBody": "La Cour de Haut — info@lacourdehaut.fr"
+    "contactBody": "La Cour de Haut — info@lacourdehaut.fr",
+    "turnstileTitle": "Protection anti-spam (Cloudflare Turnstile)",
+    "turnstileBody": "Pour protéger notre formulaire de réservation contre le spam et les abus, nous utilisons Cloudflare Turnstile en mode invisible. Turnstile peut collecter des informations techniques (telles que l'adresse IP et les données du navigateur) pour évaluer si une demande provient d'un être humain. Pour plus d'informations, consultez l'<link>Avenant de confidentialité Cloudflare Turnstile</link>."
   },
   "booking": {
     "form": {
