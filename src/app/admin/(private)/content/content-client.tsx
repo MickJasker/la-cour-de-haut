@@ -9,6 +9,7 @@ import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { TranslateDialog } from "@/components/translate-dialog";
 import {
   updateDescriptionAction,
+  updateHeroDescriptionAction,
   uploadHeroImageAction,
   type ContentActionState,
   type UploadHeroActionState,
@@ -18,27 +19,111 @@ import type { LocalizedText } from "@/db/schema";
 const inputCls =
   "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y";
 
-export function ContentClient({
-  description,
-  heroImageUrl,
+function LocalizedTextForm({
+  id,
+  initialValue,
+  action,
 }: {
-  description: LocalizedText | null;
-  heroImageUrl: string | null;
+  id: string;
+  initialValue: LocalizedText | null;
+  action: (
+    prev: ContentActionState | null,
+    formData: FormData,
+  ) => Promise<ContentActionState>;
 }) {
   const [state, formAction, isPending] = useActionState<
     ContentActionState | null,
     FormData
-  >(updateDescriptionAction, null);
+  >(action, null);
 
+  const [nl, setNl] = useState(initialValue?.nl ?? "");
+  const [en, setEn] = useState(initialValue?.en ?? "");
+  const [fr, setFr] = useState(initialValue?.fr ?? "");
+  const [de, setDe] = useState(initialValue?.de ?? "");
+
+  return (
+    <form
+      action={formAction}
+      className="space-y-4 border border-stone-200 rounded-lg p-5 bg-stone-50"
+    >
+      <FieldGroup>
+        <FieldSet>
+          <Field>
+            <Label htmlFor={`${id}-nl`}>Beschrijving (NL)</Label>
+            <textarea
+              id={`${id}-nl`}
+              name="descriptionNl"
+              rows={5}
+              value={nl}
+              onChange={(e) => setNl(e.target.value)}
+              className={inputCls}
+            />
+            {state?.errors?.descriptionNl && (
+              <FieldError errors={[state.errors.descriptionNl]} />
+            )}
+          </Field>
+        </FieldSet>
+
+        <FieldSet>
+          <TranslateDialog
+            mode="content"
+            sourceText={nl}
+            onTranslated={(t) => {
+              setEn(t.en);
+              setFr(t.fr);
+              setDe(t.de);
+            }}
+          />
+        </FieldSet>
+
+        {(
+          [
+            { label: "EN", fieldName: "descriptionEn", value: en, set: setEn },
+            { label: "FR", fieldName: "descriptionFr", value: fr, set: setFr },
+            { label: "DE", fieldName: "descriptionDe", value: de, set: setDe },
+          ] as const
+        ).map(({ label, fieldName, value, set }) => (
+          <FieldSet key={fieldName}>
+            <Field>
+              <Label
+                htmlFor={`${id}-${fieldName}`}
+                className="text-xs uppercase tracking-wide text-stone-500"
+              >
+                {label}
+              </Label>
+              <textarea
+                id={`${id}-${fieldName}`}
+                name={fieldName}
+                rows={4}
+                value={value}
+                onChange={(e) => set(e.target.value)}
+                className={inputCls}
+              />
+            </Field>
+          </FieldSet>
+        ))}
+      </FieldGroup>
+
+      <Button type="submit" disabled={isPending}>
+        {isPending ? "Opslaan…" : "Opslaan"}
+      </Button>
+    </form>
+  );
+}
+
+export function ContentClient({
+  description,
+  heroDescription,
+  heroImageUrl,
+}: {
+  description: LocalizedText | null;
+  heroDescription: LocalizedText | null;
+  heroImageUrl: string | null;
+}) {
   const [uploadState, uploadAction, uploadPending] = useActionState<
     UploadHeroActionState | null,
     FormData
   >(uploadHeroImageAction, null);
-
-  const [nl, setNl] = useState(description?.nl ?? "");
-  const [en, setEn] = useState(description?.en ?? "");
-  const [fr, setFr] = useState(description?.fr ?? "");
-  const [de, setDe] = useState(description?.de ?? "");
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -50,111 +135,18 @@ export function ContentClient({
 
   return (
     <div className="space-y-12">
-      {/* Description */}
-      <section className="space-y-6">
-        <h2 className="text-lg font-semibold">Beschrijving</h2>
-        <form
-          action={formAction}
-          className="space-y-4 border border-stone-200 rounded-lg p-5 bg-stone-50"
-        >
-          <FieldGroup>
-            <FieldSet>
-              <Field>
-                <Label htmlFor="descriptionNl">Beschrijving (NL)</Label>
-                <textarea
-                  id="descriptionNl"
-                  name="descriptionNl"
-                  rows={6}
-                  value={nl}
-                  onChange={(e) => setNl(e.target.value)}
-                  className={inputCls}
-                />
-                {state?.errors?.descriptionNl && (
-                  <FieldError errors={[state.errors.descriptionNl]} />
-                )}
-              </Field>
-            </FieldSet>
+      {/* Hero */}
+      <section data-testid="admin-hero-section" className="space-y-6">
+        <h2 className="text-lg font-semibold">Hero</h2>
 
-            <FieldSet>
-              <TranslateDialog
-                mode="content"
-                sourceText={nl}
-                onTranslated={(t) => {
-                  setEn(t.en);
-                  setFr(t.fr);
-                  setDe(t.de);
-                }}
-              />
-            </FieldSet>
+        <LocalizedTextForm
+          id="hero-desc"
+          initialValue={heroDescription}
+          action={updateHeroDescriptionAction}
+        />
 
-            <FieldSet>
-              <Field>
-                <Label
-                  htmlFor="descriptionEn"
-                  className="text-xs uppercase tracking-wide text-stone-500"
-                >
-                  EN
-                </Label>
-                <textarea
-                  id="descriptionEn"
-                  name="descriptionEn"
-                  rows={4}
-                  value={en}
-                  onChange={(e) => setEn(e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </FieldSet>
-
-            <FieldSet>
-              <Field>
-                <Label
-                  htmlFor="descriptionFr"
-                  className="text-xs uppercase tracking-wide text-stone-500"
-                >
-                  FR
-                </Label>
-                <textarea
-                  id="descriptionFr"
-                  name="descriptionFr"
-                  rows={4}
-                  value={fr}
-                  onChange={(e) => setFr(e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </FieldSet>
-
-            <FieldSet>
-              <Field>
-                <Label
-                  htmlFor="descriptionDe"
-                  className="text-xs uppercase tracking-wide text-stone-500"
-                >
-                  DE
-                </Label>
-                <textarea
-                  id="descriptionDe"
-                  name="descriptionDe"
-                  rows={4}
-                  value={de}
-                  onChange={(e) => setDe(e.target.value)}
-                  className={inputCls}
-                />
-              </Field>
-            </FieldSet>
-          </FieldGroup>
-
-          <Button type="submit" disabled={isPending}>
-            {isPending ? "Opslaan…" : "Opslaan"}
-          </Button>
-        </form>
-      </section>
-
-      {/* Hero image */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Hero afbeelding</h2>
         <div className="border border-stone-200 rounded-lg p-5 bg-stone-50 space-y-4">
+          <p className="text-sm font-medium text-stone-700">Afbeelding</p>
           {heroImageUrl && (
             <div className="relative w-full aspect-video max-w-md">
               <Image
@@ -184,6 +176,16 @@ export function ContentClient({
             <p className="text-sm text-red-600">{uploadState.error}</p>
           )}
         </div>
+      </section>
+
+      {/* Over de gîte */}
+      <section data-testid="admin-gite-section" className="space-y-6">
+        <h2 className="text-lg font-semibold">Over de gîte</h2>
+        <LocalizedTextForm
+          id="gite-desc"
+          initialValue={description}
+          action={updateDescriptionAction}
+        />
       </section>
     </div>
   );

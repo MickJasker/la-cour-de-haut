@@ -17,6 +17,41 @@ function invalidate() {
   updateTag("content");
 }
 
+async function upsertLocalizedText(
+  key: string,
+  nl: string,
+  en: string,
+  fr: string,
+  de: string,
+): Promise<ContentActionState> {
+  if (!nl) return { errors: { descriptionNl: "Vereist" }, success: false };
+
+  const value = {
+    type: "localizedText" as const,
+    nl,
+    ...(en ? { en } : {}),
+    ...(fr ? { fr } : {}),
+    ...(de ? { de } : {}),
+  };
+  const valueSource = {
+    nl: "human" as const,
+    ...(en ? { en: "human" as const } : {}),
+    ...(fr ? { fr: "human" as const } : {}),
+    ...(de ? { de: "human" as const } : {}),
+  };
+
+  const db = getDb();
+  await db
+    .insert(contentBlock)
+    .values({ key, value, valueSource })
+    .onConflictDoUpdate({
+      target: contentBlock.key,
+      set: { value, valueSource, updatedAt: new Date() },
+    });
+
+  return { errors: null, success: true };
+}
+
 export async function updateDescriptionAction(
   _prev: ContentActionState | null,
   formData: FormData,
@@ -28,37 +63,29 @@ export async function updateDescriptionAction(
   const fr = (formData.get("descriptionFr") as string | null)?.trim() ?? "";
   const de = (formData.get("descriptionDe") as string | null)?.trim() ?? "";
 
-  if (!nl) {
-    return { errors: { descriptionNl: "Vereist" }, success: false };
-  }
-
-  const value = {
-    type: "localizedText" as const,
-    nl,
-    ...(en ? { en } : {}),
-    ...(fr ? { fr } : {}),
-    ...(de ? { de } : {}),
-  };
-
-  const valueSource = {
-    nl: "human" as const,
-    ...(en ? { en: "human" as const } : {}),
-    ...(fr ? { fr: "human" as const } : {}),
-    ...(de ? { de: "human" as const } : {}),
-  };
-
-  const db = getDb();
-  await db
-    .insert(contentBlock)
-    .values({ key: "description", value, valueSource })
-    .onConflictDoUpdate({
-      target: contentBlock.key,
-      set: { value, valueSource, updatedAt: new Date() },
-    });
+  const result = await upsertLocalizedText("description", nl, en, fr, de);
+  if (!result.success) return result;
 
   invalidate();
+  return result;
+}
 
-  return { errors: null, success: true };
+export async function updateHeroDescriptionAction(
+  _prev: ContentActionState | null,
+  formData: FormData,
+): Promise<ContentActionState> {
+  await verifySession();
+
+  const nl = (formData.get("descriptionNl") as string | null)?.trim() ?? "";
+  const en = (formData.get("descriptionEn") as string | null)?.trim() ?? "";
+  const fr = (formData.get("descriptionFr") as string | null)?.trim() ?? "";
+  const de = (formData.get("descriptionDe") as string | null)?.trim() ?? "";
+
+  const result = await upsertLocalizedText("hero_description", nl, en, fr, de);
+  if (!result.success) return result;
+
+  invalidate();
+  return result;
 }
 
 export type UploadHeroActionState = {

@@ -11,10 +11,17 @@ export default async function ContentAdminPage() {
   const rows = await db
     .select()
     .from(contentBlock)
-    .where(inArray(contentBlock.key, ["description", "hero_image_url"]));
+    .where(
+      inArray(contentBlock.key, [
+        "description",
+        "hero_image_url",
+        "hero_description",
+      ]),
+    );
 
   const descRow = rows.find((r) => r.key === "description") ?? null;
-  const heroRow = rows.find((r) => r.key === "hero_image_url") ?? null;
+  const heroImageRow = rows.find((r) => r.key === "hero_image_url") ?? null;
+  const heroDescRow = rows.find((r) => r.key === "hero_description") ?? null;
 
   return (
     <main className="min-h-screen p-8">
@@ -24,8 +31,15 @@ export default async function ContentAdminPage() {
           description={
             descRow?.value?.type === "localizedText" ? descRow.value : null
           }
+          heroDescription={
+            heroDescRow?.value?.type === "localizedText"
+              ? heroDescRow.value
+              : null
+          }
           heroImageUrl={
-            heroRow?.value?.type === "imageUrl" ? heroRow.value.url : null
+            heroImageRow?.value?.type === "imageUrl"
+              ? heroImageRow.value.url
+              : null
           }
         />
       </div>

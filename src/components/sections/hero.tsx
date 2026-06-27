@@ -7,7 +7,7 @@ import heroImage from "./hero.jpg";
 import Image from "next/image";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 
 export async function Hero({ locale }: { locale: Locale }) {
@@ -18,14 +18,20 @@ export async function Hero({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: "sections.hero" });
 
   const db = getDb();
-  const heroRow = await db
-    .select({ value: contentBlock.value })
+  const rows = await db
+    .select({ key: contentBlock.key, value: contentBlock.value })
     .from(contentBlock)
-    .where(eq(contentBlock.key, "hero_image_url"))
-    .limit(1)
-    .then((r) => r[0] ?? null);
+    .where(inArray(contentBlock.key, ["hero_image_url", "hero_description"]));
+
+  const imageRow = rows.find((r) => r.key === "hero_image_url");
   const heroImageUrl =
-    heroRow?.value?.type === "imageUrl" ? heroRow.value.url : null;
+    imageRow?.value?.type === "imageUrl" ? imageRow.value.url : null;
+
+  const descRow = rows.find((r) => r.key === "hero_description");
+  const heroDescription =
+    descRow?.value?.type === "localizedText"
+      ? (descRow.value[locale] ?? descRow.value.nl ?? "")
+      : "";
 
   return (
     <div
@@ -61,7 +67,9 @@ export async function Hero({ locale }: { locale: Locale }) {
         <h1 className="contents">
           <Logo className="w-full h-auto" />
         </h1>
-        <p className="text-style-body-large">{t("description")}</p>
+        {heroDescription && (
+          <p className="text-style-body-large">{heroDescription}</p>
+        )}
         <Button asChild variant="secondary" size="lg" className="max-md:hidden">
           <Link href="/book">{t("callToAction")}</Link>
         </Button>

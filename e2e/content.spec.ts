@@ -173,7 +173,8 @@ test.describe("content: admin", () => {
       value: { nl: "Vooraf ingevulde tekst." },
     });
     await page.goto("/admin/content");
-    await expect(page.getByLabel("Beschrijving (NL)")).toHaveValue(
+    const giteSection = page.locator("[data-testid='admin-gite-section']");
+    await expect(giteSection.getByLabel("Beschrijving (NL)")).toHaveValue(
       "Vooraf ingevulde tekst.",
     );
   });
@@ -182,8 +183,11 @@ test.describe("content: admin", () => {
     page,
   }) => {
     await page.goto("/admin/content");
-    await page.getByLabel("Beschrijving (NL)").fill("Opgeslagen beschrijving.");
-    await page.getByRole("button", { name: /opslaan/i }).click();
+    const giteSection = page.locator("[data-testid='admin-gite-section']");
+    await giteSection
+      .getByLabel("Beschrijving (NL)")
+      .fill("Opgeslagen beschrijving.");
+    await giteSection.getByRole("button", { name: /opslaan/i }).click();
     // Wait for the server action network round-trip to complete
     await page.waitForLoadState("networkidle", { timeout: 10000 });
     await gotoFresh(page, "/nl");
@@ -193,8 +197,9 @@ test.describe("content: admin", () => {
 
   test("empty Dutch description shows a validation error", async ({ page }) => {
     await page.goto("/admin/content");
-    await page.getByLabel("Beschrijving (NL)").fill("");
-    await page.getByRole("button", { name: /opslaan/i }).click();
-    await expect(page.getByText(/vereist/i)).toBeVisible();
+    const giteSection = page.locator("[data-testid='admin-gite-section']");
+    await giteSection.getByLabel("Beschrijving (NL)").fill("");
+    await giteSection.getByRole("button", { name: /opslaan/i }).click();
+    await expect(giteSection.getByText(/vereist/i)).toBeVisible();
   });
 });
