@@ -33,6 +33,7 @@ import {
   type BookingActionState,
 } from "@/app/[locale]/book/action";
 import {
+  calculateDiscount,
   calculateTotalNights,
   calculateTourismTax,
   formOpts,
@@ -269,28 +270,41 @@ export function BookForm({
                   formState.values.stayDates?.to ?? "",
                 );
 
+                const rentalSubtotal = pricePerNight * totalNights;
+                const discount = calculateDiscount(totalNights, rentalSubtotal);
+                const discountedRental = rentalSubtotal - discount;
+                const discountedPricePerNight =
+                  totalNights > 0
+                    ? discountedRental / totalNights
+                    : pricePerNight;
+                const tourismTax = calculateTourismTax(
+                  Number(formState.values.guestCount),
+                  totalNights,
+                  discountedPricePerNight,
+                );
+                const totalPrice = discountedRental + tourismTax;
+
                 return (
-                  <p className={cn("text-sm", !totalNights && "invisible")}>
-                    {t.rich("form.totalPrice", {
-                      pricePerNight: currency.format(pricePerNight),
-                      totalNights,
-                      totalPrice: currency.format(
-                        pricePerNight * totalNights +
-                          calculateTourismTax(
-                            Number(formState.values.guestCount),
-                            totalNights,
-                            pricePerNight,
+                  <>
+                    <p className={cn("text-sm", !totalNights && "invisible")}>
+                      {t.rich("form.totalPrice", {
+                        pricePerNight: currency.format(pricePerNight),
+                        totalNights,
+                        totalPrice: currency.format(totalPrice),
+                        tourismTax: currency.format(tourismTax),
+                      })}
+                    </p>
+                    {totalNights >= 7 && (
+                      <p className="text-sm text-positive">
+                        {t.rich("form.longStayDiscount", {
+                          discount: currency.format(discount),
+                          strong: (chunks: ReactNode) => (
+                            <strong>{chunks}</strong>
                           ),
-                      ),
-                      tourismTax: currency.format(
-                        calculateTourismTax(
-                          Number(formState.values.guestCount),
-                          totalNights,
-                          pricePerNight,
-                        ),
-                      ),
-                    })}
-                  </p>
+                        })}
+                      </p>
+                    )}
+                  </>
                 );
               }}
             </form.Subscribe>

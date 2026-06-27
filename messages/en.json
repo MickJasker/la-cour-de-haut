@@ -64,6 +64,7 @@
       "datesUnavailable": "The selected dates are no longer available. Please choose different dates.",
       "pricePerNight": "Price per night: <strong>{price}</strong>",
       "totalPrice": "Total price: <strong>{pricePerNight}</strong> x {totalNights} nights = <strong>{totalPrice}</strong> including tourism tax: <strong>{tourismTax}</strong>",
+      "longStayDiscount": "10% long-stay discount (7+ nights): −<strong>{discount}</strong>",
       "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment."
     },
     "fieldErrors": {
