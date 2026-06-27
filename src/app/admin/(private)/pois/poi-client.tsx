@@ -14,6 +14,7 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
+  useTransition,
 } from "react";
 import Image from "next/image";
 import {
@@ -31,7 +32,6 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -284,6 +284,11 @@ function PoiForm({
             existingUrl={editing?.imageUrl}
             required={!editing && !file}
           />
+          {typeof state.errorMap?.onServer === "string" && (
+            <p className="text-destructive text-sm">
+              {state.errorMap.onServer}
+            </p>
+          )}
         </FieldSet>
 
         <FieldSet>

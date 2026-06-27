@@ -7,7 +7,7 @@ import {
   useForm,
   useTransform,
 } from "@tanstack/react-form-nextjs";
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -27,8 +27,6 @@ import {
 import type { Settings } from "@/lib/settings";
 
 export function SettingsForm({ settings }: { settings: Settings }) {
-  const [saved, setSaved] = useState(false);
-
   const [state, formAction, isPending] = useActionState<
     SettingsActionState,
     FormData
@@ -59,14 +57,11 @@ export function SettingsForm({ settings }: { settings: Settings }) {
     ),
   });
 
-  if (state.success && !saved) setSaved(true);
-
   return (
     <form
       action={formAction}
       noValidate
       onSubmit={() => {
-        setSaved(false);
         void form.handleSubmit();
       }}
     >
@@ -187,7 +182,7 @@ export function SettingsForm({ settings }: { settings: Settings }) {
             <Button type="submit" disabled={isPending}>
               {isPending ? "Opslaan…" : "Opslaan"}
             </Button>
-            {saved && (
+            {state.success && !isPending && (
               <span className="text-sm text-green-600">Opgeslagen</span>
             )}
           </div>
