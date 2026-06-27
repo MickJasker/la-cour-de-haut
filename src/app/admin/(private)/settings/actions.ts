@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/dal";
-import { upsertSetting } from "@/lib/settings";
+import { saveSettings } from "@/lib/settings";
 import { settingsFormOpts, settingsFormServerSchema } from "./shared";
 
 export type SettingsActionState = {
@@ -34,13 +34,7 @@ export async function saveSettingsAction(
   await verifySession();
   try {
     const data = await serverValidate(formData);
-    await Promise.all([
-      upsertSetting("account_holder", data.account_holder),
-      upsertSetting("iban", data.iban),
-      upsertSetting("bank_name", data.bank_name),
-      upsertSetting("payment_deadline_days", data.payment_deadline_days),
-      upsertSetting("price_per_night", data.price_per_night),
-    ]);
+    await saveSettings(data as Record<string, string>);
     revalidatePath("/admin/settings");
     return { ...initialFormState, success: true };
   } catch (e) {

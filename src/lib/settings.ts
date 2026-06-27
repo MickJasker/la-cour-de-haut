@@ -3,15 +3,19 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { setting } from "@/db/schema";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
+import { settingsRegistry, type ServerShape } from "./settings-registry";
 
+// Cast is safe: Object.fromEntries loses per-key types but ServerShape
+// captures them. The runtime shape is identical to the static assertion.
 const knownSettings = z
-  .object({
-    iban: z.string(),
-    bank_name: z.string(),
-    account_holder: z.string(),
-    payment_deadline_days: z.coerce.number().int().positive(),
-    price_per_night: z.coerce.number().positive(),
-  })
+  .object(
+    Object.fromEntries(
+      Object.entries(settingsRegistry).map(([key, def]) => [
+        key,
+        def.serverType,
+      ]),
+    ) as ServerShape,
+  )
   .partial();
 
 export type Settings = z.infer<typeof knownSettings>;
@@ -27,13 +31,20 @@ export async function getSettings(): Promise<Settings> {
   return knownSettings.parse(raw);
 }
 
-export async function upsertSetting(key: string, value: string) {
+async function upsertSetting(key: string, value: string) {
   const db = getDb();
   await db
     .insert(setting)
     .values({ key, value })
     .onConflictDoUpdate({ target: setting.key, set: { value } });
+}
 
+export async function saveSettings(data: Record<string, string>) {
+  await Promise.all(
+    Object.keys(settingsRegistry)
+      .filter((key) => key in data)
+      .map((key) => upsertSetting(key, data[key]!)),
+  );
   updateTag("settings");
 }
 

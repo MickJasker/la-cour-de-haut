@@ -1,33 +1,31 @@
 import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
+import {
+  settingsRegistry,
+  type SettingKey,
+  type ClientShape,
+} from "@/lib/settings-registry";
 
-export const settingsFormOpts = formOptions({
-  defaultValues: {
-    account_holder: "",
-    iban: "",
-    bank_name: "",
-    payment_deadline_days: "" as string,
-    price_per_night: "" as string,
-  },
-});
+// Cast is safe: Object.fromEntries loses per-key types but ClientShape
+// captures them. The runtime shape is identical to the static assertion.
+export const settingsFormClientSchema = z.object(
+  Object.fromEntries(
+    Object.entries(settingsRegistry).map(([key, def]) => [
+      key,
+      def.clientValidation,
+    ]),
+  ) as ClientShape,
+);
 
-export const settingsFormClientSchema = z.object({
-  account_holder: z.string().min(1, "Vereist"),
-  iban: z.string().min(1, "Vereist"),
-  bank_name: z.string().min(1, "Vereist"),
-  payment_deadline_days: z
-    .string()
-    .min(1, "Vereist")
-    .refine((v) => Number.isInteger(Number(v)) && Number(v) >= 1, {
-      message: "Moet minstens 1 zijn",
-    }),
-  price_per_night: z
-    .string()
-    .min(1, "Vereist")
-    .refine((v) => Number(v) > 0, { message: "Moet positief zijn" }),
-});
-
-// Server receives strings for all fields (no coercion needed); schema is currently identical to client.
+// Server receives strings for all fields; validation is identical to client.
 export const settingsFormServerSchema = settingsFormClientSchema;
 
 export type SettingsFormValues = z.infer<typeof settingsFormClientSchema>;
+
+const defaultValues = Object.fromEntries(
+  Object.keys(settingsRegistry).map((key) => [key, ""]),
+) as Record<SettingKey, string>;
+
+export const settingsFormOpts = formOptions({
+  defaultValues,
+});
