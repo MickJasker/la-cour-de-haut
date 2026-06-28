@@ -35,6 +35,18 @@ describe("composePhone", () => {
     expect(composePhone("FR", "+32 470 12 34 56")).toBe("+32470123456");
   });
 
+  it("tolerates surrounding whitespace on a pasted international number", () => {
+    expect(composePhone("FR", "  +32 470 12 34 56  ")).toBe("+32470123456");
+  });
+
+  it("composes a US national number", () => {
+    expect(composePhone("US", "201 555 0123")).toBe("+12015550123");
+  });
+
+  it("treats a leading 00 as an international prefix", () => {
+    expect(composePhone("FR", "0033612345678")).toBe("+33612345678");
+  });
+
   it("returns an empty string for non-numeric junk", () => {
     expect(composePhone("FR", "abc")).toBe("");
   });
@@ -48,6 +60,10 @@ describe("detectCountry", () => {
   it("returns undefined for a national-format number (no +)", () => {
     expect(detectCountry("0612345678")).toBeUndefined();
   });
+
+  it("ignores surrounding whitespace around a pasted number", () => {
+    expect(detectCountry("  +32 470 12 34 56  ")).toBe("BE");
+  });
 });
 
 describe("parsePhone", () => {
@@ -60,5 +76,13 @@ describe("parsePhone", () => {
 
   it("falls back to the given country for an empty value", () => {
     expect(parsePhone("", "NL")).toEqual({ country: "NL", national: "" });
+  });
+
+  it("does not echo a +-prefixed value into the national field when unparseable", () => {
+    // Latent re-hydration safety: never surface a raw "+..." in the local input.
+    expect(parsePhone("+99912345", "NL")).toEqual({
+      country: "NL",
+      national: "",
+    });
   });
 });

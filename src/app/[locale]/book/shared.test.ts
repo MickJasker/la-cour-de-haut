@@ -36,14 +36,15 @@ describe("createBookingFormSchema — phone", () => {
     expect(schema.safeParse(validBooking).success).toBe(true);
   });
 
-  it("rejects an empty phone number (now required)", () => {
+  it("rejects an empty phone number with the 'required' message", () => {
+    // Consistency with the other required fields: empty → required, not "invalid".
     const result = schema.safeParse({ ...validBooking, phone: "" });
     expect(result.success).toBe(false);
     const phoneIssue = result.error?.issues.find((i) => i.path[0] === "phone");
-    expect(phoneIssue?.message).toBe("fieldErrors.phone");
+    expect(phoneIssue?.message).toBe("fieldErrors.required");
   });
 
-  it("rejects a malformed phone number", () => {
+  it("rejects a malformed phone number with the 'invalid' message", () => {
     const result = schema.safeParse({ ...validBooking, phone: "+33123" });
     expect(result.success).toBe(false);
     const phoneIssue = result.error?.issues.find((i) => i.path[0] === "phone");

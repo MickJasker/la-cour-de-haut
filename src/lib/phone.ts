@@ -14,12 +14,13 @@ export type DialCodeOption = { code: string; name: string; dialCode: string };
  * preselected country never serializes to a bare dial code.
  */
 export function composePhone(country: string, input: string): string {
-  if (!input.trim()) return "";
+  const trimmed = input.trim();
+  if (!trimmed) return "";
   // AsYouType applies the country's national numbering rules (drop France's
   // trunk 0, keep Italy's) and, when the input starts with "+", parses it as an
   // international number regardless of the selected country.
   const formatter = new AsYouType(country as CountryCode);
-  formatter.input(input);
+  formatter.input(trimmed);
   return formatter.getNumber()?.number ?? "";
 }
 
@@ -29,9 +30,10 @@ export function composePhone(country: string, input: string): string {
  * pasted number instead of forcing the user to fix the country by hand.
  */
 export function detectCountry(input: string): CountryCode | undefined {
-  if (!input.trim().startsWith("+")) return undefined;
+  const trimmed = input.trim();
+  if (!trimmed.startsWith("+")) return undefined;
   const formatter = new AsYouType();
-  formatter.input(input);
+  formatter.input(trimmed);
   return formatter.getNumber()?.country;
 }
 
@@ -44,15 +46,20 @@ export function parsePhone(
   value: string,
   fallbackCountry: string,
 ): { country: string; national: string } {
-  if (!value.trim()) return { country: fallbackCountry, national: "" };
+  const trimmed = value.trim();
+  if (!trimmed) return { country: fallbackCountry, national: "" };
   try {
-    const parsed = parsePhoneNumber(value);
+    const parsed = parsePhoneNumber(trimmed);
     return {
       country: parsed.country ?? fallbackCountry,
       national: parsed.nationalNumber,
     };
   } catch {
-    return { country: fallbackCountry, national: value };
+    // Never surface a raw "+..." in the local-number field on a parse failure.
+    return {
+      country: fallbackCountry,
+      national: trimmed.startsWith("+") ? "" : trimmed,
+    };
   }
 }
 

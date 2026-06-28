@@ -70,6 +70,9 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     // All required text fields are filled (country preselects to NL), so the
     // "required" message should not appear anywhere — only the email is invalid.
     await expect(page.getByText("Dit veld is verplicht")).not.toBeVisible();
+    // Re-hydration invariant: the typed national number (with its trunk 0) must
+    // survive the server validation bounce — not get blanked or reformatted.
+    await expect(page.getByLabel("Telefoonnummer")).toHaveValue("0612345678");
   });
 
   test("valid submission shows success message", async ({ page }) => {

@@ -109,7 +109,8 @@ export function PhoneInput(props: {
             aria-expanded={open}
             aria-controls={listId}
             aria-autocomplete="list"
-            aria-invalid={props["aria-invalid"]}
+            // No aria-invalid here: the country selection is always valid; only
+            // the local number can be malformed, so the error sits on the input.
             className="flex h-9 shrink-0 items-center gap-1 rounded-lg border border-input bg-cream-50 px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
           >
             <span>{selectedDialCode || props.countryLabel}</span>
