@@ -83,5 +83,18 @@
     },
     "aboutAction": "À propos de la Gîte",
     "privacyNotice": "En soumettant ce formulaire, vous acceptez notre <link>politique de confidentialité</link>."
+  },
+  "errors": {
+    "notFound": {
+      "heading": "Page introuvable",
+      "body": "Désolé, la page que vous recherchez n’existe pas ou a été déplacée.",
+      "backHome": "Retour à l’accueil"
+    },
+    "serverError": {
+      "heading": "Une erreur est survenue",
+      "body": "Une erreur inattendue s’est produite. Veuillez réessayer — si le problème persiste, contactez-nous par e-mail ou par téléphone.",
+      "retry": "Réessayer",
+      "backHome": "Retour à l’accueil"
+    }
   }
 }

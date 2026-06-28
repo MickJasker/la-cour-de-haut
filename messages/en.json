@@ -83,5 +83,18 @@
     },
     "aboutAction": "About the Gîte",
     "privacyNotice": "By submitting this form you agree to our <link>privacy policy</link>."
+  },
+  "errors": {
+    "notFound": {
+      "heading": "Page not found",
+      "body": "Sorry, the page you are looking for doesn’t exist or has moved.",
+      "backHome": "Back to home"
+    },
+    "serverError": {
+      "heading": "Something went wrong",
+      "body": "An unexpected error occurred. Please try again — if the problem persists, contact us by email or phone.",
+      "retry": "Try again",
+      "backHome": "Back to home"
+    }
   }
 }
