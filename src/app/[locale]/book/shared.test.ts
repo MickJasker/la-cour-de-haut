@@ -4,7 +4,52 @@ import {
   calculateTotalNights,
   calculateTourismTax,
   calculatePriceBreakdown,
+  createBookingFormSchema,
 } from "./shared";
+
+// Identity translator: error messages come back as their i18n keys, so a test
+// can assert exactly which field failed without depending on copy.
+const t = (key: string) => key;
+
+const isoInDays = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
+const validBooking = {
+  name: "Test Guest",
+  email: "guest@example.com",
+  phone: "+33612345678",
+  guestCount: "2" as const,
+  stayDates: { from: isoInDays(10), to: isoInDays(14) },
+  address: "1 Rue de Test",
+  postalCode: "14000",
+  city: "Caen",
+  country: "FR",
+};
+
+describe("createBookingFormSchema — phone", () => {
+  const schema = createBookingFormSchema(t);
+
+  it("accepts a valid E.164 phone number", () => {
+    expect(schema.safeParse(validBooking).success).toBe(true);
+  });
+
+  it("rejects an empty phone number (now required)", () => {
+    const result = schema.safeParse({ ...validBooking, phone: "" });
+    expect(result.success).toBe(false);
+    const phoneIssue = result.error?.issues.find((i) => i.path[0] === "phone");
+    expect(phoneIssue?.message).toBe("fieldErrors.phone");
+  });
+
+  it("rejects a malformed phone number", () => {
+    const result = schema.safeParse({ ...validBooking, phone: "+33123" });
+    expect(result.success).toBe(false);
+    const phoneIssue = result.error?.issues.find((i) => i.path[0] === "phone");
+    expect(phoneIssue?.message).toBe("fieldErrors.phone");
+  });
+});
 
 describe("calculateTotalNights", () => {
   it("returns 1 for consecutive days", () => {

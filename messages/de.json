@@ -55,6 +55,7 @@
       "name": "Vor- und Nachname",
       "email": "E-Mail-Adresse",
       "phone": "Telefonnummer",
+      "phoneCountryLabel": "Ländervorwahl",
       "guestCount": "Anzahl der Gäste",
       "guestCountOption": "{count, plural, =0 {Keine Gäste} =1 {1 Gast} other {# Gäste}}",
       "stayDates": "Wählen Sie Ihre Aufenthaltsdaten",

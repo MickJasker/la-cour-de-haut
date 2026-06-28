@@ -55,6 +55,7 @@
       "name": "First and last name",
       "email": "Email address",
       "phone": "Phone number",
+      "phoneCountryLabel": "Country calling code",
       "guestCount": "Number of guests",
       "guestCountOption": "{count, plural, =0 {No guests} =1 {1 guest} other {# guests}}",
       "stayDates": "Choose your stay dates",

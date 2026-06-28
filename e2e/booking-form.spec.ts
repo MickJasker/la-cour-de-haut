@@ -24,8 +24,17 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await expect(page.getByLabel("Straat en huisnummer")).toBeVisible();
     await expect(page.getByLabel("Postcode")).toBeVisible();
     await expect(page.getByLabel("Woonplaats")).toBeVisible();
-    // Country is a combobox (role="combobox"), preselected to NL on /nl
-    await expect(page.getByRole("combobox")).toBeVisible();
+    // Two comboboxes now: the address country (labelled "Land") and the phone
+    // calling-code picker (aria-label "Landnummer"). role="combobox" is not a
+    // name-from-content role, so each is named by its label/aria-label, not its
+    // value; "Land" is a substring of "Landnummer" so match exactly.
+    await expect(page.getByRole("combobox")).toHaveCount(2);
+    await expect(
+      page.getByRole("combobox", { name: "Land", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("combobox", { name: "Landnummer", exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole("radio", { name: "1 gast" })).toBeVisible();
     await expect(page.getByRole("radio", { name: "2 gasten" })).toBeVisible();
     await expect(page.getByRole("grid")).toBeVisible();
@@ -49,6 +58,9 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
     await page.getByLabel("Postcode").fill("1234 AB");
     await page.getByLabel("Woonplaats").fill("Testdorp");
+    // Phone is now required (ADR-0013); fill a valid national number (the picker
+    // defaults to NL on /nl → +31) so only the email is invalid below.
+    await page.getByLabel("Telefoonnummer").fill("0612345678");
     await page.getByLabel("E-mailadres").fill("notanemail");
     await page.getByRole("button", { name: "Boek nu" }).click();
 
@@ -63,7 +75,8 @@ test.describe("booking form — standalone page (/nl/book)", () => {
   test("valid submission shows success message", async ({ page }) => {
     await page.getByLabel("Voor- en achternaam").fill("Test Gebruiker");
     await page.getByLabel("E-mailadres").fill("test@example.com");
-    await page.getByLabel("Telefoonnummer").fill("+32123456789");
+    // National number; the picker defaults to NL on /nl, composing +31612345678.
+    await page.getByLabel("Telefoonnummer").fill("0612345678");
     await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
     await page.getByLabel("Postcode").fill("1234 AB");
     await page.getByLabel("Woonplaats").fill("Testdorp");
