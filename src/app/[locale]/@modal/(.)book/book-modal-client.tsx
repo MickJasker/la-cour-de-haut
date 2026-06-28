@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,6 +30,9 @@ export function BookModalClient({
           <DialogTitle className="text-style-eyebrow-medium text-center">
             {t("bookNow")}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {t("bookDescription")}
+          </DialogDescription>
         </DialogHeader>
         <Suspense
           fallback={

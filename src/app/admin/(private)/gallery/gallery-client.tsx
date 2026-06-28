@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -84,6 +85,9 @@ function GalleryAltTextDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Alt-tekst bewerken</DialogTitle>
+          <DialogDescription className="sr-only">
+            Beschrijf de afbeelding voor schermlezers en zoekmachines.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <Label htmlFor={`alt-${imageId}`}>Alt-tekst (NL)</Label>
@@ -231,6 +235,7 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
 
   return (
     <DndContext
+      id="gallery-sortable"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}

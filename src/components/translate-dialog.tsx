@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -248,6 +249,9 @@ function TranslateDialogInner(props: TranslateDialogProps) {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Vertalen</DialogTitle>
+          <DialogDescription className="sr-only">
+            Genereer en bewerk automatische vertalingen voor alle talen.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

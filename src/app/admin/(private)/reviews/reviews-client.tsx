@@ -146,6 +146,7 @@ export function ReviewsList({ reviews }: { reviews: Review[] }) {
 
   return (
     <DndContext
+      id="reviews-sortable"
       sensors={sensors}
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}

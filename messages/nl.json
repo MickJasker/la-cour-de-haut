@@ -11,7 +11,8 @@
   },
   "sections": {
     "header": {
-      "bookNow": "Boek je verblijf nu"
+      "bookNow": "Boek je verblijf nu",
+      "bookDescription": "Vul het formulier in om een aanvraag voor je verblijf te versturen."
     },
     "gite": {
       "title": "De Gîte",

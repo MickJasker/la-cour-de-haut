@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -53,6 +54,9 @@ export function ConfirmDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Boeking bevestigen — {guestName}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Bevestig de boeking en stel de betalingstermijn in.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <p className="text-sm text-stone-600">

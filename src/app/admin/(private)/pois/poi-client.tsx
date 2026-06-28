@@ -422,6 +422,7 @@ export function PoiClient({ pois }: { pois: Poi[] }) {
         </p>
       ) : (
         <DndContext
+          id="pois-sortable"
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}

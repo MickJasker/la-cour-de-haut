@@ -22,7 +22,7 @@ export function GiteDialog({
         {children}
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-400">
+        <DialogContent className="max-w-400" aria-describedby={undefined}>
           <DialogTitle className="sr-only">{children}</DialogTitle>
           <div className="grid grid-cols-2 gap-2 md:gap-3">
             {images.map((img) => (
