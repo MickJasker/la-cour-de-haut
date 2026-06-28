@@ -55,6 +55,7 @@
       "name": "Prénom et nom de famille",
       "email": "Adresse e-mail",
       "phone": "Numéro de téléphone",
+      "phoneCountryLabel": "Indicatif téléphonique",
       "guestCount": "Nombre de personnes",
       "guestCountOption": "{count, plural, =0 {Aucun invité} =1 {1 invité} other {# invités}}",
       "stayDates": "Choisissez vos dates de séjour",

@@ -1,5 +1,6 @@
 import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 import { isValidCountryCode } from "@/lib/countries";
 
 export const formOpts = formOptions({
@@ -22,7 +23,13 @@ export function createBookingFormSchema(t: (key: string) => string) {
   return z.object({
     name: z.string().min(2, t("fieldErrors.required")),
     email: z.email(t("fieldErrors.email")),
-    phone: z.string(),
+    // Required + format-validated (ADR-0013, supersedes ADR-0012's optional phone).
+    // The value is a composed E.164 string. min(1) gives an empty phone the same
+    // "required" message as the other fields; the refine then checks the format.
+    phone: z
+      .string()
+      .min(1, t("fieldErrors.required"))
+      .refine(isValidPhoneNumber, t("fieldErrors.phone")),
     guestCount: z.union([z.literal("1"), z.literal("2")]),
     stayDates: z
       .object({

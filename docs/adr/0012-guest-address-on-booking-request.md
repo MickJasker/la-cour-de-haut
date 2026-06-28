@@ -10,7 +10,7 @@ Columns are `NOT NULL` with no default — safe because `booking_request` is emp
 
 - **Free-text country** — rejected: inconsistent, un-groupable records across four guest languages; degrades the legal/records purpose.
 - **Collect at confirmation instead of inquiry** — rejected: defeats the fraud-filter purpose, which requires the address before the owner replies.
-- **Make `phone` required for symmetry** — rejected: left optional (email is the primary contact channel); the address/phone asymmetry is accepted.
+- **Make `phone` required for symmetry** — rejected: left optional (email is the primary contact channel); the address/phone asymmetry is accepted. _(Superseded by ADR-0013: phone is now required + validated for emergency reachability.)_
 - **Per-country postal-code format validation** — rejected: brittle regex tables that risk rejecting valid foreign addresses.
 
 ## Consequences

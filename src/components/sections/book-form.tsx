@@ -41,6 +41,7 @@ import {
 } from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
 import { CountryCombobox } from "@/components/ui/country-combobox";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 
 export function BookForm({
@@ -168,13 +169,24 @@ export function BookForm({
               {(field) => (
                 <Field>
                   <FieldLabel htmlFor="phone">{t("form.phone")}</FieldLabel>
-                  <Input
-                    id="phone"
-                    type="tel"
+                  {/* Hidden input carries the composed E.164 value into FormData
+                      for the server action, mirroring the country field. */}
+                  <input
+                    type="hidden"
                     name={field.name}
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
+                  />
+                  <PhoneInput
+                    id="phone"
+                    locale={locale}
+                    defaultCountry={LOCALE_DEFAULT_COUNTRY[locale] ?? "FR"}
+                    value={field.state.value}
+                    onChange={(value) => field.handleChange(value)}
                     onBlur={field.handleBlur}
+                    countryLabel={t("form.phoneCountryLabel")}
+                    searchPlaceholder={t("form.countrySearchPlaceholder")}
+                    emptyText={t("form.countryEmpty")}
+                    aria-invalid={field.state.meta.errors.length > 0}
                   />
                   <FieldError errors={field.state.meta.errors} />
                 </Field>

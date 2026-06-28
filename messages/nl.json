@@ -55,6 +55,7 @@
       "name": "Voor- en achternaam",
       "email": "E-mailadres",
       "phone": "Telefoonnummer",
+      "phoneCountryLabel": "Landnummer",
       "guestCount": "Aantal gasten",
       "guestCountOption": "{count, plural, =0 {Geen gasten} =1 {1 gast} other {# gasten}}",
       "stayDates": "Kies uw verblijfsdata",
