@@ -38,9 +38,9 @@
     "title": "Privacybeleid",
     "intro": "La Cour de Haut verwerkt persoonsgegevens in verband met boekingsverzoeken. Deze kennisgeving legt uit welke gegevens wij verzamelen, waarom, en hoe lang wij deze bewaren.",
     "dataCollectedTitle": "Welke gegevens verzamelen wij?",
-    "dataCollectedBody": "Via het boekingsformulier verzamelen wij: uw voor- en achternaam, e-mailadres, telefoonnummer en de gewenste verblijfsdata.",
+    "dataCollectedBody": "Via het boekingsformulier verzamelen wij: uw voor- en achternaam, e-mailadres, telefoonnummer, postadres (straat, postcode, woonplaats en land) en de gewenste verblijfsdata.",
     "purposeTitle": "Waarvoor worden uw gegevens gebruikt?",
-    "purposeBody": "Wij gebruiken uw gegevens uitsluitend om te reageren op uw boekingsverzoek, de beschikbaarheid te bevestigen en verdere betalings- en verblijfsinformatie te verstrekken.",
+    "purposeBody": "Wij gebruiken uw gegevens om te reageren op uw boekingsverzoek, de beschikbaarheid te bevestigen, verdere betalings- en verblijfsinformatie te verstrekken en voor onze administratie en de huurovereenkomst.",
     "retentionTitle": "Hoe lang bewaren wij uw gegevens?",
     "retentionBody": "Wij bewaren uw gegevens zo lang als nodig is voor de afhandeling van uw boekingsverzoek en de bijbehorende correspondentie. U kunt op elk moment om verwijdering verzoeken door contact met ons op te nemen.",
     "rightsTitle": "Uw rechten",
@@ -71,7 +71,14 @@
       "tourismTaxLine": "Toeristenbelasting: <strong>{tourismTax}</strong>",
       "totalLine": "Totaal: <strong>{totalPrice}</strong>",
       "price_includes": "De huurprijs is inclusief eindschoonmaak, bed- en badlinnen, energieverbruik en gratis wifi.",
-      "disclaimer": "Na het indienen van het boekingsformulier nemen we contact met u op om de beschikbaarheid te bevestigen en verdere details en betalingsinstructies te verstrekken. Uw boeking is pas definitief na onze bevestiging en ontvangst van betaling."
+      "disclaimer": "Na het indienen van het boekingsformulier nemen we contact met u op om de beschikbaarheid te bevestigen en verdere details en betalingsinstructies te verstrekken. Uw boeking is pas definitief na onze bevestiging en ontvangst van betaling.",
+      "address": "Straat en huisnummer",
+      "postalCode": "Postcode",
+      "city": "Woonplaats",
+      "country": "Land",
+      "countryPlaceholder": "Selecteer een land",
+      "countrySearchPlaceholder": "Zoek een land...",
+      "countryEmpty": "Geen land gevonden"
     },
     "fieldErrors": {
       "required": "Dit veld is verplicht",
@@ -79,7 +86,8 @@
       "phone": "Voer een geldig telefoonnummer in",
       "dateRange": "De uitcheckdatum moet na de incheckdatum liggen",
       "guestCount": "Aantal gasten moet 1 of 2 zijn",
-      "minNights": "Selecteer minimaal 2 data voor een minimumverblijf van 1 nacht"
+      "minNights": "Selecteer minimaal 2 data voor een minimumverblijf van 1 nacht",
+      "tooLong": "Deze waarde is te lang"
     },
     "aboutAction": "Over de Gîte",
     "privacyNotice": "Door dit formulier in te dienen gaat u akkoord met ons <link>privacybeleid</link>."

@@ -38,9 +38,9 @@
     "title": "Politique de confidentialité",
     "intro": "La Cour de Haut traite des données personnelles dans le cadre des demandes de réservation. Cette notice explique quelles données nous collectons, pourquoi, et combien de temps nous les conservons.",
     "dataCollectedTitle": "Quelles données collectons-nous ?",
-    "dataCollectedBody": "Via le formulaire de réservation, nous collectons : votre prénom et nom de famille, adresse e-mail, numéro de téléphone et les dates de séjour souhaitées.",
+    "dataCollectedBody": "Via le formulaire de réservation, nous collectons : votre prénom et nom de famille, adresse e-mail, numéro de téléphone, adresse postale (rue, code postal, ville et pays) et les dates de séjour souhaitées.",
     "purposeTitle": "Pourquoi utilisons-nous vos données ?",
-    "purposeBody": "Nous utilisons vos données uniquement pour répondre à votre demande de réservation, confirmer la disponibilité et fournir des informations de paiement et de séjour.",
+    "purposeBody": "Nous utilisons vos données pour répondre à votre demande de réservation, confirmer la disponibilité, fournir des informations de paiement et de séjour, ainsi que pour notre gestion administrative et le contrat de location.",
     "retentionTitle": "Combien de temps conservons-nous vos données ?",
     "retentionBody": "Nous conservons vos données aussi longtemps que nécessaire pour traiter votre demande de réservation et la correspondance associée. Vous pouvez demander la suppression à tout moment en nous contactant.",
     "rightsTitle": "Vos droits",
@@ -71,7 +71,14 @@
       "tourismTaxLine": "Taxe de séjour : <strong>{tourismTax}</strong>",
       "totalLine": "Total : <strong>{totalPrice}</strong>",
       "price_includes": "Le prix de location comprend le ménage de fin de séjour, le linge de lit et de bain, la consommation d'énergie et le wifi gratuit.",
-      "disclaimer": "Après avoir soumis le formulaire de réservation, nous vous contacterons pour confirmer la disponibilité et fournir plus de détails et les instructions de paiement. Votre réservation ne sera définitive qu'après notre confirmation et la réception du paiement."
+      "disclaimer": "Après avoir soumis le formulaire de réservation, nous vous contacterons pour confirmer la disponibilité et fournir plus de détails et les instructions de paiement. Votre réservation ne sera définitive qu'après notre confirmation et la réception du paiement.",
+      "address": "Rue et numéro",
+      "postalCode": "Code postal",
+      "city": "Ville",
+      "country": "Pays",
+      "countryPlaceholder": "Sélectionnez un pays",
+      "countrySearchPlaceholder": "Rechercher un pays...",
+      "countryEmpty": "Aucun pays trouvé"
     },
     "fieldErrors": {
       "required": "Ce champ est obligatoire",
@@ -79,7 +86,8 @@
       "phone": "Veuillez entrer un numéro de téléphone valide",
       "dateRange": "La date de départ doit être postérieure à la date d'arrivée",
       "guestCount": "Le nombre de personnes doit être 1 ou 2",
-      "minNights": "Sélectionnez au moins 2 dates pour un séjour minimum de 1 nuit"
+      "minNights": "Sélectionnez au moins 2 dates pour un séjour minimum de 1 nuit",
+      "tooLong": "Cette valeur est trop longue"
     },
     "aboutAction": "À propos de la Gîte",
     "privacyNotice": "En soumettant ce formulaire, vous acceptez notre <link>politique de confidentialité</link>."

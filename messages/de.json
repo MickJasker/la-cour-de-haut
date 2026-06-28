@@ -38,9 +38,9 @@
     "title": "Datenschutzerklärung",
     "intro": "La Cour de Haut verarbeitet personenbezogene Daten im Zusammenhang mit Buchungsanfragen. Diese Erklärung erläutert, welche Daten wir erheben, warum und wie lange wir sie aufbewahren.",
     "dataCollectedTitle": "Welche Daten erheben wir?",
-    "dataCollectedBody": "Über das Buchungsformular erheben wir: Ihren Vor- und Nachnamen, Ihre E-Mail-Adresse, Telefonnummer und die gewünschten Aufenthaltsdaten.",
+    "dataCollectedBody": "Über das Buchungsformular erheben wir: Ihren Vor- und Nachnamen, Ihre E-Mail-Adresse, Telefonnummer, Postanschrift (Straße, Postleitzahl, Stadt und Land) und die gewünschten Aufenthaltsdaten.",
     "purposeTitle": "Wofür verwenden wir Ihre Daten?",
-    "purposeBody": "Wir verwenden Ihre Daten ausschließlich zur Beantwortung Ihrer Buchungsanfrage, zur Bestätigung der Verfügbarkeit und zur Bereitstellung weiterer Zahlungs- und Aufenthaltsinformationen.",
+    "purposeBody": "Wir verwenden Ihre Daten zur Beantwortung Ihrer Buchungsanfrage, zur Bestätigung der Verfügbarkeit, zur Bereitstellung weiterer Zahlungs- und Aufenthaltsinformationen sowie für unsere Buchführung und den Mietvertrag.",
     "retentionTitle": "Wie lange bewahren wir Ihre Daten auf?",
     "retentionBody": "Wir bewahren Ihre Daten so lange auf, wie es für die Bearbeitung Ihrer Buchungsanfrage und die damit verbundene Korrespondenz erforderlich ist. Sie können jederzeit die Löschung beantragen, indem Sie uns kontaktieren.",
     "rightsTitle": "Ihre Rechte",
@@ -71,7 +71,14 @@
       "tourismTaxLine": "Kurtaxe: <strong>{tourismTax}</strong>",
       "totalLine": "Gesamt: <strong>{totalPrice}</strong>",
       "price_includes": "Der Mietpreis beinhaltet die Endreinigung, Bett- und Badwäsche, Energieverbrauch und kostenloses WLAN.",
-      "disclaimer": "Nach dem Absenden des Buchungsformulars werden wir uns mit Ihnen in Verbindung setzen, um die Verfügbarkeit zu bestätigen und weitere Details sowie Zahlungsanweisungen bereitzustellen. Ihre Buchung wird erst nach unserer Bestätigung und dem Erhalt der Zahlung endgültig."
+      "disclaimer": "Nach dem Absenden des Buchungsformulars werden wir uns mit Ihnen in Verbindung setzen, um die Verfügbarkeit zu bestätigen und weitere Details sowie Zahlungsanweisungen bereitzustellen. Ihre Buchung wird erst nach unserer Bestätigung und dem Erhalt der Zahlung endgültig.",
+      "address": "Straße und Hausnummer",
+      "postalCode": "Postleitzahl",
+      "city": "Stadt",
+      "country": "Land",
+      "countryPlaceholder": "Land auswählen",
+      "countrySearchPlaceholder": "Land suchen...",
+      "countryEmpty": "Kein Land gefunden"
     },
     "fieldErrors": {
       "required": "Dieses Feld ist erforderlich",
@@ -79,7 +86,8 @@
       "phone": "Bitte geben Sie eine gültige Telefonnummer ein",
       "dateRange": "Das Abreisedatum muss nach dem Anreisedatum liegen",
       "guestCount": "Die Anzahl der Gäste muss 1 oder 2 sein",
-      "minNights": "Wählen Sie mindestens 2 Daten für einen Mindestaufenthalt von 1 Nacht aus"
+      "minNights": "Wählen Sie mindestens 2 Daten für einen Mindestaufenthalt von 1 Nacht aus",
+      "tooLong": "Dieser Wert ist zu lang"
     },
     "aboutAction": "Über die Gîte",
     "privacyNotice": "Durch das Absenden dieses Formulars stimmen Sie unserer <link>Datenschutzerklärung</link> zu."

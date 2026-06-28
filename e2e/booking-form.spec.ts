@@ -21,6 +21,11 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await expect(page.getByLabel("Voor- en achternaam")).toBeVisible();
     await expect(page.getByLabel("E-mailadres")).toBeVisible();
     await expect(page.getByLabel("Telefoonnummer")).toBeVisible();
+    await expect(page.getByLabel("Straat en huisnummer")).toBeVisible();
+    await expect(page.getByLabel("Postcode")).toBeVisible();
+    await expect(page.getByLabel("Woonplaats")).toBeVisible();
+    // Country is a combobox (role="combobox"), preselected to NL on /nl
+    await expect(page.getByRole("combobox")).toBeVisible();
     await expect(page.getByRole("radio", { name: "1 gast" })).toBeVisible();
     await expect(page.getByRole("radio", { name: "2 gasten" })).toBeVisible();
     await expect(page.getByRole("grid")).toBeVisible();
@@ -32,7 +37,8 @@ test.describe("booking form — standalone page (/nl/book)", () => {
   }) => {
     await page.getByRole("button", { name: "Boek nu" }).click();
 
-    await expect(page.getByText("Dit veld is verplicht")).toBeVisible();
+    // Multiple required fields now share this message, so scope to the first.
+    await expect(page.getByText("Dit veld is verplicht").first()).toBeVisible();
     await expect(
       page.getByText("Voer een geldig e-mailadres in"),
     ).toBeVisible();
@@ -40,13 +46,17 @@ test.describe("booking form — standalone page (/nl/book)", () => {
 
   test("invalid email shows email validation error", async ({ page }) => {
     await page.getByLabel("Voor- en achternaam").fill("Test Gebruiker");
+    await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
+    await page.getByLabel("Postcode").fill("1234 AB");
+    await page.getByLabel("Woonplaats").fill("Testdorp");
     await page.getByLabel("E-mailadres").fill("notanemail");
     await page.getByRole("button", { name: "Boek nu" }).click();
 
     await expect(
       page.getByText("Voer een geldig e-mailadres in"),
     ).toBeVisible();
-    // Name error should not appear since the name was filled
+    // All required text fields are filled (country preselects to NL), so the
+    // "required" message should not appear anywhere — only the email is invalid.
     await expect(page.getByText("Dit veld is verplicht")).not.toBeVisible();
   });
 
@@ -54,6 +64,9 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await page.getByLabel("Voor- en achternaam").fill("Test Gebruiker");
     await page.getByLabel("E-mailadres").fill("test@example.com");
     await page.getByLabel("Telefoonnummer").fill("+32123456789");
+    await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
+    await page.getByLabel("Postcode").fill("1234 AB");
+    await page.getByLabel("Woonplaats").fill("Testdorp");
 
     // Use aria-label selectors for unambiguous date targeting — nth() is fragile
     // after re-renders because react-day-picker may shift indices.

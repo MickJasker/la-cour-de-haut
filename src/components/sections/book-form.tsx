@@ -40,6 +40,8 @@ import {
   formOpts,
 } from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
+import { CountryCombobox } from "@/components/ui/country-combobox";
+import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 
 export function BookForm({
   bookedDates,
@@ -64,6 +66,10 @@ export function BookForm({
 
   const form = useForm({
     ...formOpts,
+    defaultValues: {
+      ...formOpts.defaultValues,
+      country: LOCALE_DEFAULT_COUNTRY[locale] ?? "",
+    },
     validators: {
       onDynamic: createBookingFormSchema(t),
     },
@@ -169,6 +175,95 @@ export function BookForm({
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
                     onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet>
+            <form.Field name="address">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="address">{t("form.address")}</FieldLabel>
+                  <Input
+                    id="address"
+                    type="text"
+                    autoComplete="street-address"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet className="md:grid md:grid-cols-2">
+            <form.Field name="postalCode">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="postalCode">
+                    {t("form.postalCode")}
+                  </FieldLabel>
+                  <Input
+                    id="postalCode"
+                    type="text"
+                    autoComplete="postal-code"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+
+            <form.Field name="city">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="city">{t("form.city")}</FieldLabel>
+                  <Input
+                    id="city"
+                    type="text"
+                    autoComplete="address-level2"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet>
+            <form.Field name="country">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="country">{t("form.country")}</FieldLabel>
+                  {/* Hidden input carries the ISO code into FormData for the
+                      server action, mirroring the stayDates pattern above. */}
+                  <input
+                    type="hidden"
+                    name={field.name}
+                    value={field.state.value}
+                  />
+                  <CountryCombobox
+                    id="country"
+                    locale={locale}
+                    value={field.state.value}
+                    onChange={(code) => field.handleChange(code)}
+                    onBlur={field.handleBlur}
+                    placeholder={t("form.countryPlaceholder")}
+                    searchPlaceholder={t("form.countrySearchPlaceholder")}
+                    emptyText={t("form.countryEmpty")}
+                    aria-invalid={field.state.meta.errors.length > 0}
                   />
                   <FieldError errors={field.state.meta.errors} />
                 </Field>

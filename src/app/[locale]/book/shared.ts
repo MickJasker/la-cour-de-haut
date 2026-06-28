@@ -1,5 +1,6 @@
 import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
+import { isValidCountryCode } from "@/lib/countries";
 
 export const formOpts = formOptions({
   defaultValues: {
@@ -11,6 +12,10 @@ export const formOpts = formOptions({
       from: "",
       to: "",
     },
+    address: "",
+    postalCode: "",
+    city: "",
+    country: "",
   },
 });
 export function createBookingFormSchema(t: (key: string) => string) {
@@ -51,6 +56,25 @@ export function createBookingFormSchema(t: (key: string) => string) {
           message: t("fieldErrors.minNights"),
         },
       ),
+    address: z
+      .string()
+      .trim()
+      .min(1, t("fieldErrors.required"))
+      .max(200, t("fieldErrors.tooLong")),
+    postalCode: z
+      .string()
+      .trim()
+      .min(1, t("fieldErrors.required"))
+      .max(20, t("fieldErrors.tooLong")),
+    city: z
+      .string()
+      .trim()
+      .min(1, t("fieldErrors.required"))
+      .max(120, t("fieldErrors.tooLong")),
+    country: z
+      .string()
+      .min(1, t("fieldErrors.required"))
+      .refine(isValidCountryCode, t("fieldErrors.required")),
   });
 }
 
