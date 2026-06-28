@@ -83,5 +83,18 @@
     },
     "aboutAction": "Over de Gîte",
     "privacyNotice": "Door dit formulier in te dienen gaat u akkoord met ons <link>privacybeleid</link>."
+  },
+  "errors": {
+    "notFound": {
+      "heading": "Pagina niet gevonden",
+      "body": "Sorry, de pagina die u zoekt bestaat niet of is verplaatst.",
+      "backHome": "Terug naar home"
+    },
+    "serverError": {
+      "heading": "Er is iets misgegaan",
+      "body": "Er is een onverwachte fout opgetreden. Probeer het opnieuw — als het probleem aanhoudt, neem dan contact met ons op via e-mail of telefoon.",
+      "retry": "Probeer opnieuw",
+      "backHome": "Terug naar home"
+    }
   }
 }

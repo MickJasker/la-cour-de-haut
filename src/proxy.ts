@@ -61,7 +61,9 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all pathnames except static files, internals, and API routes
-    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Match all pathnames except static files, internals, API routes, and root
+    // metadata files (sitemap.xml / robots.txt) — otherwise those get
+    // locale-prefixed (e.g. "/sitemap.xml" -> "/nl/sitemap.xml" -> 404).
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|txt)$).*)",
   ],
 };

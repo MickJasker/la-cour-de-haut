@@ -83,5 +83,18 @@
     },
     "aboutAction": "Über die Gîte",
     "privacyNotice": "Durch das Absenden dieses Formulars stimmen Sie unserer <link>Datenschutzerklärung</link> zu."
+  },
+  "errors": {
+    "notFound": {
+      "heading": "Seite nicht gefunden",
+      "body": "Entschuldigung, die gesuchte Seite existiert nicht oder wurde verschoben.",
+      "backHome": "Zurück zur Startseite"
+    },
+    "serverError": {
+      "heading": "Etwas ist schiefgelaufen",
+      "body": "Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut — wenn das Problem weiterhin besteht, kontaktieren Sie uns per E-Mail oder Telefon.",
+      "retry": "Erneut versuchen",
+      "backHome": "Zurück zur Startseite"
+    }
   }
 }

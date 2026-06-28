@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
+    // Multiple root layouts (`[locale]` + `admin`) plus a top-level dynamic
+    // `[locale]` segment mean there is no `app/layout.tsx` to host an
+    // `app/not-found.tsx`. `global-not-found.tsx` is the documented catch-all for
+    // unmatched URLs in this shape. See ADR-0011.
+    globalNotFound: true,
   },
   images: {
     remotePatterns: [
