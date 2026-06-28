@@ -38,9 +38,9 @@
     "title": "Privacy Policy",
     "intro": "La Cour de Haut processes personal data in connection with booking requests. This notice explains what data we collect, why, and how long we retain it.",
     "dataCollectedTitle": "What data do we collect?",
-    "dataCollectedBody": "Through the booking form we collect: your first and last name, email address, phone number, and your requested stay dates.",
+    "dataCollectedBody": "Through the booking form we collect: your first and last name, email address, phone number, postal address (street, postal code, city, and country), and your requested stay dates.",
     "purposeTitle": "Why do we use your data?",
-    "purposeBody": "We use your data solely to respond to your booking request, confirm availability, and provide further payment and stay information.",
+    "purposeBody": "We use your data to respond to your booking request, confirm availability, provide further payment and stay information, and for our records and the rental agreement.",
     "retentionTitle": "How long do we retain your data?",
     "retentionBody": "We retain your data for as long as necessary to handle your booking request and any related correspondence. You can request deletion at any time by contacting us.",
     "rightsTitle": "Your rights",
@@ -71,7 +71,14 @@
       "tourismTaxLine": "Tourism tax: <strong>{tourismTax}</strong>",
       "totalLine": "Total: <strong>{totalPrice}</strong>",
       "price_includes": "The rental price includes end-of-stay cleaning, bed and bath linen, energy consumption and free WiFi.",
-      "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment."
+      "disclaimer": "After submitting the booking form, we will contact you to confirm availability and provide further details and payment instructions. Your booking will only be finalized after our confirmation and receipt of payment.",
+      "address": "Street and house number",
+      "postalCode": "Postal code",
+      "city": "City",
+      "country": "Country",
+      "countryPlaceholder": "Select a country",
+      "countrySearchPlaceholder": "Search for a country...",
+      "countryEmpty": "No country found"
     },
     "fieldErrors": {
       "required": "This field is required",
@@ -79,7 +86,8 @@
       "phone": "Please enter a valid phone number",
       "dateRange": "The check-out date must be after the check-in date",
       "guestCount": "Number of guests must be 1 or 2",
-      "minNights": "Select at least 2 dates for a minimum stay of 1 night"
+      "minNights": "Select at least 2 dates for a minimum stay of 1 night",
+      "tooLong": "This value is too long"
     },
     "aboutAction": "About the Gîte",
     "privacyNotice": "By submitting this form you agree to our <link>privacy policy</link>."

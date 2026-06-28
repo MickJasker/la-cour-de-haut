@@ -70,8 +70,8 @@ test.describe("iCal export feed", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
-      VALUES ('ical-test-confirmed', 'Anna Schmidt', 'anna@example.com', 2, 'de', '2028-06-01', '2028-06-08', 'confirmed', now(), now()::date, now(), 0)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('ical-test-confirmed', 'Anna Schmidt', 'anna@example.com', 2, 'de', '2028-06-01', '2028-06-08', 'confirmed', now(), now()::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
@@ -93,8 +93,8 @@ test.describe("iCal export feed", () => {
     const deadline = futureDeadline.toISOString().slice(0, 10);
 
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
-      VALUES ('ical-test-hold-live', 'Marie Dupont', 'marie@example.com', 2, 'fr', '2028-07-01', '2028-07-08', 'on_hold', now(), ${deadline}::date, now(), 0)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('ical-test-hold-live', 'Marie Dupont', 'marie@example.com', 2, 'fr', '2028-07-01', '2028-07-08', 'on_hold', now(), ${deadline}::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
@@ -109,8 +109,8 @@ test.describe("iCal export feed", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
-      VALUES ('ical-test-hold-expired', 'Luca Rossi', 'luca@example.com', 2, 'it', '2028-08-01', '2028-08-08', 'on_hold', now() - interval '10 days', (now() - interval '2 days')::date, now() - interval '10 days', 0)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('ical-test-hold-expired', 'Luca Rossi', 'luca@example.com', 2, 'it', '2028-08-01', '2028-08-08', 'on_hold', now() - interval '10 days', (now() - interval '2 days')::date, now() - interval '10 days', 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
@@ -124,10 +124,10 @@ test.describe("iCal export feed", () => {
   }) => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
       VALUES
-        ('ical-test-declined',   'Guest A', 'a@example.com', 1, 'nl', '2028-09-01', '2028-09-08', 'declined',   now(), 0),
-        ('ical-test-cancelled',  'Guest B', 'b@example.com', 1, 'nl', '2028-10-01', '2028-10-08', 'cancelled',  now(), 0)
+        ('ical-test-declined',   'Guest A', 'a@example.com', 1, 'nl', '2028-09-01', '2028-09-08', 'declined',   now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL'),
+        ('ical-test-cancelled',  'Guest B', 'b@example.com', 1, 'nl', '2028-10-01', '2028-10-08', 'cancelled',  now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
@@ -144,11 +144,11 @@ test.describe("iCal export feed", () => {
     const deadline = futureDeadline.toISOString().slice(0, 10);
 
     await sql`
-      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking)
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
       VALUES
-        ('ical-test-multi-1', 'Guest One', 'one@example.com', 2, 'nl', '2029-03-01', '2029-03-08', 'confirmed', now(), now()::date, now(), 0),
-        ('ical-test-multi-2', 'Guest Two', 'two@example.com', 2, 'nl', '2029-04-01', '2029-04-08', 'on_hold',   now(), ${deadline}::date, now(), 0),
-        ('ical-test-multi-3', 'Guest Three', 'three@example.com', 2, 'nl', '2029-05-01', '2029-05-08', 'confirmed', now(), now()::date, now(), 0)
+        ('ical-test-multi-1', 'Guest One', 'one@example.com', 2, 'nl', '2029-03-01', '2029-03-08', 'confirmed', now(), now()::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL'),
+        ('ical-test-multi-2', 'Guest Two', 'two@example.com', 2, 'nl', '2029-04-01', '2029-04-08', 'on_hold',   now(), ${deadline}::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL'),
+        ('ical-test-multi-3', 'Guest Three', 'three@example.com', 2, 'nl', '2029-05-01', '2029-05-08', 'confirmed', now(), now()::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     const res = await request.get(`/api/ical/${TOKEN}.ics`);

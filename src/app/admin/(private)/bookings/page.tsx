@@ -22,6 +22,7 @@ import {
   calculatePriceBreakdown,
   calculateTotalNights,
 } from "@/app/[locale]/book/shared";
+import { getCountryName } from "@/lib/countries";
 
 const STATUS_LABELS: Record<DisplayStatus, string> = {
   requested: "Aangevraagd",
@@ -163,6 +164,13 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                       {booking.email}
                       {booking.phone ? ` · ${booking.phone}` : ""}
                     </p>
+                    <div className="text-sm text-stone-500">
+                      <p>{booking.address}</p>
+                      <p>
+                        {booking.postalCode} {booking.city}
+                      </p>
+                      <p>{getCountryName(booking.country, "nl")}</p>
+                    </div>
                     <p className="text-sm text-stone-500">
                       Prijs per nacht bij boeking: €
                       {booking.shownPriceAtBooking}

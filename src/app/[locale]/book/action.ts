@@ -17,6 +17,7 @@ import { bookingRequest } from "@/db/schema";
 import { getBusyIntervals } from "@/lib/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
 import { expandInterval, hasConflict } from "@/lib/availability-utils";
+import { getCountryName } from "@/lib/countries";
 
 const serverValidate = createServerValidate({
   ...formOpts,
@@ -80,6 +81,10 @@ async function sendOwnerNotification(data: {
   name: string;
   email: string;
   phone: string;
+  address: string;
+  postalCode: string;
+  city: string;
+  country: string;
   guestCount: string;
   startDate: string;
   endDate: string;
@@ -119,6 +124,10 @@ async function sendOwnerNotification(data: {
         <tr><th align="left">Naam</th><td>${esc(data.name)}</td></tr>
         <tr><th align="left">Email</th><td><a href="mailto:${encodeURIComponent(data.email)}">${esc(data.email)}</a></td></tr>
         <tr><th align="left">Telefoon</th><td>${esc(data.phone) || "—"}</td></tr>
+        <tr><th align="left">Adres</th><td>${esc(data.address)}</td></tr>
+        <tr><th align="left">Postcode</th><td>${esc(data.postalCode)}</td></tr>
+        <tr><th align="left">Woonplaats</th><td>${esc(data.city)}</td></tr>
+        <tr><th align="left">Land</th><td>${esc(getCountryName(data.country, "nl"))}</td></tr>
         <tr><th align="left">Gasten</th><td>${esc(data.guestCount)}</td></tr>
         <tr><th align="left">Inchecken</th><td>${esc(data.startDate)}</td></tr>
         <tr><th align="left">Uitchecken</th><td>${esc(data.endDate)}</td></tr>
@@ -187,6 +196,10 @@ export async function submitBookingAction(
       name: data.name,
       email: data.email,
       phone: data.phone,
+      address: data.address,
+      postalCode: data.postalCode,
+      city: data.city,
+      country: data.country,
       guestCount: parseInt(data.guestCount),
       locale,
       startDate: data.stayDates.from,
@@ -199,6 +212,10 @@ export async function submitBookingAction(
       name: data.name,
       email: data.email,
       phone: data.phone,
+      address: data.address,
+      postalCode: data.postalCode,
+      city: data.city,
+      country: data.country,
       guestCount: data.guestCount,
       startDate: data.stayDates.from,
       endDate: data.stayDates.to,
