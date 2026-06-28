@@ -23,7 +23,9 @@
     "reviews": {
       "title": "Was Gäste sagen",
       "source": "via {source}",
-      "roughDate": "Vor {distance}"
+      "roughDate": "Vor {distance}",
+      "translatedFrom": "Übersetzt aus dem {language}",
+      "translatedFromAuto": "Automatisch übersetzt"
     },
     "hero": {
       "description": "Eine fesselnde Einführung in die Website, mit einem visuell beeindruckenden Bild und einer überzeugenden Überschrift, die die Aufmerksamkeit des Besuchers sofort auf sich zieht.",

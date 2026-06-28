@@ -23,7 +23,9 @@
     "reviews": {
       "title": "What guests say",
       "source": "via {source}",
-      "roughDate": "{distance} ago"
+      "roughDate": "{distance} ago",
+      "translatedFrom": "Translated from {language}",
+      "translatedFromAuto": "Auto-translated"
     },
     "hero": {
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
