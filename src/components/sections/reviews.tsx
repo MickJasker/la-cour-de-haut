@@ -49,6 +49,23 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
 
   if (published.length === 0) return null;
 
+  // One DisplayNames per render (not per card). `.of()` throws on a
+  // structurally-invalid tag, so guard it and fall back to generic wording.
+  const languageNames = new Intl.DisplayNames([locale], { type: "language" });
+  function translatedMarker(translatedFrom: string | null): string | null {
+    if (translatedFrom === null) return null;
+    if (translatedFrom !== "und") {
+      let name: string | undefined;
+      try {
+        name = languageNames.of(translatedFrom);
+      } catch {
+        name = undefined;
+      }
+      if (name) return t("translatedFrom", { language: name });
+    }
+    return t("translatedFromAuto");
+  }
+
   return (
     <section
       data-testid="reviews-section"
@@ -58,20 +75,9 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
         <div className="contents md:grid md:grid-cols-subgrid md:col-span-12 md:col-start-2 md:gap-4 lg:gap-6">
           {published.map((r) => {
             const body = resolveReviewBody(r, locale);
-            const translatedFrom = reviewTranslatedFrom(r, locale);
-            let markerText: string | null = null;
-            if (translatedFrom !== null) {
-              if (translatedFrom === "und") {
-                markerText = t("translatedFromAuto");
-              } else {
-                const name = new Intl.DisplayNames([locale], {
-                  type: "language",
-                }).of(translatedFrom);
-                markerText = name
-                  ? t("translatedFrom", { language: name })
-                  : t("translatedFromAuto");
-              }
-            }
+            const markerText = translatedMarker(
+              reviewTranslatedFrom(r, locale),
+            );
 
             return (
               <article

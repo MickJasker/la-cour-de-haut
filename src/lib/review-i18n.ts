@@ -59,7 +59,9 @@ export function buildReviewBody(input: {
   const bodySource: ReviewBodySource = {};
 
   for (const [locale, text] of Object.entries(input.translations)) {
-    if (text == null) continue;
+    // Skip empty/whitespace slots so a blank display locale never renders an
+    // empty card with a spurious "translated from" marker.
+    if (text == null || text.trim() === "") continue;
     body[locale as Locale] = text;
     bodySource[locale as Locale] = "machine";
   }

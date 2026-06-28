@@ -243,6 +243,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
                 <Label htmlFor="body">Recensie</Label>
                 <textarea
                   id="body"
+                  name={field.name}
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}

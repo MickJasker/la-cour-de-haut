@@ -127,4 +127,17 @@ describe("buildReviewBody", () => {
       }),
     ).toEqual({ body: {}, bodySource: {} });
   });
+
+  it("ignores empty or whitespace-only translations", () => {
+    // an owner who clears a dialog field must not produce a blank display slot
+    // (which would render an empty card plus a spurious "translated" marker)
+    const result = buildReviewBody({
+      originalLocale: "en",
+      originalBody: "Lovely",
+      translations: { nl: "Mooi", fr: "   ", de: "" },
+    });
+
+    expect(result.body).toEqual({ en: "Lovely", nl: "Mooi" });
+    expect(result.bodySource).toEqual({ en: "human", nl: "machine" });
+  });
 });
