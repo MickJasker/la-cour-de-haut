@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
 import { formatDistance } from "date-fns";
 import { getDateFnsLocale } from "@/i18n/dictionaries";
+import { resolveReviewBody, reviewTranslatedFrom } from "@/lib/review-i18n";
 
 const SOURCE_LABELS: Record<string, string> = {
   airbnb: "AirBnB",
@@ -48,6 +49,23 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
 
   if (published.length === 0) return null;
 
+  // One DisplayNames per render (not per card). `.of()` throws on a
+  // structurally-invalid tag, so guard it and fall back to generic wording.
+  const languageNames = new Intl.DisplayNames([locale], { type: "language" });
+  function translatedMarker(translatedFrom: string | null): string | null {
+    if (translatedFrom === null) return null;
+    if (translatedFrom !== "und") {
+      let name: string | undefined;
+      try {
+        name = languageNames.of(translatedFrom);
+      } catch {
+        name = undefined;
+      }
+      if (name) return t("translatedFrom", { language: name });
+    }
+    return t("translatedFromAuto");
+  }
+
   return (
     <section
       data-testid="reviews-section"
@@ -56,8 +74,10 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
       <div className="flex flex-col max-md:px-4 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 ">
         <div className="contents md:grid md:grid-cols-subgrid md:col-span-12 md:col-start-2 md:gap-4 lg:gap-6">
           {published.map((r) => {
-            const body =
-              r.body[locale as keyof typeof r.body] ?? r.body.nl ?? "";
+            const body = resolveReviewBody(r, locale);
+            const markerText = translatedMarker(
+              reviewTranslatedFrom(r, locale),
+            );
 
             return (
               <article
@@ -69,6 +89,14 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
                 <blockquote className="text-stone-700 flex-1 font-display italic">
                   &ldquo;{body}&rdquo;
                 </blockquote>
+                {markerText !== null && (
+                  <p
+                    className="text-xs text-stone-400 italic"
+                    data-testid="review-translated-marker"
+                  >
+                    {markerText}
+                  </p>
+                )}
                 <footer className="text-sm text-stone-500 text-right">
                   <p>— {r.authorName}</p>
                   <p>

@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/dialog";
 import {
   translateTextAction,
+  translateReviewTextAction,
   translateReviewAction,
 } from "@/app/admin/(private)/reviews/actions";
 import { translatePoiAction } from "@/app/admin/(private)/pois/actions";
 
 type Translations = { en: string; fr: string; de: string };
+type ReviewMap = { nl?: string; en?: string; fr?: string; de?: string };
 type PoiTranslations = {
   title: Translations;
   body: Translations;
@@ -27,7 +29,11 @@ type ReviewTranslateDialogProps = {
   mode: "review";
   reviewId?: string;
   sourceText: string;
-  onTranslated?: (translations: Translations) => void;
+  sourceLocale: string;
+  onTranslated?: (payload: {
+    detectedSource: string;
+    translations: ReviewMap;
+  }) => void;
 };
 
 type PoiTranslateDialogProps = {
@@ -91,12 +97,48 @@ function LangFields({
   );
 }
 
+// Reviews translate outward from an arbitrary source locale, so the editable
+// slots are whichever display locales the machine produced — not a fixed trio.
+function ReviewLangFields({
+  values,
+  onChange,
+}: {
+  values: ReviewMap;
+  onChange: (next: ReviewMap) => void;
+}) {
+  const langs = (["nl", "en", "fr", "de"] as const).filter(
+    (l) => values[l] !== undefined,
+  );
+  if (langs.length === 0) return null;
+  return (
+    <div className="space-y-3">
+      {langs.map((lang) => (
+        <div key={lang}>
+          <Label
+            htmlFor={`review-${lang}`}
+            className="mb-1 block text-xs uppercase tracking-wide text-stone-500"
+          >
+            {lang.toUpperCase()}
+          </Label>
+          <textarea
+            id={`review-${lang}`}
+            rows={3}
+            value={values[lang] ?? ""}
+            onChange={(e) => onChange({ ...values, [lang]: e.target.value })}
+            className={textareaCls}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TranslateDialogInner(props: TranslateDialogProps) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // Review / content state
+  // Content state (authored content: fixed en/fr/de)
   const [reviewTranslations, setReviewTranslations] = useState<Translations>(
     props.mode === "content"
       ? {
@@ -105,6 +147,12 @@ function TranslateDialogInner(props: TranslateDialogProps) {
           de: props.initialTranslations?.de ?? "",
         }
       : { en: "", fr: "", de: "" },
+  );
+
+  // Review state (source-aware: dynamic display locales + detected source)
+  const [reviewMap, setReviewMap] = useState<ReviewMap>({});
+  const [detectedSource, setDetectedSource] = useState<string>(
+    props.mode === "review" ? props.sourceLocale : "",
   );
 
   // POI state
@@ -129,7 +177,15 @@ function TranslateDialogInner(props: TranslateDialogProps) {
     setFetchError(null);
     startTransition(async () => {
       try {
-        if (props.mode === "review" || props.mode === "content") {
+        if (props.mode === "review") {
+          const { detectedSource: ds, translations } =
+            await translateReviewTextAction(
+              props.sourceText,
+              props.sourceLocale,
+            );
+          setDetectedSource(ds);
+          setReviewMap(translations);
+        } else if (props.mode === "content") {
           const result = await translateTextAction(props.sourceText);
           setReviewTranslations(result);
         } else {
@@ -151,10 +207,19 @@ function TranslateDialogInner(props: TranslateDialogProps) {
   function handleConfirm() {
     startTransition(async () => {
       if (props.mode === "review") {
+        // Nothing fetched yet → don't overwrite existing translations or the
+        // stored original_locale with an empty/undetected result.
+        if (Object.keys(reviewMap).length === 0) {
+          setOpen(false);
+          return;
+        }
         if (props.reviewId) {
-          await translateReviewAction(props.reviewId, reviewTranslations);
+          await translateReviewAction(props.reviewId, {
+            sourceLocale: detectedSource,
+            translations: reviewMap,
+          });
         } else {
-          props.onTranslated?.(reviewTranslations);
+          props.onTranslated?.({ detectedSource, translations: reviewMap });
         }
       } else if (props.mode === "content") {
         props.onTranslated?.(reviewTranslations);
@@ -199,14 +264,14 @@ function TranslateDialogInner(props: TranslateDialogProps) {
             <p className="text-sm text-destructive">{fetchError}</p>
           )}
 
-          {props.mode === "review" || props.mode === "content" ? (
+          {props.mode === "review" ? (
+            <ReviewLangFields values={reviewMap} onChange={setReviewMap} />
+          ) : props.mode === "content" ? (
             <LangFields
               prefix="review"
               values={reviewTranslations}
               onChange={setReviewTranslations}
-              onUserEdit={
-                props.mode === "content" ? props.onLocaleEdited : undefined
-              }
+              onUserEdit={props.onLocaleEdited}
             />
           ) : (
             <>

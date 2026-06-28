@@ -10,12 +10,9 @@ import { getDb } from "@/db";
 import { review } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { translateToAllLocales } from "@/lib/translate";
-import {
-  reviewFormOpts,
-  reviewFormServerSchema,
-  localizedStringSchema,
-} from "./shared";
+import { translateToAllLocales, translateReviewBody } from "@/lib/translate";
+import { buildReviewBody, type ReviewBody } from "@/lib/review-i18n";
+import { reviewFormOpts, reviewFormServerSchema } from "./shared";
 
 export type ReviewActionState = {
   success: boolean;
@@ -39,28 +36,23 @@ function invalidate() {
   updateTag("reviews");
 }
 
-function parseBody(formData: FormData) {
-  const raw = formData.get("body");
-  const parsed =
-    typeof raw === "string"
-      ? (() => {
-          try {
-            return JSON.parse(raw);
-          } catch {
-            return raw;
-          }
-        })()
-      : raw;
-  return localizedStringSchema.parse(parsed);
-}
-
-function inferBodySource(body: ReturnType<typeof localizedStringSchema.parse>) {
-  return {
-    nl: "human" as const,
-    ...(body.en ? { en: "machine" as const } : {}),
-    ...(body.fr ? { fr: "machine" as const } : {}),
-    ...(body.de ? { de: "machine" as const } : {}),
-  };
+// The display-locale translations the owner may have fetched before saving.
+// buildReviewBody is the single authority on body/bodySource, so this only
+// needs to surface whatever machine translations exist.
+function parseTranslations(formData: FormData): ReviewBody {
+  const raw = formData.get("translations");
+  if (typeof raw !== "string" || !raw) return {};
+  try {
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    const out: ReviewBody = {};
+    for (const locale of ["nl", "en", "fr", "de"] as const) {
+      const value = obj[locale];
+      if (typeof value === "string" && value.trim()) out[locale] = value.trim();
+    }
+    return out;
+  } catch {
+    return {};
+  }
 }
 
 export async function createReviewAction(
@@ -70,13 +62,12 @@ export async function createReviewAction(
   await verifySession();
   try {
     const data = await serverValidate(formData);
-    const body = parseBody(formData);
-    const bodyValue = {
-      nl: body.nl.trim(),
-      ...(body.en ? { en: body.en.trim() } : {}),
-      ...(body.fr ? { fr: body.fr.trim() } : {}),
-      ...(body.de ? { de: body.de.trim() } : {}),
-    };
+    const originalBody = data.originalBody.trim();
+    const { body, bodySource } = buildReviewBody({
+      originalLocale: data.originalLocale,
+      originalBody,
+      translations: parseTranslations(formData),
+    });
     const db = getDb();
     await db.insert(review).values({
       id: crypto.randomUUID(),
@@ -84,8 +75,10 @@ export async function createReviewAction(
       rating: data.rating,
       reviewDate: data.reviewDate,
       source: data.source,
-      body: bodyValue,
-      bodySource: inferBodySource(body),
+      originalLocale: data.originalLocale,
+      originalBody,
+      body,
+      bodySource,
       published: data.published,
       sortOrder: 0,
     });
@@ -107,13 +100,12 @@ export async function updateReviewAction(
   await verifySession();
   try {
     const data = await serverValidate(formData);
-    const body = parseBody(formData);
-    const bodyValue = {
-      nl: body.nl.trim(),
-      ...(body.en ? { en: body.en.trim() } : {}),
-      ...(body.fr ? { fr: body.fr.trim() } : {}),
-      ...(body.de ? { de: body.de.trim() } : {}),
-    };
+    const originalBody = data.originalBody.trim();
+    const { body, bodySource } = buildReviewBody({
+      originalLocale: data.originalLocale,
+      originalBody,
+      translations: parseTranslations(formData),
+    });
     const db = getDb();
     await db
       .update(review)
@@ -122,8 +114,10 @@ export async function updateReviewAction(
         rating: data.rating,
         reviewDate: data.reviewDate,
         source: data.source,
-        body: bodyValue,
-        bodySource: inferBodySource(body),
+        originalLocale: data.originalLocale,
+        originalBody,
+        body,
+        bodySource,
         published: data.published,
       })
       .where(eq(review.id, id));
@@ -168,6 +162,7 @@ export async function reorderReviewsAction(ids: string[]) {
   invalidate();
 }
 
+// Authored content (POIs, content blocks): always Dutch → EN/FR/DE.
 export async function translateTextAction(
   text: string,
 ): Promise<{ en: string; fr: string; de: string }> {
@@ -175,23 +170,39 @@ export async function translateTextAction(
   return translateToAllLocales(text);
 }
 
+// Quoted content (reviews): translate outward from the review's original
+// locale, auto-detecting when it is "und". Returns the detected source plus
+// the machine translations for the non-source display locales. See ADR-0014.
+export async function translateReviewTextAction(
+  text: string,
+  sourceLocale: string,
+): Promise<{ detectedSource: string; translations: ReviewBody }> {
+  await verifySession();
+  return translateReviewBody(text, sourceLocale);
+}
+
+// Persists machine translations onto an existing review. buildReviewBody
+// recomputes both body and bodySource from the review's verbatim original,
+// and original_locale is overwritten with the (possibly detected) source.
 export async function translateReviewAction(
   id: string,
-  translations: { en: string; fr: string; de: string },
+  input: { sourceLocale: string; translations: ReviewBody },
 ): Promise<void> {
   await verifySession();
   const db = getDb();
   const [row] = await db
-    .select({ body: review.body })
+    .select({ originalBody: review.originalBody })
     .from(review)
     .where(eq(review.id, id));
   if (!row) return;
+  const { body, bodySource } = buildReviewBody({
+    originalLocale: input.sourceLocale,
+    originalBody: row.originalBody,
+    translations: input.translations,
+  });
   await db
     .update(review)
-    .set({
-      body: { ...row.body, ...translations },
-      bodySource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
-    })
+    .set({ originalLocale: input.sourceLocale, body, bodySource })
     .where(eq(review.id, id));
   invalidate();
 }

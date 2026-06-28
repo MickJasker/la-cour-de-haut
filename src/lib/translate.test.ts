@@ -9,7 +9,8 @@ vi.mock("@google-cloud/translate", () => ({
 }));
 
 // Import after mock is registered
-const { translateToAllLocales } = await import("./translate");
+const { translateToAllLocales, translateReviewBody } =
+  await import("./translate");
 
 describe("translateToAllLocales", () => {
   const fakeCreds = {
@@ -84,5 +85,106 @@ describe("translateToAllLocales", () => {
     await expect(translateToAllLocales("tekst")).rejects.toThrow(
       /GOOGLE_APPLICATION_CREDENTIALS_JSON/,
     );
+  });
+});
+
+describe("translateReviewBody", () => {
+  const fakeCreds = {
+    project_id: "my-gcp-project",
+    client_email: "sa@my-gcp-project.iam.gserviceaccount.com",
+    private_key:
+      "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
+  };
+
+  beforeEach(() => {
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify(fakeCreds);
+    mockTranslateText.mockClear();
+  });
+
+  afterEach(() => {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  });
+
+  it("translates a known non-Dutch source into the other three locales only", async () => {
+    // targets for source "en" are nl, fr, de (in DISPLAY_LOCALES order)
+    mockTranslateText
+      .mockResolvedValueOnce([{ translations: [{ translatedText: "Mooi" }] }]) // nl
+      .mockResolvedValueOnce([{ translations: [{ translatedText: "Joli" }] }]) // fr
+      .mockResolvedValueOnce([{ translations: [{ translatedText: "Schön" }] }]); // de
+
+    const result = await translateReviewBody("Lovely", "en");
+
+    expect(result.detectedSource).toBe("en");
+    expect(result.translations).toEqual({
+      nl: "Mooi",
+      fr: "Joli",
+      de: "Schön",
+    });
+    // the source locale is never machine-translated against itself
+    expect(result.translations).not.toHaveProperty("en");
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLanguageCode: "en",
+        targetLanguageCode: "nl",
+      }),
+    );
+  });
+
+  it("auto-detects an out-of-set source and fills all four display locales", async () => {
+    const reply = (txt: string) => [
+      { translations: [{ translatedText: txt, detectedLanguageCode: "it" }] },
+    ];
+    mockTranslateText
+      .mockResolvedValueOnce(reply("NL")) // nl
+      .mockResolvedValueOnce(reply("EN")) // en
+      .mockResolvedValueOnce(reply("FR")) // fr
+      .mockResolvedValueOnce(reply("DE")); // de
+
+    const result = await translateReviewBody("Bella casa", "und");
+
+    expect(result.detectedSource).toBe("it");
+    expect(result.translations).toEqual({
+      nl: "NL",
+      en: "EN",
+      fr: "FR",
+      de: "DE",
+    });
+    // auto-detect mode must not pin a source language
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.not.objectContaining({ sourceLanguageCode: expect.anything() }),
+    );
+  });
+
+  it("auto-detects an in-set source and drops that slot from the machine output", async () => {
+    const reply = (txt: string) => [
+      { translations: [{ translatedText: txt, detectedLanguageCode: "en" }] },
+    ];
+    mockTranslateText
+      .mockResolvedValueOnce(reply("NL")) // nl
+      .mockResolvedValueOnce(reply("EN")) // en — dropped (it is the source)
+      .mockResolvedValueOnce(reply("FR")) // fr
+      .mockResolvedValueOnce(reply("DE")); // de
+
+    const result = await translateReviewBody("Lovely", "und");
+
+    expect(result.detectedSource).toBe("en");
+    expect(result.translations).toEqual({ nl: "NL", fr: "FR", de: "DE" });
+    expect(result.translations).not.toHaveProperty("en");
+  });
+
+  it("returns deterministic stubs under E2E without calling Google", async () => {
+    process.env.E2E_TESTING = "1";
+    try {
+      const result = await translateReviewBody("Lovely", "en");
+      expect(result.detectedSource).toBe("en");
+      expect(result.translations).toEqual({
+        nl: "Lovely [nl]",
+        fr: "Lovely [fr]",
+        de: "Lovely [de]",
+      });
+      expect(mockTranslateText).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.E2E_TESTING;
+    }
   });
 });

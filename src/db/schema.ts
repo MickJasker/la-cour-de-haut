@@ -259,12 +259,20 @@ export const review = pgTable("review", {
   rating: integer("rating").notNull(),
   reviewDate: date("review_date").notNull(),
   source: text("source").notNull().$type<ReviewSource>(),
+  // Source of truth: the guest's verbatim words and the language they wrote in.
+  // `originalLocale` is a BCP-47 code (one of the four display locales, a wider
+  // language like "it", or the sentinel "und" until auto-detected). See ADR-0014.
+  originalLocale: text("original_locale").notNull(),
+  originalBody: text("original_body").notNull(),
+  // Derived projection over the four display locales. Every key is optional:
+  // a foreign-original review may have no human slot, and translations are
+  // filled lazily (lenient publish). Resolve reads via resolveReviewBody().
   body: jsonb("body")
-    .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
+    .$type<{ nl?: string; en?: string; fr?: string; de?: string }>()
     .notNull(),
   bodySource: jsonb("body_source")
     .$type<{
-      nl: "human" | "machine";
+      nl?: "human" | "machine";
       en?: "human" | "machine";
       fr?: "human" | "machine";
       de?: "human" | "machine";

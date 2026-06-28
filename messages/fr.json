@@ -23,7 +23,9 @@
     "reviews": {
       "title": "Ce que disent les clients",
       "source": "via {source}",
-      "roughDate": "Il y a {distance}"
+      "roughDate": "Il y a {distance}",
+      "translatedFrom": "Traduit du {language}",
+      "translatedFromAuto": "Traduction automatique"
     },
     "hero": {
       "description": "Une introduction captivante du site web, avec une image visuellement frappante et un titre accrocheur qui attire immédiatement l'attention du visiteur.",

@@ -25,20 +25,31 @@ async function seedReview(opts: {
   reviewDate?: string;
   source?: string;
   body?: string;
+  bodyMap?: Record<string, string>;
+  bodySource?: Record<string, string>;
+  originalLocale?: string;
+  originalBody?: string;
   sortOrder?: number;
   published: boolean;
 }) {
   const sql = neon(process.env.DATABASE_URL!);
+  const text = opts.body ?? "Geweldige plek!";
+  const bodyMap = opts.bodyMap ?? { nl: text };
+  const bodySource = opts.bodySource ?? { nl: "human" };
+  const originalLocale = opts.originalLocale ?? "nl";
+  const originalBody = opts.originalBody ?? text;
   await sql`
-    INSERT INTO review (id, author_name, rating, review_date, source, body, body_source, published, sort_order, created_at)
+    INSERT INTO review (id, author_name, rating, review_date, source, original_locale, original_body, body, body_source, published, sort_order, created_at)
     VALUES (
       ${opts.id},
       ${opts.authorName ?? "Test Guest"},
       ${opts.rating ?? 5},
       ${opts.reviewDate ?? "2024-06-01"},
       ${opts.source ?? "airbnb"},
-      ${JSON.stringify({ nl: opts.body ?? "Geweldige plek!" })}::jsonb,
-      ${JSON.stringify({ nl: "human" })}::jsonb,
+      ${originalLocale},
+      ${originalBody},
+      ${JSON.stringify(bodyMap)}::jsonb,
+      ${JSON.stringify(bodySource)}::jsonb,
       ${opts.published},
       ${opts.sortOrder ?? 0},
       now()
@@ -105,6 +116,49 @@ test.describe("reviews: public section", () => {
     await expect(
       page.locator("[data-testid='reviews-section']"),
     ).not.toBeAttached();
+  });
+
+  test("machine-translated slot shows a 'translated from' marker", async ({
+    page,
+  }) => {
+    // English original, machine-translated into Dutch; a Dutch visitor sees the
+    // marker naming the original language (ADR-0014).
+    await seedReview({
+      id: "rev-marker-1",
+      published: true,
+      authorName: "Giulia",
+      originalLocale: "en",
+      originalBody: "Lovely place",
+      bodyMap: { en: "Lovely place", nl: "Mooie plek" },
+      bodySource: { en: "human", nl: "machine" },
+    });
+    await gotoFresh(page, "/nl");
+    const card = page.locator("[data-testid='review-card']");
+    await expect(card.getByText("Mooie plek")).toBeVisible();
+    await expect(
+      card.locator("[data-testid='review-translated-marker']"),
+    ).toContainText("Engels");
+  });
+
+  test("original-language slot shows no 'translated from' marker", async ({
+    page,
+  }) => {
+    // Same review read in English (the human original slot) — no marker.
+    await seedReview({
+      id: "rev-marker-2",
+      published: true,
+      authorName: "Giulia",
+      originalLocale: "en",
+      originalBody: "Lovely place",
+      bodyMap: { en: "Lovely place", nl: "Mooie plek" },
+      bodySource: { en: "human", nl: "machine" },
+    });
+    await gotoFresh(page, "/en");
+    const card = page.locator("[data-testid='review-card']");
+    await expect(card.getByText("Lovely place")).toBeVisible();
+    await expect(
+      card.locator("[data-testid='review-translated-marker']"),
+    ).toHaveCount(0);
   });
 });
 
