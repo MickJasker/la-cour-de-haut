@@ -294,30 +294,3 @@ export async function reorderPoisAction(ids: string[]) {
   revalidatePath("/admin/pois");
   updateTag("poi");
 }
-
-export async function translatePoiAction(
-  id: string,
-  translations: {
-    title: { en: string; fr: string; de: string };
-    body: { en: string; fr: string; de: string };
-  },
-): Promise<void> {
-  await verifySession();
-  const db = getDb();
-  const [row] = await db
-    .select({ title: poi.title, body: poi.body })
-    .from(poi)
-    .where(eq(poi.id, id));
-  if (!row) return;
-  await db
-    .update(poi)
-    .set({
-      title: { ...row.title, ...translations.title },
-      body: { ...row.body, ...translations.body },
-      titleSource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
-      bodySource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
-    })
-    .where(eq(poi.id, id));
-  revalidatePath("/admin/pois");
-  updateTag("poi");
-}

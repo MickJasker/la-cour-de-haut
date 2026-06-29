@@ -219,7 +219,6 @@ function PoiForm({
             {({ title, body }) => (
               <TranslateDialog
                 mode="poi"
-                poiId={editing?.id}
                 sourceTitleText={title.nl}
                 sourceBodyText={body.nl}
                 sourceDetailState={detail.nl}

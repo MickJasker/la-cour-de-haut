@@ -18,10 +18,8 @@ import {
   translateReviewTextAction,
   translateReviewAction,
 } from "@/app/admin/(private)/reviews/actions";
-import { translatePoiAction } from "@/app/admin/(private)/pois/actions";
 import {
   translatePoiDetailAction,
-  persistPoiDetailTranslationAction,
   type PoiDetailTranslations,
 } from "@/app/admin/(private)/pois/detail-translate-action";
 import { hasEditorText } from "@/lib/lexical/empty-state";
@@ -47,7 +45,6 @@ type ReviewTranslateDialogProps = {
 
 type PoiTranslateDialogProps = {
   mode: "poi";
-  poiId?: string;
   sourceTitleText: string;
   sourceBodyText: string;
   sourceDetailState?: SerializedEditorState;
@@ -249,21 +246,15 @@ function TranslateDialogInner(props: TranslateDialogProps) {
       } else if (props.mode === "content") {
         props.onTranslated?.(reviewTranslations);
       } else {
-        if (props.poiId) {
-          await translatePoiAction(props.poiId, {
-            title: poiTitle,
-            body: poiBody,
-          });
-          if (poiDetail) {
-            await persistPoiDetailTranslationAction(props.poiId, poiDetail);
-          }
-        } else {
-          props.onTranslated?.({
-            title: poiTitle,
-            body: poiBody,
-            detail: poiDetail ?? undefined,
-          });
-        }
+        // Both create and edit: hand translations to the form; the form's Save
+        // is the single writer (create/updatePoiAction). Avoids the dual-write
+        // bugs where an immediate persist bailed on a not-yet-saved field or a
+        // later form Save overwrote freshly-persisted translations.
+        props.onTranslated?.({
+          title: poiTitle,
+          body: poiBody,
+          detail: poiDetail ?? undefined,
+        });
       }
       setOpen(false);
     });
