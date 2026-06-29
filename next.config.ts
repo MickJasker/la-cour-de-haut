@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   experimental: {
     serverActions: {
-      bodySizeLimit: "10mb",
+      bodySizeLimit: "20mb",
     },
     // Multiple root layouts (`[locale]` + `admin`) plus a top-level dynamic
     // `[locale]` segment mean there is no `app/layout.tsx` to host an
