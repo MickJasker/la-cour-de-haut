@@ -20,7 +20,16 @@ const LOCALE_LABEL: Record<string, string> = {
   de: "Deutsch",
 };
 
-export function Header({ action }: { action: ReactNode }) {
+export function Header({
+  action,
+  localeSwitchFullReload = false,
+}: {
+  action: ReactNode;
+  // On pages that are the standalone version of an intercepted route
+  // (/book, /poi/[slug]), a soft-nav locale switch would be caught by the
+  // interceptor and pop the modal. A full reload bypasses interception.
+  localeSwitchFullReload?: boolean;
+}) {
   const { locale } = useParams<{ locale: string }>();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
@@ -76,6 +85,7 @@ export function Header({ action }: { action: ReactNode }) {
                 locale={loc}
                 isActive={loc === optimisticLocale}
                 currentPathname={pathname}
+                fullReload={localeSwitchFullReload}
                 onNavigate={() => switchLocale(loc)}
               />
             ))}
@@ -92,11 +102,13 @@ function LanguageLink({
   locale,
   isActive,
   currentPathname,
+  fullReload,
   onNavigate,
 }: {
   locale: string;
   isActive: boolean;
   currentPathname: string | null;
+  fullReload: boolean;
   onNavigate: ComponentProps<typeof Link>["onNavigate"];
 }) {
   // Strip the leading /<currentLocale> segment so we can swap in the new locale
@@ -105,10 +117,27 @@ function LanguageLink({
     ? currentPathname.replace(/^\/[^/]+/, "")
     : "";
   const href = `/${locale}${withoutLocale}`;
+  const className =
+    "w-10 p-1 text-center rounded-full font-bold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800";
+
+  // A plain anchor does a full document navigation, which leaves the Next
+  // router and so is never caught by an intercepting route's modal.
+  if (fullReload) {
+    return (
+      <a
+        className={className}
+        href={href}
+        aria-label={`Switch to ${LOCALE_LABEL[locale]}`}
+        aria-current={isActive ? "page" : undefined}
+      >
+        {locale.toUpperCase()}
+      </a>
+    );
+  }
 
   return (
     <Link
-      className="w-10 p-1 text-center rounded-full font-bold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800"
+      className={className}
       href={href}
       scroll={false}
       onNavigate={onNavigate}
