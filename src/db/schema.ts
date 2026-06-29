@@ -11,6 +11,9 @@ import {
   jsonb,
   numeric,
 } from "drizzle-orm/pg-core";
+// Type-only import: erased at compile time, so no Lexical runtime is pulled
+// into the DB schema module. See ADR-0015.
+import type { SerializedEditorState } from "lexical";
 
 export type BusyInterval = { start: string; end: string };
 
@@ -192,6 +195,9 @@ export const galleryImage = pgTable("gallery_image", {
 
 export const poi = pgTable("poi", {
   id: text("id").primaryKey(),
+  // URL-safe identifier derived from the English translation of the Dutch
+  // title, generated once at create and never changed on rename. See ADR-0015.
+  slug: text("slug").notNull().unique(),
   title: jsonb("title")
     .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
     .notNull(),
@@ -214,12 +220,23 @@ export const poi = pgTable("poi", {
       de?: "human" | "machine";
     }>()
     .notNull(),
+  // Optional rich-text body shown on the POI detail page/modal. Each locale
+  // holds a serialized Lexical EditorState; nullable so a POI need not have it.
+  detail: jsonb("detail").$type<LocalizedEditorState>(),
+  detailSource: jsonb("detail_source").$type<LocalizedSource>(),
   imageUrl: text("image_url").notNull(),
   distanceKm: integer("distance_km"),
   sortOrder: integer("sort_order").notNull().default(0),
   published: boolean("published").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export type LocalizedEditorState = {
+  nl: SerializedEditorState;
+  en?: SerializedEditorState;
+  fr?: SerializedEditorState;
+  de?: SerializedEditorState;
+};
 
 export type LocalizedText = {
   type: "localizedText";
