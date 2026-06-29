@@ -40,7 +40,10 @@ export async function generateMetadata({
         ["x-default", `${BASE_URL}/nl/poi/${slug}`],
       ]),
     },
-    openGraph: { url: `${BASE_URL}/${locale}/poi/${slug}` },
+    openGraph: {
+      url: `${BASE_URL}/${locale}/poi/${slug}`,
+      images: [{ url: item.imageUrl }],
+    },
   };
 }
 

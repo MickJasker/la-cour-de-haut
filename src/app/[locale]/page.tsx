@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
 import { locales, type Locale } from "@/i18n/routing";
+import HeroImage from "@/components/sections/hero.jpg";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -25,7 +26,10 @@ export async function generateMetadata({
         ["x-default", `${BASE_URL}/nl`],
       ]),
     },
-    openGraph: { url: `${BASE_URL}/${locale}` },
+    openGraph: {
+      url: `${BASE_URL}/${locale}`,
+      images: [{ url: HeroImage.src }],
+    },
   };
 }
 
