@@ -5,17 +5,17 @@ import { Link } from "@/i18n/navigation";
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
 import { PoiDetailLoader } from "@/components/poi-detail-loader";
-import { getPublishedPoiBySlug, getPublishedPoiSlugs } from "@/lib/poi-queries";
+import {
+  getPublishedPoiBySlug,
+  poiDetailStaticParams,
+} from "@/lib/poi-queries";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
 // Enumerate published slugs so each detail page prerenders (await params is
-// static for known slugs); new slugs render on-demand. Mirrors the Next dynamic
-// content-route pattern and keeps the [locale] layout's static shell intact.
-export async function generateStaticParams() {
-  const slugs = await getPublishedPoiSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+// static for known slugs); new slugs render on-demand. Returns a placeholder
+// when there are no published POIs (Cache Components forbids an empty array).
+export const generateStaticParams = poiDetailStaticParams;
 
 export async function generateMetadata({
   params,

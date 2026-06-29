@@ -36,3 +36,17 @@ export async function getPublishedPoiSlugs(): Promise<string[]> {
 
   return rows.map((r) => r.slug);
 }
+
+// Cache Components requires generateStaticParams to return at least one entry,
+// even when there are zero published POIs (an empty array throws
+// EmptyGenerateStaticParamsError and, since the POI intercept lives in the
+// shared [locale] @modal slot, breaks sibling routes too). Fall back to a
+// placeholder slug that the detail pages resolve to notFound(). See ADR-0015.
+const NO_POI_PLACEHOLDER = "__no-published-pois__";
+
+export async function poiDetailStaticParams(): Promise<{ slug: string }[]> {
+  const slugs = await getPublishedPoiSlugs();
+  return slugs.length > 0
+    ? slugs.map((slug) => ({ slug }))
+    : [{ slug: NO_POI_PLACEHOLDER }];
+}

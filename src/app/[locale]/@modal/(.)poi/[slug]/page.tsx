@@ -1,15 +1,16 @@
 import { notFound } from "next/navigation";
 import type { Locale } from "@/i18n/routing";
 import { PoiDetail } from "@/components/poi-detail";
-import { getPublishedPoiBySlug, getPublishedPoiSlugs } from "@/lib/poi-queries";
+import {
+  getPublishedPoiBySlug,
+  poiDetailStaticParams,
+} from "@/lib/poi-queries";
 import { PoiModalClient } from "./poi-modal-client";
 
-// Same as the standalone route: enumerate slugs so the intercepted page
-// prerenders with a static [locale] shell instead of forcing dynamic params.
-export async function generateStaticParams() {
-  const slugs = await getPublishedPoiSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+// Same as the standalone route: enumerate slugs (with a placeholder fallback
+// when none are published) so the intercepted page prerenders with a static
+// [locale] shell instead of forcing dynamic params.
+export const generateStaticParams = poiDetailStaticParams;
 
 export default async function PoiModalPage({
   params,
