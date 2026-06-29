@@ -1,15 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState } from "react";
 import {
   $createParagraphNode,
   $getSelection,
   $isElementNode,
   $isRangeSelection,
+  $setSelection,
   ElementNode,
   FORMAT_TEXT_COMMAND,
 } from "lexical";
-import type { SerializedEditorState } from "lexical";
+import type { BaseSelection, SerializedEditorState } from "lexical";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -24,7 +25,8 @@ import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
 } from "@lexical/list";
-import { TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
+import { $findMatchingParent } from "@lexical/utils";
 import {
   ALLOWED_HEADINGS,
   EDITOR_NODES,
@@ -70,97 +72,173 @@ const HEADING_ICONS: Record<AllowedHeading, React.ReactElement> = {
   h3: <Heading3 size={14} />,
 };
 
+const btnCls = "rounded border px-2 py-1 hover:bg-muted";
+
 // ---------------------------------------------------------------------------
 // Toolbar
 // ---------------------------------------------------------------------------
 
 function Toolbar(): React.ReactElement {
   const [editor] = useLexicalComposerContext();
+  // null = link editor hidden; a string = visible with that draft URL.
+  const [linkDraft, setLinkDraft] = useState<string | null>(null);
+  // Focusing the URL input moves focus out of the editor, which drops the text
+  // selection the link should apply to — so snapshot it when the editor opens.
+  const savedSelection = useRef<BaseSelection | null>(null);
+
+  function openLinkEditor() {
+    let existing = "https://";
+    editor.getEditorState().read(() => {
+      const sel = $getSelection();
+      savedSelection.current = sel ? sel.clone() : null;
+      if ($isRangeSelection(sel)) {
+        const node = sel.getNodes()[0];
+        const link = node ? $findMatchingParent(node, $isLinkNode) : null;
+        if (link && $isLinkNode(link)) existing = link.getURL();
+      }
+    });
+    setLinkDraft(existing);
+  }
+
+  function toggleLink(url: string | null) {
+    // Restore the snapshotted selection first so the command targets the
+    // originally-selected text, then toggle the link.
+    const saved = savedSelection.current;
+    if (saved) {
+      editor.update(() => $setSelection(saved.clone()), { discrete: true });
+    }
+    editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
+    setLinkDraft(null);
+  }
+
+  function applyLink() {
+    const url = (linkDraft ?? "").trim();
+    toggleLink(url.length > 0 ? url : null);
+  }
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b p-1">
-      {/* Inline formats */}
-      <button
-        type="button"
-        title="Bold"
-        className="rounded border px-2 py-1 hover:bg-muted"
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
-      >
-        <Bold size={14} />
-      </button>
-      <button
-        type="button"
-        title="Italic"
-        className="rounded border px-2 py-1 hover:bg-muted"
-        onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
-      >
-        <Italic size={14} />
-      </button>
-
-      <span className="mx-1 h-4 w-px bg-border" aria-hidden />
-
-      {/* Block types: headings */}
-      {ALLOWED_HEADINGS.map((tag) => (
+    <div className="border-b">
+      <div className="flex flex-wrap items-center gap-1 p-1">
         <button
-          key={tag}
           type="button"
-          title={`Heading ${tag.slice(1)}`}
-          className="rounded border px-2 py-1 hover:bg-muted"
+          title="Vet"
+          className={btnCls}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "bold")}
+        >
+          <Bold size={14} />
+        </button>
+        <button
+          type="button"
+          title="Cursief"
+          className={btnCls}
+          onClick={() => editor.dispatchCommand(FORMAT_TEXT_COMMAND, "italic")}
+        >
+          <Italic size={14} />
+        </button>
+
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+
+        {ALLOWED_HEADINGS.map((tag) => (
+          <button
+            key={tag}
+            type="button"
+            title={`Kop ${tag.slice(1)}`}
+            className={btnCls}
+            onClick={() =>
+              editor.update(() =>
+                $applyBlockType(() => $createHeadingNode(tag)),
+              )
+            }
+          >
+            {HEADING_ICONS[tag]}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          title="Paragraaf"
+          className={`${btnCls} text-xs font-medium`}
           onClick={() =>
-            editor.update(() => $applyBlockType(() => $createHeadingNode(tag)))
+            editor.update(() => $applyBlockType(() => $createParagraphNode()))
           }
         >
-          {HEADING_ICONS[tag]}
+          P
         </button>
-      ))}
 
-      {/* Paragraph (clear heading) */}
-      <button
-        type="button"
-        title="Paragraph"
-        className="rounded border px-2 py-1 text-xs font-medium hover:bg-muted"
-        onClick={() =>
-          editor.update(() => $applyBlockType(() => $createParagraphNode()))
-        }
-      >
-        P
-      </button>
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
 
-      <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+        <button
+          type="button"
+          title="Opsomming"
+          className={btnCls}
+          onClick={() =>
+            editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
+          }
+        >
+          <List size={14} />
+        </button>
+        <button
+          type="button"
+          title="Genummerde lijst"
+          className={btnCls}
+          onClick={() =>
+            editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
+          }
+        >
+          <ListOrdered size={14} />
+        </button>
 
-      {/* Lists */}
-      <button
-        type="button"
-        title="Bullet list"
-        className="rounded border px-2 py-1 hover:bg-muted"
-        onClick={() =>
-          editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
-        }
-      >
-        <List size={14} />
-      </button>
-      <button
-        type="button"
-        title="Numbered list"
-        className="rounded border px-2 py-1 hover:bg-muted"
-        onClick={() =>
-          editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
-        }
-      >
-        <ListOrdered size={14} />
-      </button>
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
 
-      <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+        <button
+          type="button"
+          title="Link"
+          className={btnCls}
+          aria-expanded={linkDraft !== null}
+          onClick={openLinkEditor}
+        >
+          <Link size={14} />
+        </button>
+      </div>
 
-      {/* Link (toggle with placeholder href; owner edits the text) */}
-      <button
-        type="button"
-        title="Link"
-        className="rounded border px-2 py-1 hover:bg-muted"
-        onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, "https://")}
-      >
-        <Link size={14} />
-      </button>
+      {linkDraft !== null && (
+        <div className="flex items-center gap-1 border-t p-1">
+          {/* Select text first, then set its URL here. */}
+          <input
+            autoFocus
+            type="url"
+            inputMode="url"
+            value={linkDraft}
+            onChange={(e) => setLinkDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applyLink();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setLinkDraft(null);
+              }
+            }}
+            placeholder="https://voorbeeld.nl"
+            aria-label="Link-URL"
+            className="flex-1 rounded border px-2 py-1 text-sm"
+          />
+          <button
+            type="button"
+            className={`${btnCls} text-sm`}
+            onClick={applyLink}
+          >
+            Toepassen
+          </button>
+          <button
+            type="button"
+            className={`${btnCls} text-sm`}
+            onClick={() => toggleLink(null)}
+          >
+            Verwijderen
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -190,23 +268,27 @@ export function RichTextEditor({
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="relative rounded border focus-within:ring-2 focus-within:ring-ring">
+      <div className="rounded border focus-within:ring-2 focus-within:ring-ring">
         <Toolbar />
-        <RichTextPlugin
-          contentEditable={
-            <ContentEditable
-              ariaLabel={ariaLabel}
-              className="min-h-[200px] px-3 py-2 outline-none"
-              placeholder={
-                <div className="pointer-events-none absolute left-0 top-0 px-3 py-2 text-muted-foreground">
-                  Begin met schrijven…
-                </div>
-              }
-              aria-placeholder="Begin met schrijven…"
-            />
-          }
-          ErrorBoundary={LexicalErrorBoundary}
-        />
+        {/* Own positioning context so the placeholder anchors to the editable
+            area (below the toolbar), not the whole widget. */}
+        <div className="relative">
+          <RichTextPlugin
+            contentEditable={
+              <ContentEditable
+                ariaLabel={ariaLabel}
+                className="min-h-[200px] px-3 py-2 outline-none"
+                aria-placeholder="Begin met schrijven…"
+                placeholder={
+                  <div className="pointer-events-none absolute left-3 top-2 text-muted-foreground">
+                    Begin met schrijven…
+                  </div>
+                }
+              />
+            }
+            ErrorBoundary={LexicalErrorBoundary}
+          />
+        </div>
         <HistoryPlugin />
         <ListPlugin />
         <LinkPlugin />
