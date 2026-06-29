@@ -47,7 +47,9 @@ import {
 } from "./actions";
 import { poiFormOpts, poiFormClientSchema } from "./shared";
 import { TranslateDialog } from "@/components/translate-dialog";
-import type { poi } from "@/db/schema";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
+import type { poi, LocalizedEditorState } from "@/db/schema";
 
 type Poi = typeof poi.$inferSelect;
 
@@ -81,6 +83,13 @@ function PoiForm({
       }
     : undefined;
 
+  // The rich detail is opaque EditorState JSON, kept out of the TanStack form
+  // value type (which would recurse into the node tree). It is attached to
+  // FormData manually on submit, like the dropzone File. See ADR-0015.
+  const [detail, setDetail] = useState<LocalizedEditorState>(
+    editing?.detail ?? { nl: EMPTY_EDITOR_STATE },
+  );
+
   const form = useForm({
     ...poiFormOpts,
     ...(defaults ? { defaultValues: defaults } : {}),
@@ -100,6 +109,7 @@ function PoiForm({
       const fd = new FormData();
       fd.set("title", JSON.stringify(value.title));
       fd.set("body", JSON.stringify(value.body));
+      fd.set("detail", JSON.stringify(detail));
       if (value.distanceKm) fd.set("distanceKm", value.distanceKm);
       fd.set("published", String(value.published));
       if (file) fd.set("file", file);
@@ -171,6 +181,17 @@ function PoiForm({
         </FieldSet>
 
         <FieldSet>
+          <Field data-field="detail">
+            <Label>Detailtekst (rijke tekst)</Label>
+            <RichTextEditor
+              initialValue={detail.nl}
+              onChange={(nl) => setDetail((d) => ({ ...d, nl }))}
+              ariaLabel="Detailtekst"
+            />
+          </Field>
+        </FieldSet>
+
+        <FieldSet>
           <form.Field name="distanceKm">
             {(field) => (
               <Field data-field="distanceKm">
@@ -201,6 +222,7 @@ function PoiForm({
                 poiId={editing?.id}
                 sourceTitleText={title.nl}
                 sourceBodyText={body.nl}
+                sourceDetailState={detail.nl}
                 onTranslated={(t) => {
                   form.setFieldValue("title", {
                     ...form.getFieldValue("title"),
@@ -210,6 +232,14 @@ function PoiForm({
                     ...form.getFieldValue("body"),
                     ...t.body,
                   });
+                  if (t.detail) {
+                    setDetail((d) => ({
+                      ...d,
+                      en: t.detail!.en,
+                      fr: t.detail!.fr,
+                      de: t.detail!.de,
+                    }));
+                  }
                 }}
               />
             )}

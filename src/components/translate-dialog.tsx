@@ -12,18 +12,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { SerializedEditorState } from "lexical";
 import {
   translateTextAction,
   translateReviewTextAction,
   translateReviewAction,
 } from "@/app/admin/(private)/reviews/actions";
 import { translatePoiAction } from "@/app/admin/(private)/pois/actions";
+import {
+  translatePoiDetailAction,
+  persistPoiDetailTranslationAction,
+  type PoiDetailTranslations,
+} from "@/app/admin/(private)/pois/detail-translate-action";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 
 type Translations = { en: string; fr: string; de: string };
 type ReviewMap = { nl?: string; en?: string; fr?: string; de?: string };
 type PoiTranslations = {
   title: Translations;
   body: Translations;
+  detail?: PoiDetailTranslations;
 };
 
 type ReviewTranslateDialogProps = {
@@ -42,6 +50,7 @@ type PoiTranslateDialogProps = {
   poiId?: string;
   sourceTitleText: string;
   sourceBodyText: string;
+  sourceDetailState?: SerializedEditorState;
   onTranslated?: (translations: PoiTranslations) => void;
 };
 
@@ -167,12 +176,21 @@ function TranslateDialogInner(props: TranslateDialogProps) {
     fr: "",
     de: "",
   });
+  const [poiDetail, setPoiDetail] = useState<PoiDetailTranslations | null>(
+    null,
+  );
+
+  const poiHasDetail =
+    props.mode === "poi" && props.sourceDetailState
+      ? hasEditorText(props.sourceDetailState)
+      : false;
 
   const canTranslate =
     props.mode === "review" || props.mode === "content"
       ? props.sourceText.trim().length > 0
       : props.sourceTitleText.trim().length > 0 ||
-        props.sourceBodyText.trim().length > 0;
+        props.sourceBodyText.trim().length > 0 ||
+        poiHasDetail;
 
   function handleFetch() {
     setFetchError(null);
@@ -192,12 +210,18 @@ function TranslateDialogInner(props: TranslateDialogProps) {
         } else {
           const hasTitle = props.sourceTitleText.trim().length > 0;
           const hasBody = props.sourceBodyText.trim().length > 0;
-          const [titleResult, bodyResult] = await Promise.all([
+          const detailState = props.sourceDetailState;
+          const hasDetail = detailState ? hasEditorText(detailState) : false;
+          const [titleResult, bodyResult, detailResult] = await Promise.all([
             hasTitle ? translateTextAction(props.sourceTitleText) : null,
             hasBody ? translateTextAction(props.sourceBodyText) : null,
+            hasDetail && detailState
+              ? translatePoiDetailAction(detailState)
+              : null,
           ]);
           if (titleResult) setPoiTitle(titleResult);
           if (bodyResult) setPoiBody(bodyResult);
+          if (detailResult) setPoiDetail(detailResult);
         }
       } catch {
         setFetchError("Vertalen mislukt. Probeer het opnieuw.");
@@ -230,8 +254,15 @@ function TranslateDialogInner(props: TranslateDialogProps) {
             title: poiTitle,
             body: poiBody,
           });
+          if (poiDetail) {
+            await persistPoiDetailTranslationAction(props.poiId, poiDetail);
+          }
         } else {
-          props.onTranslated?.({ title: poiTitle, body: poiBody });
+          props.onTranslated?.({
+            title: poiTitle,
+            body: poiBody,
+            detail: poiDetail ?? undefined,
+          });
         }
       }
       setOpen(false);
@@ -299,6 +330,18 @@ function TranslateDialogInner(props: TranslateDialogProps) {
                   onChange={setPoiBody}
                 />
               </div>
+              {poiHasDetail && (
+                <div>
+                  <p className="mb-1 text-sm font-semibold text-stone-700">
+                    Detailtekst
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    {poiDetail
+                      ? "Rijke tekst vertaald naar EN/FR/DE."
+                      : "Rijke tekst wordt automatisch meevertaald naar EN/FR/DE."}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

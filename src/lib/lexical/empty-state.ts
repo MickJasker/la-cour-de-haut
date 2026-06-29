@@ -31,3 +31,28 @@ const root: SerializedRootNode = {
 };
 
 export const EMPTY_EDITOR_STATE: SerializedEditorState = { root };
+
+type WalkNode = { type?: string; text?: string; children?: WalkNode[] };
+
+/**
+ * True when the serialized state contains at least one non-whitespace text
+ * node. Used to decide whether a detail field actually has content (an editor
+ * always serializes at least one empty paragraph). Pure walker — no Lexical
+ * runtime, safe to import from client form code.
+ */
+export function hasEditorText(state: SerializedEditorState): boolean {
+  const stack: WalkNode[] = [state.root as WalkNode];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+    if (
+      node.type === "text" &&
+      typeof node.text === "string" &&
+      node.text.trim().length > 0
+    ) {
+      return true;
+    }
+    if (Array.isArray(node.children)) stack.push(...node.children);
+  }
+  return false;
+}

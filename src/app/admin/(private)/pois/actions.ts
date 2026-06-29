@@ -8,15 +8,21 @@ import {
 import { revalidatePath, updateTag } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
-import { poi } from "@/db/schema";
+import {
+  poi,
+  type LocalizedEditorState,
+  type LocalizedSource,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { slugify } from "@/lib/slug";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 import { translateToAllLocales } from "@/lib/translate";
 import {
   poiFormOpts,
   poiFormServerSchema,
   localizedStringSchema,
+  localizedEditorStateSchema,
 } from "./shared";
 
 export type PoiActionState = {
@@ -66,6 +72,36 @@ function inferSource(loc: ReturnType<typeof localizedStringSchema.parse>) {
     ...(loc.en ? { en: "machine" as const } : {}),
     ...(loc.fr ? { fr: "machine" as const } : {}),
     ...(loc.de ? { de: "machine" as const } : {}),
+  };
+}
+
+/**
+ * Parses the JSON-encoded detail field from FormData. Returns null when the
+ * field is absent, malformed, or has no real text content (the editor always
+ * serializes at least one empty paragraph), so empty detail is stored as NULL.
+ */
+function parseDetailField(formData: FormData): LocalizedEditorState | null {
+  const raw = formData.get("detail");
+  if (typeof raw !== "string") return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const result = localizedEditorStateSchema.safeParse(parsed);
+  if (!result.success) return null;
+  const detail = result.data;
+  return hasEditorText(detail.nl) ? detail : null;
+}
+
+/** Source map for a detail field: nl human, present translations machine. */
+function buildDetailSource(detail: LocalizedEditorState): LocalizedSource {
+  return {
+    nl: "human",
+    ...(detail.en ? { en: "machine" as const } : {}),
+    ...(detail.fr ? { fr: "machine" as const } : {}),
+    ...(detail.de ? { de: "machine" as const } : {}),
   };
 }
 
@@ -135,11 +171,15 @@ export async function createPoiAction(
     const englishTitle = title.en ?? (await translateToAllLocales(title.nl)).en;
     const slug = await uniquePoiSlug(db, slugify(englishTitle));
 
+    const detail = parseDetailField(formData);
+
     await db.insert(poi).values({
       id: crypto.randomUUID(),
       slug,
       title: buildLocalized(title),
       body: buildLocalized(body),
+      detail,
+      detailSource: detail ? buildDetailSource(detail) : null,
       titleSource: inferSource(title),
       bodySource: inferSource(body),
       imageUrl: blob.url,
@@ -186,11 +226,14 @@ export async function updatePoiAction(
 
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
+    const detail = parseDetailField(formData);
     await db
       .update(poi)
       .set({
         title: buildLocalized(title),
         body: buildLocalized(body),
+        detail,
+        detailSource: detail ? buildDetailSource(detail) : null,
         titleSource: inferSource(title),
         bodySource: inferSource(body),
         distanceKm: parseDistanceKm(data.distanceKm),
