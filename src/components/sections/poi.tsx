@@ -4,6 +4,7 @@ import { poi } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 
 export async function PoiSection({ locale }: { locale: Locale }) {
@@ -38,31 +39,37 @@ export async function PoiSection({ locale }: { locale: Locale }) {
               data-testid="poi-card"
               className="flex flex-col gap-1"
             >
-              <div className="relative aspect-3/2 rounded-md overflow-hidden">
-                <Image
-                  src={item.imageUrl}
-                  alt={item.title[locale] ?? item.title.nl}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"
-                />
-                {item.distanceKm != null && (
-                  <div
-                    data-testid="poi-distance"
-                    className="absolute bottom-2 left-2 flex items-center backdrop-blur-sm bg-black/10 rounded-full px-3 py-2"
-                  >
-                    <span className="text-white text-[12px] leading-none">
-                      {item.distanceKm} km
-                    </span>
-                  </div>
-                )}
-              </div>
-              <h3 className="text-style-display-small font-bold!">
-                {item.title[locale] ?? item.title.nl}
-              </h3>
-              <p className="text-style-body-medium">
-                {item.body[locale] ?? item.body.nl}
-              </p>
+              <Link
+                href={`/poi/${item.slug}`}
+                className="contents group"
+                aria-label={item.title[locale] ?? item.title.nl}
+              >
+                <div className="relative aspect-3/2 rounded-md overflow-hidden">
+                  <Image
+                    src={item.imageUrl}
+                    alt={item.title[locale] ?? item.title.nl}
+                    fill
+                    className="object-cover transition-transform duration-300 group-hover:scale-105"
+                    sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"
+                  />
+                  {item.distanceKm != null && (
+                    <div
+                      data-testid="poi-distance"
+                      className="absolute bottom-2 left-2 flex items-center backdrop-blur-sm bg-black/10 rounded-full px-3 py-2"
+                    >
+                      <span className="text-white text-[12px] leading-none">
+                        {item.distanceKm} km
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <h3 className="text-style-display-small font-bold! group-hover:underline">
+                  {item.title[locale] ?? item.title.nl}
+                </h3>
+                <p className="text-style-body-medium">
+                  {item.body[locale] ?? item.body.nl}
+                </p>
+              </Link>
             </article>
           ))}
         </div>
