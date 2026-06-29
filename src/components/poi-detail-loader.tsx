@@ -5,9 +5,10 @@ import { PoiDetail } from "@/components/poi-detail";
 
 /**
  * Fetches a published POI by slug and renders its detail, or triggers
- * notFound() for an unknown/unpublished slug. Async server component meant to
- * be wrapped in <Suspense> by each route (the slug-keyed read is request-time
- * data under Cache Components — see ADR-0009).
+ * notFound() for an unknown/unpublished slug. The slug query is "use cache",
+ * and the routes enumerate slugs via generateStaticParams, so this prerenders
+ * to static HTML per slug — no <Suspense> needed (unlike booking, which streams
+ * a request-time read). Shared by the standalone page and the modal intercept.
  */
 export async function PoiDetailLoader({
   slug,

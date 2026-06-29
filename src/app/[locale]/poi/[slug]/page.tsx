@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import { LoaderCircle } from "lucide-react";
 import { locales, type Locale } from "@/i18n/routing";
 import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
@@ -72,15 +70,7 @@ export default async function PoiPage({
         }
       />
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-6">
-        <Suspense
-          fallback={
-            <div className="grid h-96 place-content-center">
-              <LoaderCircle className="size-30 animate-spin stroke-1 text-accent-foreground" />
-            </div>
-          }
-        >
-          <PoiDetailLoader slug={slug} locale={locale as Locale} />
-        </Suspense>
+        <PoiDetailLoader slug={slug} locale={locale as Locale} />
         <div className="h-22" />
       </main>
     </>

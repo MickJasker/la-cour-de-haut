@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-import { LoaderCircle } from "lucide-react";
 import type { Locale } from "@/i18n/routing";
 import { PoiDetailLoader } from "@/components/poi-detail-loader";
 import { getPublishedPoiSlugs } from "@/lib/poi-queries";
@@ -21,15 +19,7 @@ export default async function PoiModalPage({
 
   return (
     <PoiModalClient>
-      <Suspense
-        fallback={
-          <div className="grid h-96 place-content-center">
-            <LoaderCircle className="size-30 animate-spin stroke-1 text-accent-foreground" />
-          </div>
-        }
-      >
-        <PoiDetailLoader slug={slug} locale={locale as Locale} />
-      </Suspense>
+      <PoiDetailLoader slug={slug} locale={locale as Locale} />
     </PoiModalClient>
   );
 }
