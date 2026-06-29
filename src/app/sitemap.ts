@@ -4,9 +4,42 @@ import { getPublishedPoiSlugs } from "@/lib/poi-queries";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
-const PUBLIC_PATHS = ["", "/book", "/privacy"] as const;
+type SitemapEntryOptions = Omit<
+  MetadataRoute.Sitemap[number],
+  "url" | "alternates"
+>;
 
-function entriesForPath(path: string): MetadataRoute.Sitemap {
+const PUBLIC_PATHS = [
+  {
+    path: "",
+    options: {
+      changeFrequency: "weekly",
+      priority: 1,
+    },
+  },
+  {
+    path: "/book",
+    options: {
+      changeFrequency: "hourly",
+      priority: 0.9,
+    },
+  },
+  {
+    path: "/privacy",
+    options: {
+      changeFrequency: "yearly",
+      priority: 0.1,
+    },
+  },
+] as const satisfies Array<{
+  path: string;
+  options?: SitemapEntryOptions;
+}>;
+
+function entriesForPath(
+  path: string,
+  options?: SitemapEntryOptions,
+): MetadataRoute.Sitemap {
   return locales.map((locale) => ({
     url: `${BASE_URL}/${locale}${path}`,
     alternates: {
@@ -15,6 +48,7 @@ function entriesForPath(path: string): MetadataRoute.Sitemap {
         ["x-default", `${BASE_URL}/nl${path}`],
       ]),
     },
+    ...options,
   }));
 }
 
@@ -23,7 +57,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // cached metadata route and refreshes on updateTag("poi").
   const slugs = await getPublishedPoiSlugs();
   return [
-    ...PUBLIC_PATHS.flatMap(entriesForPath),
-    ...slugs.flatMap((slug) => entriesForPath(`/poi/${slug}`)),
+    ...PUBLIC_PATHS.flatMap((p) => entriesForPath(p.path, p.options)),
+    ...slugs.flatMap((slug) =>
+      entriesForPath(`/poi/${slug}`, {
+        changeFrequency: "weekly",
+        priority: 0.8,
+      }),
+    ),
   ];
 }
