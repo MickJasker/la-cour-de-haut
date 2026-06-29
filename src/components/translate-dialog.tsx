@@ -12,18 +12,24 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import type { SerializedEditorState } from "lexical";
 import {
   translateTextAction,
   translateReviewTextAction,
   translateReviewAction,
 } from "@/app/admin/(private)/reviews/actions";
-import { translatePoiAction } from "@/app/admin/(private)/pois/actions";
+import {
+  translatePoiDetailAction,
+  type PoiDetailTranslations,
+} from "@/app/admin/(private)/pois/detail-translate-action";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 
 type Translations = { en: string; fr: string; de: string };
 type ReviewMap = { nl?: string; en?: string; fr?: string; de?: string };
 type PoiTranslations = {
   title: Translations;
   body: Translations;
+  detail?: PoiDetailTranslations;
 };
 
 type ReviewTranslateDialogProps = {
@@ -39,9 +45,9 @@ type ReviewTranslateDialogProps = {
 
 type PoiTranslateDialogProps = {
   mode: "poi";
-  poiId?: string;
   sourceTitleText: string;
   sourceBodyText: string;
+  sourceDetailState?: SerializedEditorState;
   onTranslated?: (translations: PoiTranslations) => void;
 };
 
@@ -167,12 +173,24 @@ function TranslateDialogInner(props: TranslateDialogProps) {
     fr: "",
     de: "",
   });
+  const [poiDetail, setPoiDetail] = useState<PoiDetailTranslations | null>(
+    null,
+  );
+  // Guard: confirming without fetching must not hand empty strings to the form
+  // (which would wipe existing title/body translations on the next save).
+  const [poiFetched, setPoiFetched] = useState(false);
+
+  const poiHasDetail =
+    props.mode === "poi" && props.sourceDetailState
+      ? hasEditorText(props.sourceDetailState)
+      : false;
 
   const canTranslate =
     props.mode === "review" || props.mode === "content"
       ? props.sourceText.trim().length > 0
       : props.sourceTitleText.trim().length > 0 ||
-        props.sourceBodyText.trim().length > 0;
+        props.sourceBodyText.trim().length > 0 ||
+        poiHasDetail;
 
   function handleFetch() {
     setFetchError(null);
@@ -192,12 +210,19 @@ function TranslateDialogInner(props: TranslateDialogProps) {
         } else {
           const hasTitle = props.sourceTitleText.trim().length > 0;
           const hasBody = props.sourceBodyText.trim().length > 0;
-          const [titleResult, bodyResult] = await Promise.all([
+          const detailState = props.sourceDetailState;
+          const hasDetail = detailState ? hasEditorText(detailState) : false;
+          const [titleResult, bodyResult, detailResult] = await Promise.all([
             hasTitle ? translateTextAction(props.sourceTitleText) : null,
             hasBody ? translateTextAction(props.sourceBodyText) : null,
+            hasDetail && detailState
+              ? translatePoiDetailAction(detailState)
+              : null,
           ]);
           if (titleResult) setPoiTitle(titleResult);
           if (bodyResult) setPoiBody(bodyResult);
+          if (detailResult) setPoiDetail(detailResult);
+          if (titleResult || bodyResult || detailResult) setPoiFetched(true);
         }
       } catch {
         setFetchError("Vertalen mislukt. Probeer het opnieuw.");
@@ -225,14 +250,21 @@ function TranslateDialogInner(props: TranslateDialogProps) {
       } else if (props.mode === "content") {
         props.onTranslated?.(reviewTranslations);
       } else {
-        if (props.poiId) {
-          await translatePoiAction(props.poiId, {
-            title: poiTitle,
-            body: poiBody,
-          });
-        } else {
-          props.onTranslated?.({ title: poiTitle, body: poiBody });
+        // Nothing fetched → don't hand empty strings to the form (which would
+        // wipe existing title/body translations on the next save).
+        if (!poiFetched) {
+          setOpen(false);
+          return;
         }
+        // Both create and edit: hand translations to the form; the form's Save
+        // is the single writer (create/updatePoiAction). Avoids the dual-write
+        // bugs where an immediate persist bailed on a not-yet-saved field or a
+        // later form Save overwrote freshly-persisted translations.
+        props.onTranslated?.({
+          title: poiTitle,
+          body: poiBody,
+          detail: poiDetail ?? undefined,
+        });
       }
       setOpen(false);
     });
@@ -299,6 +331,18 @@ function TranslateDialogInner(props: TranslateDialogProps) {
                   onChange={setPoiBody}
                 />
               </div>
+              {poiHasDetail && (
+                <div>
+                  <p className="mb-1 text-sm font-semibold text-stone-700">
+                    Detailtekst
+                  </p>
+                  <p className="text-xs text-stone-500">
+                    {poiDetail
+                      ? "Rijke tekst vertaald naar EN/FR/DE."
+                      : "Rijke tekst wordt automatisch meevertaald naar EN/FR/DE."}
+                  </p>
+                </div>
+              )}
             </>
           )}
         </div>

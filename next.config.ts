@@ -19,7 +19,10 @@ const nextConfig: NextConfig = {
     ],
   },
   reactCompiler: true,
-  serverExternalPackages: ["better-auth", "node-ical"],
+  // `happy-dom` is loaded lazily inside the POI rich-text translation server
+  // action (EditorState <-> HTML bridge); keep it external so Turbopack never
+  // pulls it into the client/prerender graph. See ADR-0015.
+  serverExternalPackages: ["better-auth", "node-ical", "happy-dom"],
   turbopack: {
     // better-auth bundles kysely-adapter SQLite dialects that reference internal
     // kysely exports moved to kysely/migration in 0.29.x. We use drizzleAdapter

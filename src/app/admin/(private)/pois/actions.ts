@@ -8,13 +8,21 @@ import {
 import { revalidatePath, updateTag } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
-import { poi } from "@/db/schema";
+import {
+  poi,
+  type LocalizedEditorState,
+  type LocalizedSource,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
+import { slugify } from "@/lib/slug";
+import { hasEditorText } from "@/lib/lexical/empty-state";
+import { translateToAllLocales } from "@/lib/translate";
 import {
   poiFormOpts,
   poiFormServerSchema,
   localizedStringSchema,
+  localizedEditorStateSchema,
 } from "./shared";
 
 export type PoiActionState = {
@@ -67,6 +75,36 @@ function inferSource(loc: ReturnType<typeof localizedStringSchema.parse>) {
   };
 }
 
+/**
+ * Parses the JSON-encoded detail field from FormData. Returns null when the
+ * field is absent, malformed, or has no real text content (the editor always
+ * serializes at least one empty paragraph), so empty detail is stored as NULL.
+ */
+function parseDetailField(formData: FormData): LocalizedEditorState | null {
+  const raw = formData.get("detail");
+  if (typeof raw !== "string") return null;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return null;
+  }
+  const result = localizedEditorStateSchema.safeParse(parsed);
+  if (!result.success) return null;
+  const detail = result.data;
+  return hasEditorText(detail.nl) ? detail : null;
+}
+
+/** Source map for a detail field: nl human, present translations machine. */
+function buildDetailSource(detail: LocalizedEditorState): LocalizedSource {
+  return {
+    nl: "human",
+    ...(detail.en ? { en: "machine" as const } : {}),
+    ...(detail.fr ? { fr: "machine" as const } : {}),
+    ...(detail.de ? { de: "machine" as const } : {}),
+  };
+}
+
 function parseDistanceKm(raw: string | undefined): number | null {
   if (!raw || raw.trim() === "") return null;
   const n = Number(raw);
@@ -82,6 +120,24 @@ function parseSortOrder(raw: FormDataEntryValue | null): number {
 function invalidate() {
   revalidatePath("/admin/pois");
   updateTag("poi");
+}
+
+/**
+ * Finds a unique slug from a base, appending `-2`, `-3`, … on collision. The
+ * `poi` table is tiny, so fetching every slug once is cheaper than a LIKE query.
+ * Falls back to "poi" when the base is empty (title had no slug-worthy chars).
+ */
+async function uniquePoiSlug(
+  db: ReturnType<typeof getDb>,
+  base: string,
+): Promise<string> {
+  const root = base || "poi";
+  const rows = await db.select({ slug: poi.slug }).from(poi);
+  const taken = new Set(rows.map((r) => r.slug));
+  if (!taken.has(root)) return root;
+  let n = 2;
+  while (taken.has(`${root}-${n}`)) n++;
+  return `${root}-${n}`;
 }
 
 export async function createPoiAction(
@@ -108,10 +164,22 @@ export async function createPoiAction(
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
     const db = getDb();
+
+    // Slug is derived from the English title (reusing the owner's translation
+    // when present, else translating just for this), then deduped. Generated
+    // once here and never changed on edit. See ADR-0015.
+    const englishTitle = title.en ?? (await translateToAllLocales(title.nl)).en;
+    const slug = await uniquePoiSlug(db, slugify(englishTitle));
+
+    const detail = parseDetailField(formData);
+
     await db.insert(poi).values({
       id: crypto.randomUUID(),
+      slug,
       title: buildLocalized(title),
       body: buildLocalized(body),
+      detail,
+      detailSource: detail ? buildDetailSource(detail) : null,
       titleSource: inferSource(title),
       bodySource: inferSource(body),
       imageUrl: blob.url,
@@ -158,11 +226,14 @@ export async function updatePoiAction(
 
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
+    const detail = parseDetailField(formData);
     await db
       .update(poi)
       .set({
         title: buildLocalized(title),
         body: buildLocalized(body),
+        detail,
+        detailSource: detail ? buildDetailSource(detail) : null,
         titleSource: inferSource(title),
         bodySource: inferSource(body),
         distanceKm: parseDistanceKm(data.distanceKm),
@@ -220,33 +291,6 @@ export async function reorderPoisAction(ids: string[]) {
         .where(eq(poi.id, id)),
     ),
   );
-  revalidatePath("/admin/pois");
-  updateTag("poi");
-}
-
-export async function translatePoiAction(
-  id: string,
-  translations: {
-    title: { en: string; fr: string; de: string };
-    body: { en: string; fr: string; de: string };
-  },
-): Promise<void> {
-  await verifySession();
-  const db = getDb();
-  const [row] = await db
-    .select({ title: poi.title, body: poi.body })
-    .from(poi)
-    .where(eq(poi.id, id));
-  if (!row) return;
-  await db
-    .update(poi)
-    .set({
-      title: { ...row.title, ...translations.title },
-      body: { ...row.body, ...translations.body },
-      titleSource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
-      bodySource: { nl: "human", en: "machine", fr: "machine", de: "machine" },
-    })
-    .where(eq(poi.id, id));
   revalidatePath("/admin/pois");
   updateTag("poi");
 }

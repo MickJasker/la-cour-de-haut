@@ -105,35 +105,48 @@ export async function translateToAllLocales(
   text: string,
   sourceLocale = "nl",
 ): Promise<{ en: string; fr: string; de: string }> {
+  return translateAllLocales(text, sourceLocale, "text/plain");
+}
+
+/**
+ * Like `translateToAllLocales` but for HTML: Google preserves inline tags and
+ * translates whole sentences, so bold/links mid-sentence survive. Used by the
+ * POI rich-detail bridge (EditorState -> HTML -> here -> HTML -> EditorState).
+ * See ADR-0015.
+ */
+export async function translateHtmlToAllLocales(
+  html: string,
+  sourceLocale = "nl",
+): Promise<{ en: string; fr: string; de: string }> {
+  return translateAllLocales(html, sourceLocale, "text/html");
+}
+
+async function translateAllLocales(
+  content: string,
+  sourceLocale: string,
+  mimeType: "text/plain" | "text/html",
+): Promise<{ en: string; fr: string; de: string }> {
   if (process.env.E2E_TESTING) {
-    return { en: `${text} [en]`, fr: `${text} [fr]`, de: `${text} [de]` };
+    return {
+      en: `${content} [en]`,
+      fr: `${content} [fr]`,
+      de: `${content} [de]`,
+    };
   }
 
   const { client, parent } = await getTranslationClient();
 
-  const [enResult, frResult, deResult] = await Promise.all([
-    client.translateText({
-      contents: [text],
-      sourceLanguageCode: sourceLocale,
-      targetLanguageCode: "en",
-      mimeType: "text/plain",
-      parent,
-    }),
-    client.translateText({
-      contents: [text],
-      sourceLanguageCode: sourceLocale,
-      targetLanguageCode: "fr",
-      mimeType: "text/plain",
-      parent,
-    }),
-    client.translateText({
-      contents: [text],
-      sourceLanguageCode: sourceLocale,
-      targetLanguageCode: "de",
-      mimeType: "text/plain",
-      parent,
-    }),
-  ]);
+  const [enResult, frResult, deResult] = await Promise.all(
+    (["en", "fr", "de"] as const).map((targetLanguageCode) =>
+      client.translateText({
+        contents: [content],
+        sourceLanguageCode: sourceLocale,
+        targetLanguageCode,
+        mimeType,
+        parent,
+      }),
+    ),
+  );
 
   const en = enResult[0].translations?.[0]?.translatedText;
   const fr = frResult[0].translations?.[0]?.translatedText;
