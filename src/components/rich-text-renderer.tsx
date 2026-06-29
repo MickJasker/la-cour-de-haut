@@ -1,5 +1,6 @@
 import type { SerializedEditorState } from "lexical";
 import React from "react";
+import { isSafeHref } from "@/lib/safe-url";
 
 // ---------------------------------------------------------------------------
 // Tailwind class constants — no import from Lexical theme
@@ -66,21 +67,6 @@ type SerializedNode =
   | SerializedListItem
   | SerializedLink
   | (SerializedBase & { [key: string]: unknown });
-
-// ---------------------------------------------------------------------------
-// Link guard
-// ---------------------------------------------------------------------------
-
-function isSafeHref(url: string): boolean {
-  try {
-    const { protocol } = new URL(url, "https://x.invalid");
-    return (
-      protocol === "http:" || protocol === "https:" || protocol === "mailto:"
-    );
-  } catch {
-    return false;
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Node renderers

@@ -33,6 +33,7 @@ import {
   EDITOR_THEME,
 } from "@/lib/lexical/nodes";
 import type { AllowedHeading } from "@/lib/lexical/nodes";
+import { isSafeHref } from "@/lib/safe-url";
 import {
   Bold,
   Heading2,
@@ -101,6 +102,9 @@ function Toolbar(): React.ReactElement {
   }
 
   function toggleLink(url: string | null) {
+    // Write-time guard: never store an unsafe scheme (defense-in-depth; the
+    // public renderer also strips them). null = remove the link.
+    if (url !== null && !isSafeHref(url)) return;
     // Restore the snapshotted selection first so the command targets the
     // originally-selected text, then toggle the link.
     const saved = savedSelection.current;
@@ -115,6 +119,11 @@ function Toolbar(): React.ReactElement {
     const url = (linkDraft ?? "").trim();
     toggleLink(url.length > 0 ? url : null);
   }
+
+  const linkInvalid =
+    linkDraft !== null &&
+    linkDraft.trim().length > 0 &&
+    !isSafeHref(linkDraft.trim());
 
   return (
     <div className="border-b">
@@ -202,41 +211,50 @@ function Toolbar(): React.ReactElement {
       </div>
 
       {linkDraft !== null && (
-        <div className="flex items-center gap-1 border-t p-1">
-          {/* Select text first, then set its URL here. */}
-          <input
-            autoFocus
-            type="url"
-            inputMode="url"
-            value={linkDraft}
-            onChange={(e) => setLinkDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                applyLink();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                setLinkDraft(null);
-              }
-            }}
-            placeholder="https://voorbeeld.nl"
-            aria-label="Link-URL"
-            className="flex-1 rounded border px-2 py-1 text-sm"
-          />
-          <button
-            type="button"
-            className={`${btnCls} text-sm`}
-            onClick={applyLink}
-          >
-            Toepassen
-          </button>
-          <button
-            type="button"
-            className={`${btnCls} text-sm`}
-            onClick={() => toggleLink(null)}
-          >
-            Verwijderen
-          </button>
+        <div className="border-t p-1">
+          <div className="flex items-center gap-1">
+            {/* Select text first, then set its URL here. */}
+            <input
+              autoFocus
+              type="url"
+              inputMode="url"
+              value={linkDraft}
+              onChange={(e) => setLinkDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  applyLink();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  setLinkDraft(null);
+                }
+              }}
+              placeholder="https://voorbeeld.nl"
+              aria-label="Link-URL"
+              aria-invalid={linkInvalid}
+              className="flex-1 rounded border px-2 py-1 text-sm"
+            />
+            <button
+              type="button"
+              disabled={linkInvalid}
+              className={`${btnCls} text-sm disabled:opacity-50`}
+              onClick={applyLink}
+            >
+              Toepassen
+            </button>
+            <button
+              type="button"
+              className={`${btnCls} text-sm`}
+              onClick={() => toggleLink(null)}
+            >
+              Verwijderen
+            </button>
+          </div>
+          {linkInvalid && (
+            <p className="mt-1 text-xs text-destructive">
+              Alleen http(s)- en mailto-links zijn toegestaan.
+            </p>
+          )}
         </div>
       )}
     </div>
@@ -291,7 +309,7 @@ export function RichTextEditor({
         </div>
         <HistoryPlugin />
         <ListPlugin />
-        <LinkPlugin />
+        <LinkPlugin validateUrl={isSafeHref} />
         <OnChangePlugin
           onChange={(editorState) => onChange(editorState.toJSON())}
         />
