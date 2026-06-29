@@ -176,6 +176,9 @@ function TranslateDialogInner(props: TranslateDialogProps) {
   const [poiDetail, setPoiDetail] = useState<PoiDetailTranslations | null>(
     null,
   );
+  // Guard: confirming without fetching must not hand empty strings to the form
+  // (which would wipe existing title/body translations on the next save).
+  const [poiFetched, setPoiFetched] = useState(false);
 
   const poiHasDetail =
     props.mode === "poi" && props.sourceDetailState
@@ -219,6 +222,7 @@ function TranslateDialogInner(props: TranslateDialogProps) {
           if (titleResult) setPoiTitle(titleResult);
           if (bodyResult) setPoiBody(bodyResult);
           if (detailResult) setPoiDetail(detailResult);
+          if (titleResult || bodyResult || detailResult) setPoiFetched(true);
         }
       } catch {
         setFetchError("Vertalen mislukt. Probeer het opnieuw.");
@@ -246,6 +250,12 @@ function TranslateDialogInner(props: TranslateDialogProps) {
       } else if (props.mode === "content") {
         props.onTranslated?.(reviewTranslations);
       } else {
+        // Nothing fetched → don't hand empty strings to the form (which would
+        // wipe existing title/body translations on the next save).
+        if (!poiFetched) {
+          setOpen(false);
+          return;
+        }
         // Both create and edit: hand translations to the form; the form's Save
         // is the single writer (create/updatePoiAction). Avoids the dual-write
         // bugs where an immediate persist bailed on a not-yet-saved field or a

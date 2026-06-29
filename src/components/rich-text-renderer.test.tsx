@@ -273,6 +273,37 @@ describe("RichTextRenderer", () => {
       expect(html).toContain("<strong><em>");
       expect(html).toContain("BoldItalic");
     });
+
+    it("wraps underline text (format & 8) in <u>", () => {
+      // Cmd+U is reachable in the editor even without a toolbar button.
+      const html = renderToStaticMarkup(
+        <RichTextRenderer
+          state={makeState(paragraphNode(textNode("Underlined", 8)))}
+        />,
+      );
+      expect(html).toContain("<u>");
+      expect(html).toContain("Underlined");
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Line breaks (Shift+Enter inserts a LineBreakNode)
+  // -------------------------------------------------------------------------
+
+  describe("line breaks", () => {
+    it("renders a linebreak node as <br>", () => {
+      const lineBreak = { type: "linebreak", version: 1 } as SerializedNode;
+      const html = renderToStaticMarkup(
+        <RichTextRenderer
+          state={makeState(
+            paragraphNode(textNode("Line 1"), lineBreak, textNode("Line 2")),
+          )}
+        />,
+      );
+      expect(html).toContain("<br");
+      expect(html).toContain("Line 1");
+      expect(html).toContain("Line 2");
+    });
   });
 
   // -------------------------------------------------------------------------

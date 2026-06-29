@@ -74,10 +74,15 @@ type SerializedNode =
 
 function renderText(node: SerializedText, key: number): React.ReactNode {
   const { text, format } = node;
+  // Lexical text-format bitmask: bold=1, italic=2, underline=8. The editor's
+  // default keybindings allow Cmd+U (underline) even without a toolbar button,
+  // so the read path must honor it or that content would silently vanish.
   const bold = (format & 1) !== 0;
   const italic = (format & 2) !== 0;
+  const underline = (format & 8) !== 0;
 
   let content: React.ReactNode = text;
+  if (underline) content = <u key={`u-${key}`}>{content}</u>;
   if (italic) content = <em key={`em-${key}`}>{content}</em>;
   if (bold) content = <strong key={`strong-${key}`}>{content}</strong>;
   return content;
@@ -91,6 +96,10 @@ function renderNode(node: SerializedNode, key: number): React.ReactNode {
   switch (node.type) {
     case "text":
       return renderText(node as SerializedText, key);
+
+    case "linebreak":
+      // Shift+Enter in the editor inserts a LineBreakNode.
+      return <br key={key} />;
 
     case "paragraph":
       return (
@@ -175,8 +184,7 @@ export function RichTextRenderer({
 }: {
   state: SerializedEditorState;
 }): React.ReactElement {
-  const nodes = (state.root.children as SerializedNode[]).map((child, idx) =>
-    renderNode(child, idx),
-  );
+  const children = (state?.root?.children ?? []) as SerializedNode[];
+  const nodes = children.map((child, idx) => renderNode(child, idx));
   return <div className={CLS.container}>{nodes}</div>;
 }

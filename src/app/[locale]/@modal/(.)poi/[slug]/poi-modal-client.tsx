@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { useTranslations } from "@/i18n/provider";
 
 /**
  * Client Dialog wrapper for the intercepted POI route. Forced open; closing
@@ -16,18 +15,21 @@ import { useTranslations } from "@/i18n/provider";
  * booking modal. The server-rendered detail is passed as `children` so this
  * client boundary doesn't need to fetch or render server components itself.
  */
-export function PoiModalClient({ children }: { children: React.ReactNode }) {
+export function PoiModalClient({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   const router = useRouter();
-  const t = useTranslations("sections.poi");
 
   return (
     <Dialog open onOpenChange={(open) => !open && router.back()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="sr-only">{t("title")}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {t("title")}
-          </DialogDescription>
+          <DialogTitle className="sr-only">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{title}</DialogDescription>
         </DialogHeader>
         {children}
       </DialogContent>
