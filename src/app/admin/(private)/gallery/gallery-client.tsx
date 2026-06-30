@@ -37,6 +37,7 @@ import {
   deleteGalleryImageAction,
   reorderGalleryImagesAction,
   saveAltTextAction,
+  type SaveAltTextActionState,
 } from "./actions";
 import type { galleryImage, AltText, LocalizedSource } from "@/db/schema";
 
@@ -55,21 +56,31 @@ function GalleryAltTextDialog({
   const [nl, setNl] = useState(initialAltText?.nl ?? "");
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveFailures, setSaveFailures] =
+    useState<SaveAltTextActionState["failures"]>(undefined);
 
   // Reset nl to the latest server value when the dialog opens (avoids stale
   // state after a background RSC re-render updates initialAltText).
   const [prevOpen, setPrevOpen] = useState(open);
   if (prevOpen !== open) {
     setPrevOpen(open);
-    if (open) setNl(initialAltText?.nl ?? "");
+    if (open) {
+      setNl(initialAltText?.nl ?? "");
+      setSaveFailures(undefined);
+    }
   }
 
   function handleSave() {
     setSaveError(null);
     startTransition(async () => {
       try {
-        await saveAltTextAction(imageId, nl);
-        setOpen(false);
+        const result = await saveAltTextAction(imageId, nl);
+        setSaveFailures(result.failures);
+        // Keep the dialog open when translation failed so the owner can see
+        // the warning below — otherwise it would close before being visible.
+        if (!result.failures?.length) {
+          setOpen(false);
+        }
       } catch {
         setSaveError("Opslaan mislukt. Probeer het opnieuw.");
       }
@@ -104,6 +115,12 @@ function GalleryAltTextDialog({
           />
           <LocaleStatus source={sourceForStatus} />
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+          {saveFailures?.length ? (
+            <p className="text-sm text-amber-700">
+              Vertaling naar {saveFailures.join(", ")} is mislukt — opnieuw
+              geprobeerd bij volgende opslag.
+            </p>
+          ) : null}
           <Button onClick={handleSave} disabled={isPending || nl.trim() === ""}>
             {isPending ? "Opslaan en vertalen…" : "Opslaan"}
           </Button>

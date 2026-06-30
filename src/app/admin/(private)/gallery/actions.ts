@@ -52,7 +52,14 @@ export async function deleteGalleryImageAction(id: string) {
   updateTag("gallery");
 }
 
-export async function saveAltTextAction(id: string, nl: string): Promise<void> {
+export type SaveAltTextActionState = {
+  failures?: string[];
+};
+
+export async function saveAltTextAction(
+  id: string,
+  nl: string,
+): Promise<SaveAltTextActionState> {
   await verifySession();
   const db = getDb();
 
@@ -77,6 +84,8 @@ export async function saveAltTextAction(id: string, nl: string): Promise<void> {
 
   revalidatePath("/admin/gallery");
   updateTag("gallery");
+
+  return { failures: result.failures.length ? result.failures : undefined };
 }
 
 export async function reorderGalleryImagesAction(ids: string[]) {

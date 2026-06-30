@@ -1,6 +1,12 @@
 const DISPLAY_LOCALES = ["nl", "en", "fr", "de"] as const;
 type DisplayLocale = (typeof DISPLAY_LOCALES)[number];
 
+function isFulfilled<V>(
+  result: PromiseSettledResult<V>,
+): result is PromiseFulfilledResult<V> {
+  return result.status === "fulfilled";
+}
+
 export type ReviewTranslationResult = {
   detectedSource: string;
   translations: Partial<Record<DisplayLocale, string>>;
@@ -41,9 +47,9 @@ async function getTranslationClient() {
 
 /**
  * Source-aware translation for quoted content (reviews). Unlike
- * `translateToAllLocales` (authored content, always Dutch→EN/FR/DE), this
- * translates outward from an arbitrary original locale and never produces a
- * machine self-translation of the source slot. See ADR-0014.
+ * `translateText` (authored content, always Dutch→target), this translates
+ * outward from an arbitrary original locale and never produces a machine
+ * self-translation of the source slot. See ADR-0014.
  */
 export async function translateReviewBody(
   text: string,
@@ -65,7 +71,10 @@ export async function translateReviewBody(
 
   const { client, parent } = await getTranslationClient();
 
-  const results = await Promise.all(
+  // allSettled so a single locale's Google failure does not lose the others —
+  // the owner must not lose ALL review translations because one locale call
+  // rejected (see ADR-0016 "failures degrade, never block").
+  const results = await Promise.allSettled(
     targets.map((targetLanguageCode) =>
       client.translateText({
         contents: [text],
@@ -77,10 +86,17 @@ export async function translateReviewBody(
     ),
   );
 
+  const firstFulfilled = results.find(isFulfilled);
+
   let detectedSource = sourceLocale;
   if (isAutoDetect) {
+    if (!firstFulfilled) {
+      throw new Error(
+        "Google Translate failed for every target locale; cannot detect source language",
+      );
+    }
     const raw =
-      results[0]?.[0].translations?.[0]?.detectedLanguageCode ?? "und";
+      firstFulfilled.value[0].translations?.[0]?.detectedLanguageCode ?? "und";
     detectedSource = raw.split("-")[0].toLowerCase();
   }
 
@@ -89,81 +105,21 @@ export async function translateReviewBody(
     // When auto-detection resolves to one of the four, that slot is the source
     // (seeded verbatim from original_body) — never a machine self-translation.
     if (isAutoDetect && locale === detectedSource) return;
-    const translated = results[i][0].translations?.[0]?.translatedText;
-    if (!translated) {
-      throw new Error(
-        "Google Translate returned an empty translation response",
-      );
-    }
+    const result = results[i];
+    if (result.status === "rejected") return;
+    const translated = result.value[0].translations?.[0]?.translatedText;
+    if (!translated) return;
     translations[locale] = translated;
   });
 
   return { detectedSource, translations };
 }
 
-export async function translateToAllLocales(
-  text: string,
-  sourceLocale = "nl",
-): Promise<{ en: string; fr: string; de: string }> {
-  return translateAllLocales(text, sourceLocale, "text/plain");
-}
-
-/**
- * Like `translateToAllLocales` but for HTML: Google preserves inline tags and
- * translates whole sentences, so bold/links mid-sentence survive. Used by the
- * POI rich-detail bridge (EditorState -> HTML -> here -> HTML -> EditorState).
- * See ADR-0015.
- */
-export async function translateHtmlToAllLocales(
-  html: string,
-  sourceLocale = "nl",
-): Promise<{ en: string; fr: string; de: string }> {
-  return translateAllLocales(html, sourceLocale, "text/html");
-}
-
-async function translateAllLocales(
-  content: string,
-  sourceLocale: string,
-  mimeType: "text/plain" | "text/html",
-): Promise<{ en: string; fr: string; de: string }> {
-  if (process.env.E2E_TESTING) {
-    return {
-      en: `${content} [en]`,
-      fr: `${content} [fr]`,
-      de: `${content} [de]`,
-    };
-  }
-
-  const { client, parent } = await getTranslationClient();
-
-  const [enResult, frResult, deResult] = await Promise.all(
-    (["en", "fr", "de"] as const).map((targetLanguageCode) =>
-      client.translateText({
-        contents: [content],
-        sourceLanguageCode: sourceLocale,
-        targetLanguageCode,
-        mimeType,
-        parent,
-      }),
-    ),
-  );
-
-  const en = enResult[0].translations?.[0]?.translatedText;
-  const fr = frResult[0].translations?.[0]?.translatedText;
-  const de = deResult[0].translations?.[0]?.translatedText;
-
-  if (!en || !fr || !de) {
-    throw new Error("Google Translate returned an empty translation response");
-  }
-
-  return { en, fr, de };
-}
-
 /**
  * Translates a single string into one target locale. Used by the auto-translate
  * save actions (ADR-0016) which need per-locale control (allSettled fan-out,
- * gap-fill, failure isolation). Unlike `translateToAllLocales` / `translateHtmlToAllLocales`
- * this returns only the requested target so callers can compose the fan-out themselves.
+ * gap-fill, failure isolation) — callers compose the fan-out themselves by
+ * calling this once per target locale.
  */
 export async function translateText(
   text: string,

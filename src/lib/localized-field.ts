@@ -64,7 +64,12 @@ export async function resolveAuthoredField<T>(input: {
     // Source unchanged: only gap-fill locales that are missing or empty.
     targetsToTranslate = TARGET_LOCALES.filter((t) => isEmpty(stored![t]));
 
-    // Copy existing present targets straight through.
+    // Copy existing present targets straight through. Stamped "machine"
+    // unconditionally — under ADR-0016 every target locale IS machine, full
+    // stop (human-edit protection was removed), and this seam is handed only
+    // the stored VALUE (`Localized<T>`), never a stored source map, so it has
+    // no provenance to preserve even for a pre-ADR-0016 legacy "human" value
+    // passing through unchanged. This is intentional, not a lost distinction.
     for (const t of TARGET_LOCALES) {
       if (!targetsToTranslate.includes(t)) {
         const storedVal = stored![t];

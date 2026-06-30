@@ -27,6 +27,7 @@ export type PoiActionState = {
   errorMap: { onServer?: unknown };
   values: unknown;
   errors: unknown[];
+  failures?: string[];
 };
 
 const serverValidate = createServerValidate({
@@ -89,6 +90,11 @@ function parseSortOrder(raw: FormDataEntryValue | null): number {
 function invalidate() {
   revalidatePath("/admin/pois");
   updateTag("poi");
+}
+
+/** Deduped union of the failure lists returned by the translation seam. */
+function unionFailures(...lists: string[][]): string[] {
+  return Array.from(new Set(lists.flat()));
 }
 
 /**
@@ -166,7 +172,16 @@ export async function createPoiAction(
     });
 
     invalidate();
-    return { ...initialFormState, success: true };
+    const failures = unionFailures(
+      titleRes.failures,
+      bodyRes.failures,
+      detailRes?.failures ?? [],
+    );
+    return {
+      ...initialFormState,
+      success: true,
+      failures: failures.length ? failures : undefined,
+    };
   } catch (e) {
     if (e instanceof ServerValidateError) {
       return { ...e.formState, success: false };
@@ -236,7 +251,16 @@ export async function updatePoiAction(
       .where(eq(poi.id, id));
 
     invalidate();
-    return { ...initialFormState, success: true };
+    const failures = unionFailures(
+      titleRes.failures,
+      bodyRes.failures,
+      detailRes?.failures ?? [],
+    );
+    return {
+      ...initialFormState,
+      success: true,
+      failures: failures.length ? failures : undefined,
+    };
   } catch (e) {
     if (e instanceof ServerValidateError) {
       return { ...e.formState, success: false };

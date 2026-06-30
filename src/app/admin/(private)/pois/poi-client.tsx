@@ -123,8 +123,10 @@ function PoiForm({
   });
 
   useEffect(() => {
-    if (state.success) onSavedRef.current();
-  }, [state.success]);
+    // Skip the reset/exit-edit-mode when translation partially failed, so the
+    // warning below stays visible instead of unmounting with the form.
+    if (state.success && !state.failures?.length) onSavedRef.current();
+  }, [state.success, state.failures]);
 
   const inputCls =
     "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -259,6 +261,13 @@ function PoiForm({
           </form.Field>
         </FieldSet>
       </FieldGroup>
+
+      {state.failures?.length ? (
+        <p className="text-sm text-amber-700">
+          Vertaling naar {state.failures.join(", ")} is mislukt — opnieuw
+          geprobeerd bij volgende opslag.
+        </p>
+      ) : null}
 
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>

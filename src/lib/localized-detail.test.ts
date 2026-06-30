@@ -11,6 +11,28 @@ import { hasEditorText, EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
 import { htmlToEditorState } from "@/lib/lexical/bridge";
 import { resolveLocalizedDetail } from "@/lib/localized-detail";
 
+/**
+ * Deep-clones `value`, reversing every plain object's key order at every
+ * level (array order is left alone). Simulates a Postgres `jsonb` round-trip:
+ * Postgres canonicalizes object key order on read-back, while a value fresh
+ * out of the Lexical editor keeps the editor's own serialization order. Two
+ * states that differ only by this reordering must compare as equal.
+ */
+function shuffleKeys<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => shuffleKeys(item)) as unknown as T;
+  }
+  if (value !== null && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>).reverse();
+    const result: Record<string, unknown> = {};
+    for (const [key, v] of entries) {
+      result[key] = shuffleKeys(v);
+    }
+    return result as unknown as T;
+  }
+  return value;
+}
+
 describe("resolveLocalizedDetail", () => {
   beforeAll(() => {
     process.env.E2E_TESTING = "1";
@@ -98,5 +120,35 @@ describe("resolveLocalizedDetail", () => {
     // The new translation is different from the old stored en (stub includes "Nieuw").
     expect(result.value.en).not.toBe(oldEn);
     expect(result.source.en).toBe("machine");
+  });
+
+  it("regression: treats source as unchanged when stored differs only by jsonb key order", async () => {
+    // Same content as `source` below, but freshly built so the test doesn't
+    // rely on object-reference reuse (which would trivially pass without
+    // exercising the comparison logic at all).
+    const source = await htmlToEditorState("<p>Ongewijzigd.</p>");
+    const enState = await htmlToEditorState("<p>Unchanged. [en]</p>");
+    const frState = await htmlToEditorState("<p>Inchangé. [fr]</p>");
+    const deState = await htmlToEditorState("<p>Unverändert. [de]</p>");
+
+    // Simulate the jsonb round-trip on every stored slot, including `nl`
+    // (the source-comparison slot) — Postgres canonicalizes key order on
+    // read-back for all jsonb columns, not just the targets.
+    const stored = {
+      nl: shuffleKeys(source),
+      en: shuffleKeys(enState),
+      fr: shuffleKeys(frState),
+      de: shuffleKeys(deState),
+    };
+
+    const result = await resolveLocalizedDetail(source, stored);
+
+    // Source treated as UNCHANGED despite the key-order difference, so every
+    // target is passed straight through from `stored` (no re-translation —
+    // a re-translation would produce a brand-new object, breaking `toBe`).
+    expect(result.value.en).toBe(stored.en);
+    expect(result.value.fr).toBe(stored.fr);
+    expect(result.value.de).toBe(stored.de);
+    expect(result.failures).toHaveLength(0);
   });
 });
