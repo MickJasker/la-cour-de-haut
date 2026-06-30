@@ -12,12 +12,14 @@ import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { contentFormOpts, contentFormServerSchema } from "./shared";
+import { resolveLocalizedText } from "@/lib/localized-field";
 
 export type ContentActionState = {
   success: boolean;
   errorMap: { onServer?: unknown };
   values: unknown;
   errors: unknown[];
+  failures?: string[];
 };
 
 const serverValidate = createServerValidate({
@@ -38,50 +40,46 @@ function invalidate() {
 async function upsertLocalizedText(
   key: string,
   nl: string,
-  en: string,
-  fr: string,
-  de: string,
-  sources: {
-    en?: "human" | "machine";
-    fr?: "human" | "machine";
-    de?: "human" | "machine";
-  } = {},
-) {
+): Promise<{ failures: string[] }> {
+  const db = getDb();
+
+  // Load existing row to enable dirty-check and gap-fill (ADR-0016).
+  const existing = await db
+    .select({ value: contentBlock.value })
+    .from(contentBlock)
+    .where(eq(contentBlock.key, key))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+
+  const stored =
+    existing?.value?.type === "localizedText"
+      ? {
+          nl: existing.value.nl,
+          en: existing.value.en,
+          fr: existing.value.fr,
+          de: existing.value.de,
+        }
+      : undefined;
+
+  const result = await resolveLocalizedText(nl, stored);
+
   const value = {
     type: "localizedText" as const,
-    nl,
-    ...(en ? { en } : {}),
-    ...(fr ? { fr } : {}),
-    ...(de ? { de } : {}),
+    nl: result.value.nl,
+    ...(result.value.en ? { en: result.value.en } : {}),
+    ...(result.value.fr ? { fr: result.value.fr } : {}),
+    ...(result.value.de ? { de: result.value.de } : {}),
   };
-  const valueSource = {
-    nl: "human" as const,
-    ...(en ? { en: sources.en ?? "human" } : {}),
-    ...(fr ? { fr: sources.fr ?? "human" } : {}),
-    ...(de ? { de: sources.de ?? "human" } : {}),
-  };
-  const db = getDb();
+
   await db
     .insert(contentBlock)
-    .values({ key, value, valueSource })
+    .values({ key, value, valueSource: result.source })
     .onConflictDoUpdate({
       target: contentBlock.key,
-      set: { value, valueSource, updatedAt: new Date() },
+      set: { value, valueSource: result.source, updatedAt: new Date() },
     });
-}
 
-function readSources(formData: FormData) {
-  const raw = (k: string) => formData.get(k);
-  // The client sends "machine" for auto-translated locales and "human" for
-  // manually edited ones. Any other value (missing field, null) is treated as
-  // "human" — the conservative default for data we don't know the origin of.
-  const toSource = (v: FormDataEntryValue | null) =>
-    v === "machine" ? ("machine" as const) : ("human" as const);
-  return {
-    en: toSource(raw("enSource")),
-    fr: toSource(raw("frSource")),
-    de: toSource(raw("deSource")),
-  };
+  return { failures: result.failures };
 }
 
 export async function updateDescriptionAction(
@@ -91,16 +89,13 @@ export async function updateDescriptionAction(
   await verifySession();
   try {
     const data = await serverValidate(formData);
-    await upsertLocalizedText(
-      "description",
-      data.nl,
-      data.en ?? "",
-      data.fr ?? "",
-      data.de ?? "",
-      readSources(formData),
-    );
+    const { failures } = await upsertLocalizedText("description", data.nl);
     invalidate();
-    return { ...initialFormState, success: true };
+    return {
+      ...initialFormState,
+      success: true,
+      failures: failures.length ? failures : undefined,
+    };
   } catch (e) {
     if (e instanceof ServerValidateError) {
       return { ...e.formState, success: false };
@@ -116,16 +111,13 @@ export async function updateHeroDescriptionAction(
   await verifySession();
   try {
     const data = await serverValidate(formData);
-    await upsertLocalizedText(
-      "hero_description",
-      data.nl,
-      data.en ?? "",
-      data.fr ?? "",
-      data.de ?? "",
-      readSources(formData),
-    );
+    const { failures } = await upsertLocalizedText("hero_description", data.nl);
     invalidate();
-    return { ...initialFormState, success: true };
+    return {
+      ...initialFormState,
+      success: true,
+      failures: failures.length ? failures : undefined,
+    };
   } catch (e) {
     if (e instanceof ServerValidateError) {
       return { ...e.formState, success: false };

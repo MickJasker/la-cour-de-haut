@@ -9,7 +9,7 @@ vi.mock("@google-cloud/translate", () => ({
 }));
 
 // Import after mock is registered
-const { translateToAllLocales, translateReviewBody } =
+const { translateToAllLocales, translateReviewBody, translateText } =
   await import("./translate");
 
 describe("translateToAllLocales", () => {
@@ -182,6 +182,75 @@ describe("translateReviewBody", () => {
         fr: "Lovely [fr]",
         de: "Lovely [de]",
       });
+      expect(mockTranslateText).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.E2E_TESTING;
+    }
+  });
+});
+
+describe("translateText", () => {
+  const fakeCreds = {
+    project_id: "my-gcp-project",
+    client_email: "sa@my-gcp-project.iam.gserviceaccount.com",
+    private_key:
+      "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
+  };
+
+  beforeEach(() => {
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify(fakeCreds);
+    mockTranslateText.mockClear();
+  });
+
+  afterEach(() => {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  });
+
+  it("calls GCloud with correct params and returns the translated string", async () => {
+    mockTranslateText.mockResolvedValueOnce([
+      { translations: [{ translatedText: "Hello world" }] },
+    ]);
+
+    const result = await translateText("Hallo wereld", "en");
+
+    expect(result).toBe("Hello world");
+    expect(mockTranslateText).toHaveBeenCalledTimes(1);
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: ["Hallo wereld"],
+        sourceLanguageCode: "nl",
+        targetLanguageCode: "en",
+        mimeType: "text/plain",
+        parent: "projects/my-gcp-project/locations/global",
+      }),
+    );
+  });
+
+  it("respects opts.sourceLocale and opts.mimeType overrides", async () => {
+    mockTranslateText.mockResolvedValueOnce([
+      { translations: [{ translatedText: "<p>Bonjour</p>" }] },
+    ]);
+
+    const result = await translateText("Hello", "fr", {
+      sourceLocale: "en",
+      mimeType: "text/html",
+    });
+
+    expect(result).toBe("<p>Bonjour</p>");
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLanguageCode: "en",
+        targetLanguageCode: "fr",
+        mimeType: "text/html",
+      }),
+    );
+  });
+
+  it("returns deterministic stub under E2E without calling Google", async () => {
+    process.env.E2E_TESTING = "1";
+    try {
+      const result = await translateText("x", "en");
+      expect(result).toBe("x [en]");
       expect(mockTranslateText).not.toHaveBeenCalled();
     } finally {
       delete process.env.E2E_TESTING;

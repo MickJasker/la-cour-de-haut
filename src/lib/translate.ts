@@ -158,3 +158,39 @@ async function translateAllLocales(
 
   return { en, fr, de };
 }
+
+/**
+ * Translates a single string into one target locale. Used by the auto-translate
+ * save actions (ADR-0016) which need per-locale control (allSettled fan-out,
+ * gap-fill, failure isolation). Unlike `translateToAllLocales` / `translateHtmlToAllLocales`
+ * this returns only the requested target so callers can compose the fan-out themselves.
+ */
+export async function translateText(
+  text: string,
+  target: "en" | "fr" | "de",
+  opts?: { sourceLocale?: string; mimeType?: "text/plain" | "text/html" },
+): Promise<string> {
+  const sourceLocale = opts?.sourceLocale ?? "nl";
+  const mimeType = opts?.mimeType ?? "text/plain";
+
+  if (process.env.E2E_TESTING) {
+    return `${text} [${target}]`;
+  }
+
+  const { client, parent } = await getTranslationClient();
+
+  const result = await client.translateText({
+    contents: [text],
+    sourceLanguageCode: sourceLocale,
+    targetLanguageCode: target,
+    mimeType,
+    parent,
+  });
+
+  const translated = result[0].translations?.[0]?.translatedText;
+  if (!translated) {
+    throw new Error("Google Translate returned an empty translation response");
+  }
+
+  return translated;
+}

@@ -11,7 +11,7 @@ import { useActionState, useState, startTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
-import { TranslateDialog } from "@/components/translate-dialog";
+import { LocaleStatus } from "@/components/locale-status";
 import { ImageDropzone } from "../image-dropzone";
 import {
   updateDescriptionAction,
@@ -46,12 +46,6 @@ function LocalizedTextForm({
     ...contentFormOpts,
     defaultValues: {
       nl: initialValue?.nl ?? "",
-      en: initialValue?.en ?? "",
-      fr: initialValue?.fr ?? "",
-      de: initialValue?.de ?? "",
-      enSource: (initialValueSource?.en ?? null) as "human" | "machine" | null,
-      frSource: (initialValueSource?.fr ?? null) as "human" | "machine" | null,
-      deSource: (initialValueSource?.de ?? null) as "human" | "machine" | null,
     },
     validators: { onDynamic: contentFormClientSchema },
     validationLogic: revalidateLogic({
@@ -66,12 +60,6 @@ function LocalizedTextForm({
     onSubmit: ({ value }) => {
       const fd = new FormData();
       fd.set("nl", value.nl);
-      fd.set("en", value.en ?? "");
-      fd.set("fr", value.fr ?? "");
-      fd.set("de", value.de ?? "");
-      fd.set("enSource", value.enSource ?? "machine");
-      fd.set("frSource", value.frSource ?? "machine");
-      fd.set("deSource", value.deSource ?? "machine");
       startTransition(() => formAction(fd));
     },
   });
@@ -105,54 +93,23 @@ function LocalizedTextForm({
             )}
           </form.Field>
         </FieldSet>
-
-        <FieldSet>
-          <form.Subscribe
-            selector={(s) => ({
-              nl: s.values.nl,
-              en: s.values.en,
-              fr: s.values.fr,
-              de: s.values.de,
-            })}
-          >
-            {({ nl, en, fr, de }) => (
-              <TranslateDialog
-                mode="content"
-                sourceText={nl}
-                initialTranslations={{ en, fr, de }}
-                onTranslated={(t) => {
-                  if (form.getFieldValue("enSource") !== "human") {
-                    form.setFieldValue("en", t.en);
-                    form.setFieldValue("enSource", "machine");
-                  }
-                  if (form.getFieldValue("frSource") !== "human") {
-                    form.setFieldValue("fr", t.fr);
-                    form.setFieldValue("frSource", "machine");
-                  }
-                  if (form.getFieldValue("deSource") !== "human") {
-                    form.setFieldValue("de", t.de);
-                    form.setFieldValue("deSource", "machine");
-                  }
-                }}
-                onLocaleEdited={(locale) => {
-                  if (locale === "en") form.setFieldValue("enSource", "human");
-                  else if (locale === "fr")
-                    form.setFieldValue("frSource", "human");
-                  else if (locale === "de")
-                    form.setFieldValue("deSource", "human");
-                }}
-              />
-            )}
-          </form.Subscribe>
-        </FieldSet>
       </FieldGroup>
+
+      <LocaleStatus source={initialValueSource ?? { nl: "human" }} />
 
       {typeof state.errorMap?.onServer === "string" && (
         <p className="text-destructive text-sm">{state.errorMap.onServer}</p>
       )}
 
+      {state.failures?.length ? (
+        <p className="text-sm text-amber-700">
+          Vertaling naar {state.failures.join(", ")} is mislukt — opnieuw
+          geprobeerd bij volgende opslag.
+        </p>
+      ) : null}
+
       <Button type="submit" disabled={isPending}>
-        {isPending ? "Opslaan…" : "Opslaan"}
+        {isPending ? "Opslaan en vertalen…" : "Opslaan"}
       </Button>
     </form>
   );
