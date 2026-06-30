@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { expandInterval, hasConflict } from "./availability-utils";
+import {
+  expandInterval,
+  hasConflict,
+  isActiveDirectBooking,
+} from "./availability-utils";
 import type { BusyInterval } from "@/db/schema";
 
 function expandIntervals(intervals: BusyInterval[]): string[] {
@@ -111,5 +115,55 @@ describe("expandInterval", () => {
     expect(
       expandIntervals([{ start: "2025-07-10", end: "2025-07-10" }]),
     ).toEqual([]);
+  });
+});
+
+describe("isActiveDirectBooking — busy-intervals consumes the shared isExpiredHold predicate", () => {
+  const TODAY = "2026-06-30";
+  const YESTERDAY = "2026-06-29";
+
+  it("a confirmed booking always counts as active, regardless of deadline", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "confirmed", paymentDeadline: YESTERDAY },
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
+  it("an on_hold booking with deadline yesterday is no longer active (expired)", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "on_hold", paymentDeadline: YESTERDAY },
+        TODAY,
+      ),
+    ).toBe(false);
+  });
+
+  it("an on_hold booking with deadline exactly today is still active (boundary)", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "on_hold", paymentDeadline: TODAY },
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
+  it("an on_hold booking with no deadline yet is still active", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "on_hold", paymentDeadline: null },
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
+  it("a requested booking never counts as active (doesn't block dates yet)", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "requested", paymentDeadline: null },
+        TODAY,
+      ),
+    ).toBe(false);
   });
 });

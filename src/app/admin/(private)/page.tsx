@@ -158,6 +158,12 @@ export default async function AdminPage() {
   const today = new Date().toISOString().slice(0, 10);
   const db = getDb();
 
+  // Deliberately broader than "active" (on_hold-non-expired or confirmed,
+  // per ADR-0004): expired holds must still be fetched so computeDashboard
+  // can surface them as an overdue guest action. computeDashboard is the
+  // single place that applies the shared isExpiredHold predicate to decide
+  // what counts as active/upcoming vs. overdue — this query only excludes
+  // the terminal statuses that can never need a guest action.
   const [bookings, sources] = await Promise.all([
     db
       .select()

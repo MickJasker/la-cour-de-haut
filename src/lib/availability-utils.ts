@@ -1,4 +1,21 @@
 import type { BusyInterval } from "@/db/schema";
+import { isExpiredHold } from "./booking-machine";
+
+/**
+ * A direct booking blocks dates while it's confirmed, or on_hold and not yet
+ * past its payment deadline (ADR-0004). Built on the shared `isExpiredHold`
+ * predicate so the busy-intervals query can't drift from display status or
+ * dashboard categorisation.
+ */
+export function isActiveDirectBooking(
+  booking: { status: string; paymentDeadline: string | null },
+  today: string,
+): boolean {
+  return (
+    booking.status === "confirmed" ||
+    (booking.status === "on_hold" && !isExpiredHold(booking, today))
+  );
+}
 
 /**
  * Returns true if [start, end) overlaps any interval in the list.

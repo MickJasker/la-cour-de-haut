@@ -72,15 +72,32 @@ export function canTransition(
   return Boolean(TRANSITIONS[status]?.[action]);
 }
 
-export function toDisplayStatus(row: {
-  status: DbBookingStatus;
-  paymentDeadline: string | null;
-}): DisplayStatus {
-  if (
-    row.status === "on_hold" &&
-    row.paymentDeadline !== null &&
-    row.paymentDeadline < new Date().toISOString().slice(0, 10)
-  ) {
+/**
+ * ADR-0004: an on_hold booking is expired once its payment deadline has
+ * passed. This is the single predicate for hold expiry — every surface that
+ * needs to know whether a hold still blocks dates (busy-interval queries,
+ * display status, dashboard categorisation) calls this instead of
+ * re-deriving the date comparison itself.
+ *
+ * `today` defaults to the real current date; tests should pass a fixed
+ * value to make the boundary deterministic.
+ */
+export function isExpiredHold(
+  booking: { status: string; paymentDeadline: string | null },
+  today: string = new Date().toISOString().slice(0, 10),
+): boolean {
+  return (
+    booking.status === "on_hold" &&
+    booking.paymentDeadline !== null &&
+    booking.paymentDeadline < today
+  );
+}
+
+export function toDisplayStatus(
+  row: { status: DbBookingStatus; paymentDeadline: string | null },
+  today?: string,
+): DisplayStatus {
+  if (isExpiredHold(row, today)) {
     return "expired";
   }
   return row.status;

@@ -245,3 +245,55 @@ describe("computeDashboard — overdue payments", () => {
     expect(result.overdue).toHaveLength(0);
   });
 });
+
+describe("computeDashboard — admin dashboard never treats an expired hold as active/upcoming", () => {
+  it("an expired on_hold booking with a future startDate is overdue, not upcoming or approaching", () => {
+    // Mirrors what the admin dashboard's query fetches: every non-declined/
+    // cancelled booking, including holds whose payment deadline has already
+    // passed. The shared isExpiredHold predicate (consumed via `overdue`)
+    // must keep it out of `upcoming` and `approaching`.
+    const expiredHold = booking({
+      id: "expired-1",
+      status: "on_hold",
+      paymentDeadline: "2026-06-20", // well before TODAY
+      startDate: "2026-08-01", // still in the future — must not leak into upcoming
+      endDate: "2026-08-08",
+    });
+
+    const result = computeDashboard([expiredHold], [], TODAY);
+
+    expect(result.overdue).toHaveLength(1);
+    expect(result.overdue[0].id).toBe("expired-1");
+    expect(result.approaching).toHaveLength(0);
+    expect(result.upcoming).toHaveLength(0);
+  });
+
+  it("categorises a mixed batch (requested, expired hold, live hold, confirmed) consistently", () => {
+    const bookings = [
+      booking({ id: "req", status: "requested" }),
+      booking({
+        id: "expired",
+        status: "on_hold",
+        paymentDeadline: "2026-06-01",
+      }),
+      booking({
+        id: "live-hold",
+        status: "on_hold",
+        paymentDeadline: "2026-07-01",
+      }),
+      booking({
+        id: "confirmed",
+        status: "confirmed",
+        startDate: "2026-07-15",
+      }),
+    ];
+
+    const result = computeDashboard(bookings, [], TODAY);
+
+    expect(result.newRequests.map((b) => b.id)).toEqual(["req"]);
+    expect(result.overdue.map((b) => b.id)).toEqual(["expired"]);
+    expect(result.approaching).toHaveLength(0);
+    expect(result.upcoming).toHaveLength(1);
+    expect(asBooking(result.upcoming[0]).name).toBe("Test Guest");
+  });
+});
