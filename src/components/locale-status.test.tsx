@@ -8,7 +8,7 @@ import { LocaleStatus } from "./locale-status";
 
 describe("LocaleStatus", () => {
   describe("all locales present", () => {
-    it("shows the translated glyph (✓) and aria-label for every locale", () => {
+    it("shows the translated checkmark icon and aria-label for every locale", () => {
       const html = renderToStaticMarkup(
         <LocaleStatus
           source={{ nl: "human", en: "machine", fr: "machine", de: "machine" }}
@@ -20,9 +20,9 @@ describe("LocaleStatus", () => {
       expect(html).toContain('aria-label="Frans: vertaald"');
       expect(html).toContain('aria-label="Duits: vertaald"');
 
-      // Four ✓ glyphs, no ⚠
-      expect(html.split("✓").length - 1).toBe(4);
-      expect(html).not.toContain("⚠");
+      // Four check icons, no warning icon
+      expect(html.split("lucide-check").length - 1).toBe(4);
+      expect(html).not.toContain("lucide-triangle-alert");
     });
   });
 
@@ -31,22 +31,22 @@ describe("LocaleStatus", () => {
   // -------------------------------------------------------------------------
 
   describe("one locale missing", () => {
-    it("shows ⚠ and 'ontbreekt' for the missing locale; ✓ and 'vertaald' for the rest", () => {
+    it("shows the warning icon and 'ontbreekt' for the missing locale; checkmark and 'vertaald' for the rest", () => {
       const html = renderToStaticMarkup(
         <LocaleStatus source={{ nl: "human", en: "machine", de: "machine" }} />,
       );
 
       // fr is absent
       expect(html).toContain('aria-label="Frans: ontbreekt"');
-      expect(html).toContain("⚠");
+      expect(html).toContain("lucide-triangle-alert");
 
       // The other three are still translated
       expect(html).toContain('aria-label="Nederlands: vertaald"');
       expect(html).toContain('aria-label="Engels: vertaald"');
       expect(html).toContain('aria-label="Duits: vertaald"');
 
-      // Only one ⚠
-      expect(html.split("⚠").length - 1).toBe(1);
+      // Only one warning icon
+      expect(html.split("lucide-triangle-alert").length - 1).toBe(1);
     });
   });
 
