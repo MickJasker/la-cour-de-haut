@@ -6,14 +6,17 @@ import { eq } from "drizzle-orm";
 import type { BusyInterval } from "@/db/schema";
 import { fetchIcalFeed } from "./ical-fetch";
 
-const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+// Matches the lazy-refresh threshold documented in CONTEXT.md and ADR-0005
+// (DB-materialized lazy refresh) — a source is re-fetched on read once it's
+// older than ~1 hour.
+const REFRESH_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 const busyIntervalSchema = z.array(
   z.object({ start: z.string(), end: z.string() }),
 );
 
 /**
- * Checks whether the source's cache is stale (older than 5 minutes or never synced).
+ * Checks whether the source's cache is stale (older than ~1 hour or never synced).
  * If stale, fetches fresh data and writes it back to the DB.
  * Returns the current intervals (fresh or last-known-good) for this source.
  */

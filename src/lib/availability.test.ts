@@ -1,10 +1,32 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { Mock } from "vitest";
+
+// Mocks for the DB-backed public interface tests further down (isRangeAvailable /
+// getBookedDays). `availability-utils.ts` (imported below for the pure-function
+// tests) is deliberately left unmocked, so `availability.ts`'s real logic —
+// including the real hasConflict/expandInterval/isActiveDirectBooking — runs
+// against the fake DB rows configured per test.
+vi.mock("@/db", () => ({ getDb: vi.fn() }));
+vi.mock("@/db/schema", () => ({
+  icalSource: { __table: "icalSource" },
+  bookingRequest: { __table: "bookingRequest" },
+}));
+vi.mock("drizzle-orm", () => ({ eq: vi.fn(), inArray: vi.fn() }));
+vi.mock("next/server", () => ({
+  connection: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("./ical-cache", () => ({ refreshSourceIfStale: vi.fn() }));
+
 import {
   expandInterval,
   hasConflict,
   isActiveDirectBooking,
 } from "./availability-utils";
 import type { BusyInterval } from "@/db/schema";
+import { icalSource, bookingRequest } from "@/db/schema";
+import { getDb } from "@/db";
+import { refreshSourceIfStale } from "./ical-cache";
+import { isRangeAvailable, getBookedDays } from "./availability";
 
 function expandIntervals(intervals: BusyInterval[]): string[] {
   return [...new Set(intervals.flatMap(expandInterval))].sort();
@@ -165,5 +187,132 @@ describe("isActiveDirectBooking — busy-intervals consumes the shared isExpired
         TODAY,
       ),
     ).toBe(false);
+  });
+});
+
+describe("isRangeAvailable / getBookedDays — the public availability interface", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (refreshSourceIfStale as Mock).mockImplementation(
+      async (source: { cachedIntervals?: BusyInterval[] }) =>
+        source.cachedIntervals ?? [],
+    );
+  });
+
+  function mockDb({
+    bookingRows = [],
+    sourceRows = [],
+  }: {
+    bookingRows?: unknown[];
+    sourceRows?: unknown[];
+  }) {
+    const from = vi.fn((table: unknown) => {
+      if (table === bookingRequest) {
+        return { where: vi.fn().mockResolvedValue(bookingRows) };
+      }
+      if (table === icalSource) {
+        return { where: vi.fn().mockResolvedValue(sourceRows) };
+      }
+      return { where: vi.fn().mockResolvedValue([]) };
+    });
+    (getDb as Mock).mockReturnValue({
+      select: vi.fn().mockReturnValue({ from }),
+    });
+  }
+
+  it("a range with no busy intervals is available", async () => {
+    mockDb({});
+    await expect(isRangeAvailable("2027-01-01", "2027-01-05")).resolves.toBe(
+      true,
+    );
+  });
+
+  it("a range overlapping an active on_hold booking is unavailable", async () => {
+    mockDb({
+      bookingRows: [
+        {
+          id: "b1",
+          startDate: "2027-01-01",
+          endDate: "2027-01-05",
+          status: "on_hold",
+          paymentDeadline: "2099-01-01",
+        },
+      ],
+    });
+    await expect(isRangeAvailable("2027-01-02", "2027-01-03")).resolves.toBe(
+      false,
+    );
+  });
+
+  it("a range overlapping an iCal-sourced busy interval is unavailable", async () => {
+    mockDb({
+      sourceRows: [
+        {
+          id: "s1",
+          cachedIntervals: [{ start: "2027-04-01", end: "2027-04-05" }],
+        },
+      ],
+    });
+    await expect(isRangeAvailable("2027-04-02", "2027-04-03")).resolves.toBe(
+      false,
+    );
+  });
+
+  it("an expired hold frees its dates — the range becomes available again", async () => {
+    mockDb({
+      bookingRows: [
+        {
+          id: "b1",
+          startDate: "2027-01-01",
+          endDate: "2027-01-05",
+          status: "on_hold",
+          paymentDeadline: "2000-01-01", // long past
+        },
+      ],
+    });
+    await expect(isRangeAvailable("2027-01-02", "2027-01-03")).resolves.toBe(
+      true,
+    );
+  });
+
+  it("getBookedDays expands and dedupes busy intervals from bookings and iCal sources", async () => {
+    mockDb({
+      bookingRows: [
+        {
+          id: "b1",
+          startDate: "2027-02-01",
+          endDate: "2027-02-03",
+          status: "confirmed",
+          paymentDeadline: null,
+        },
+      ],
+      sourceRows: [
+        {
+          id: "s1",
+          cachedIntervals: [{ start: "2027-02-02", end: "2027-02-04" }],
+        },
+      ],
+    });
+    const days = await getBookedDays();
+    expect([...days].sort()).toEqual([
+      "2027-02-01",
+      "2027-02-02",
+      "2027-02-03",
+    ]);
+  });
+
+  it("getBookedDays excludes dates freed by an expired hold", async () => {
+    mockDb({
+      bookingRows: [
+        {
+          id: "b1",
+          startDate: "2027-03-01",
+          endDate: "2027-03-05",
+          status: "on_hold",
+          paymentDeadline: "2000-01-01",
+        },
+      ],
+    });
+    await expect(getBookedDays()).resolves.toEqual([]);
   });
 });

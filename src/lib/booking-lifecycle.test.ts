@@ -11,14 +11,12 @@ vi.mock("./settings", () => ({
 vi.mock("./bank-transfer-email", () => ({
   sendBankTransferEmail: vi.fn(),
 }));
-vi.mock("./availability", () => ({ getBusyIntervals: vi.fn() }));
-vi.mock("./availability-utils", () => ({ hasConflict: vi.fn() }));
+vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
 
 import { getDb } from "@/db";
 import { getSettings, hasBankDetails } from "./settings";
 import { sendBankTransferEmail } from "./bank-transfer-email";
-import { getBusyIntervals } from "./availability";
-import { hasConflict } from "./availability-utils";
+import { isRangeAvailable } from "./availability";
 import { applyTransition } from "./booking-lifecycle";
 
 const FUTURE_DATE = "2099-01-01";
@@ -52,8 +50,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   (getSettings as Mock).mockResolvedValue(mockSettings);
   (hasBankDetails as Mock).mockReturnValue(true);
-  (getBusyIntervals as Mock).mockResolvedValue([]);
-  (hasConflict as Mock).mockReturnValue(false);
+  (isRangeAvailable as Mock).mockResolvedValue(true);
   (sendBankTransferEmail as Mock).mockResolvedValue(undefined);
 });
 
@@ -133,7 +130,7 @@ describe("applyTransition — confirm", () => {
   it("throws when dates conflict with existing booking", async () => {
     const db = makeMockDb();
     (getDb as Mock).mockReturnValue(db);
-    (hasConflict as Mock).mockReturnValue(true);
+    (isRangeAvailable as Mock).mockResolvedValue(false);
 
     await expect(
       applyTransition("bk-1", "confirm", { paymentDeadline: FUTURE_DATE }),
