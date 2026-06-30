@@ -27,8 +27,3 @@ export const blockedDates = [0, 1, 2, 3].map((offset) =>
 );
 
 export const checkoutDate = toDateString(addDays(blockedStartDate, 4));
-
-export const blockedMonth = {
-  year: blockedStartDate.getFullYear(),
-  monthIndex: blockedStartDate.getMonth(),
-};
