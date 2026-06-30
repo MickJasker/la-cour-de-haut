@@ -21,12 +21,8 @@ import {
   updateReviewAction,
   type ReviewActionState,
 } from "./actions";
-import {
-  reviewFormOpts,
-  reviewFormClientSchema,
-  KNOWN_ORIGINAL_LOCALES,
-} from "./shared";
-import { TranslateDialog } from "@/components/translate-dialog";
+import { reviewFormOpts, reviewFormClientSchema } from "./shared";
+import { LocaleStatus } from "@/components/locale-status";
 import type { review } from "@/db/schema";
 
 type Review = typeof review.$inferSelect;
@@ -34,24 +30,8 @@ type Review = typeof review.$inferSelect;
 const inputClass =
   "flex h-9 w-full rounded-lg border border-input bg-cream-50 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2";
 
-const languageNames = new Intl.DisplayNames(["nl"], { type: "language" });
-
-function originalLocaleLabel(code: string) {
-  if (code === "und") return "Andere taal (automatisch detecteren)";
-  return languageNames.of(code) ?? code;
-}
-
 export function ReviewForm({ existing }: { existing?: Review }) {
   const router = useRouter();
-
-  // The picker offers the four display locales + "und"; when editing a review
-  // whose original was auto-detected to a wider language (e.g. "it"), surface
-  // that code as an extra option so saving preserves it.
-  const baseLocales = KNOWN_ORIGINAL_LOCALES as readonly string[];
-  const localeOptions =
-    existing && !baseLocales.includes(existing.originalLocale)
-      ? [existing.originalLocale, ...baseLocales]
-      : [...baseLocales];
 
   const boundAction = existing
     ? updateReviewAction.bind(null, existing.id)
@@ -68,14 +48,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         rating: existing.rating,
         reviewDate: existing.reviewDate,
         source: existing.source as "airbnb" | "natuurhuisje" | "direct",
-        originalLocale: existing.originalLocale,
         originalBody: existing.originalBody,
-        translations: (existing.body ?? {}) as {
-          nl?: string;
-          en?: string;
-          fr?: string;
-          de?: string;
-        },
         published: existing.published,
       }
     : undefined;
@@ -99,9 +72,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
       fd.set("rating", String(value.rating));
       fd.set("reviewDate", value.reviewDate);
       fd.set("source", value.source);
-      fd.set("originalLocale", value.originalLocale);
       fd.set("originalBody", value.originalBody);
-      fd.set("translations", JSON.stringify(value.translations));
       fd.set("published", String(value.published));
       startTransition(() => formAction(fd));
     },
@@ -212,31 +183,6 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         </FieldSet>
 
         <FieldSet>
-          <form.Field name="originalLocale">
-            {(field) => (
-              <Field data-field="originalLocale">
-                <Label htmlFor="originalLocale">Oorspronkelijke taal</Label>
-                <select
-                  id="originalLocale"
-                  name={field.name}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={inputClass}
-                >
-                  {localeOptions.map((code) => (
-                    <option key={code} value={code}>
-                      {originalLocaleLabel(code)}
-                    </option>
-                  ))}
-                </select>
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
-        </FieldSet>
-
-        <FieldSet>
           <form.Field name="originalBody">
             {(field) => (
               <Field data-field="body">
@@ -283,25 +229,13 @@ export function ReviewForm({ existing }: { existing?: Review }) {
         </FieldSet>
 
         <FieldSet>
-          {existing ? (
-            <TranslateDialog
-              mode="review"
-              reviewId={existing.id}
-              sourceText={existing.originalBody}
-              sourceLocale={existing.originalLocale}
-            />
-          ) : (
-            <p className="text-sm text-stone-500">
-              Sla de recensie eerst op om automatisch te vertalen naar de andere
-              talen.
-            </p>
-          )}
+          <LocaleStatus source={existing?.bodySource ?? { nl: "human" }} />
         </FieldSet>
 
         <FieldSet>
           <div className="flex gap-3">
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Opslaan…" : "Opslaan"}
+              {isPending ? "Opslaan en vertalen…" : "Opslaan"}
             </Button>
             <Button
               type="button"
