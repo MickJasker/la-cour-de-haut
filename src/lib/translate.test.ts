@@ -9,84 +9,7 @@ vi.mock("@google-cloud/translate", () => ({
 }));
 
 // Import after mock is registered
-const { translateToAllLocales, translateReviewBody } =
-  await import("./translate");
-
-describe("translateToAllLocales", () => {
-  const fakeCreds = {
-    project_id: "my-gcp-project",
-    client_email: "sa@my-gcp-project.iam.gserviceaccount.com",
-    private_key:
-      "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
-  };
-
-  beforeEach(() => {
-    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify(fakeCreds);
-    mockTranslateText.mockClear();
-  });
-
-  afterEach(() => {
-    delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-  });
-
-  it("calls GCloud with correct params and returns { en, fr, de }", async () => {
-    mockTranslateText
-      .mockResolvedValueOnce([
-        { translations: [{ translatedText: "Hello world" }] },
-      ])
-      .mockResolvedValueOnce([
-        { translations: [{ translatedText: "Bonjour le monde" }] },
-      ])
-      .mockResolvedValueOnce([
-        { translations: [{ translatedText: "Hallo Welt" }] },
-      ]);
-
-    const result = await translateToAllLocales("Hallo wereld");
-
-    expect(result).toEqual({
-      en: "Hello world",
-      fr: "Bonjour le monde",
-      de: "Hallo Welt",
-    });
-
-    expect(mockTranslateText).toHaveBeenCalledTimes(3);
-    expect(mockTranslateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        contents: ["Hallo wereld"],
-        sourceLanguageCode: "nl",
-        targetLanguageCode: "en",
-        mimeType: "text/plain",
-        parent: "projects/my-gcp-project/locations/global",
-      }),
-    );
-  });
-
-  it("reads project ID from the credentials JSON env var", async () => {
-    const otherCreds = { ...fakeCreds, project_id: "other-project-999" };
-    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON =
-      JSON.stringify(otherCreds);
-
-    mockTranslateText.mockResolvedValue([
-      { translations: [{ translatedText: "x" }] },
-    ]);
-
-    await translateToAllLocales("tekst");
-
-    expect(mockTranslateText).toHaveBeenCalledWith(
-      expect.objectContaining({
-        parent: "projects/other-project-999/locations/global",
-      }),
-    );
-  });
-
-  it("throws if GOOGLE_APPLICATION_CREDENTIALS_JSON is not set", async () => {
-    delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
-
-    await expect(translateToAllLocales("tekst")).rejects.toThrow(
-      /GOOGLE_APPLICATION_CREDENTIALS_JSON/,
-    );
-  });
-});
+const { translateReviewBody, translateText } = await import("./translate");
 
 describe("translateReviewBody", () => {
   const fakeCreds = {
@@ -182,6 +105,115 @@ describe("translateReviewBody", () => {
         fr: "Lovely [fr]",
         de: "Lovely [de]",
       });
+      expect(mockTranslateText).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.E2E_TESTING;
+    }
+  });
+
+  it("is per-locale resilient: one target rejecting does not lose the others, and does not reject the call", async () => {
+    // targets for source "en" are nl, fr, de (in DISPLAY_LOCALES order)
+    mockTranslateText
+      .mockResolvedValueOnce([{ translations: [{ translatedText: "Mooi" }] }]) // nl
+      .mockRejectedValueOnce(new Error("Google is down")) // fr
+      .mockResolvedValueOnce([{ translations: [{ translatedText: "Schön" }] }]); // de
+
+    const result = await translateReviewBody("Lovely", "en");
+
+    expect(result.detectedSource).toBe("en");
+    expect(result.translations).toEqual({ nl: "Mooi", de: "Schön" });
+    expect(result.translations).not.toHaveProperty("fr");
+  });
+
+  it("auto-detect: detectedSource comes from the first FULFILLED result when an earlier target rejects", async () => {
+    // targets in auto-detect mode are nl, en, fr, de (full DISPLAY_LOCALES order)
+    const reply = (txt: string) => [
+      { translations: [{ translatedText: txt, detectedLanguageCode: "it" }] },
+    ];
+    mockTranslateText
+      .mockRejectedValueOnce(new Error("Google is down")) // nl — rejected
+      .mockResolvedValueOnce(reply("EN")) // en — first fulfilled result
+      .mockResolvedValueOnce(reply("FR")) // fr
+      .mockResolvedValueOnce(reply("DE")); // de
+
+    const result = await translateReviewBody("Bella casa", "und");
+
+    expect(result.detectedSource).toBe("it");
+    expect(result.translations).toEqual({ en: "EN", fr: "FR", de: "DE" });
+    expect(result.translations).not.toHaveProperty("nl");
+  });
+
+  it("auto-detect: throws when every target locale rejects (cannot detect or translate anything)", async () => {
+    mockTranslateText.mockRejectedValue(new Error("Google is down"));
+
+    await expect(translateReviewBody("Bella casa", "und")).rejects.toThrow(
+      /every target locale/,
+    );
+  });
+});
+
+describe("translateText", () => {
+  const fakeCreds = {
+    project_id: "my-gcp-project",
+    client_email: "sa@my-gcp-project.iam.gserviceaccount.com",
+    private_key:
+      "-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----\n",
+  };
+
+  beforeEach(() => {
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = JSON.stringify(fakeCreds);
+    mockTranslateText.mockClear();
+  });
+
+  afterEach(() => {
+    delete process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON;
+  });
+
+  it("calls GCloud with correct params and returns the translated string", async () => {
+    mockTranslateText.mockResolvedValueOnce([
+      { translations: [{ translatedText: "Hello world" }] },
+    ]);
+
+    const result = await translateText("Hallo wereld", "en");
+
+    expect(result).toBe("Hello world");
+    expect(mockTranslateText).toHaveBeenCalledTimes(1);
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contents: ["Hallo wereld"],
+        sourceLanguageCode: "nl",
+        targetLanguageCode: "en",
+        mimeType: "text/plain",
+        parent: "projects/my-gcp-project/locations/global",
+      }),
+    );
+  });
+
+  it("respects opts.sourceLocale and opts.mimeType overrides", async () => {
+    mockTranslateText.mockResolvedValueOnce([
+      { translations: [{ translatedText: "<p>Bonjour</p>" }] },
+    ]);
+
+    const result = await translateText("Hello", "fr", {
+      sourceLocale: "en",
+      mimeType: "text/html",
+    });
+
+    expect(result).toBe("<p>Bonjour</p>");
+    expect(mockTranslateText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceLanguageCode: "en",
+        targetLanguageCode: "fr",
+        mimeType: "text/html",
+      }),
+    );
+  });
+
+  it("returns deterministic stub under E2E without calling Google", async () => {
+    process.env.E2E_TESTING = "1";
+    try {
+      const result = await translateText("x", "en");
+      expect(result).toBe("x [en]");
       expect(mockTranslateText).not.toHaveBeenCalled();
     } finally {
       delete process.env.E2E_TESTING;

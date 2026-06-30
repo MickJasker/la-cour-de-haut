@@ -73,7 +73,7 @@ const HEADING_ICONS: Record<AllowedHeading, React.ReactElement> = {
   h3: <Heading3 size={14} />,
 };
 
-const btnCls = "rounded border px-2 py-1 hover:bg-muted";
+const btnCls = "rounded border border-stone-300 px-2 py-1 hover:bg-muted";
 
 // ---------------------------------------------------------------------------
 // Toolbar
@@ -126,7 +126,7 @@ function Toolbar(): React.ReactElement {
     !isSafeHref(linkDraft.trim());
 
   return (
-    <div className="border-b">
+    <div className="border-b border-stone-300">
       <div className="flex flex-wrap items-center gap-1 p-1">
         <button
           type="button"
@@ -232,7 +232,7 @@ function Toolbar(): React.ReactElement {
               placeholder="https://voorbeeld.nl"
               aria-label="Link-URL"
               aria-invalid={linkInvalid}
-              className="flex-1 rounded border px-2 py-1 text-sm"
+              className="flex-1 rounded border border-stone-300 px-2 py-1 text-sm"
             />
             <button
               type="button"
@@ -286,7 +286,7 @@ export function RichTextEditor({
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <div className="rounded border focus-within:ring-2 focus-within:ring-ring">
+      <div className="rounded border border-stone-300 focus-within:ring-2 focus-within:ring-ring">
         <Toolbar />
         {/* Own positioning context so the placeholder anchors to the editable
             area (below the toolbar), not the whole widget. */}

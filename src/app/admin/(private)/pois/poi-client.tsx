@@ -46,7 +46,7 @@ import {
   type PoiActionState,
 } from "./actions";
 import { poiFormOpts, poiFormClientSchema } from "./shared";
-import { TranslateDialog } from "@/components/translate-dialog";
+import { LocaleStatus } from "@/components/locale-status";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
 import type { poi, LocalizedEditorState } from "@/db/schema";
@@ -123,8 +123,10 @@ function PoiForm({
   });
 
   useEffect(() => {
-    if (state.success) onSavedRef.current();
-  }, [state.success]);
+    // Skip the reset/exit-edit-mode when translation partially failed, so the
+    // warning below stays visible instead of unmounting with the form.
+    if (state.success && !state.failures?.length) onSavedRef.current();
+  }, [state.success, state.failures]);
 
   const inputCls =
     "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary";
@@ -141,6 +143,10 @@ function PoiForm({
       <h2 className="text-sm font-semibold text-stone-700">
         {editing ? "POI bewerken" : "Nieuwe POI toevoegen"}
       </h2>
+      <LocaleStatus
+        source={editing?.titleSource ?? { nl: "human" as const }}
+        className="mt-0.5"
+      />
 
       <FieldGroup>
         <FieldSet>
@@ -213,39 +219,6 @@ function PoiForm({
         </FieldSet>
 
         <FieldSet>
-          <form.Subscribe
-            selector={(s) => ({ title: s.values.title, body: s.values.body })}
-          >
-            {({ title, body }) => (
-              <TranslateDialog
-                mode="poi"
-                sourceTitleText={title.nl}
-                sourceBodyText={body.nl}
-                sourceDetailState={detail.nl}
-                onTranslated={(t) => {
-                  form.setFieldValue("title", {
-                    ...form.getFieldValue("title"),
-                    ...t.title,
-                  });
-                  form.setFieldValue("body", {
-                    ...form.getFieldValue("body"),
-                    ...t.body,
-                  });
-                  if (t.detail) {
-                    setDetail((d) => ({
-                      ...d,
-                      en: t.detail!.en,
-                      fr: t.detail!.fr,
-                      de: t.detail!.de,
-                    }));
-                  }
-                }}
-              />
-            )}
-          </form.Subscribe>
-        </FieldSet>
-
-        <FieldSet>
           <Label>
             Afbeelding{editing ? " (leeg laten om te behouden)" : ""}
           </Label>
@@ -289,9 +262,16 @@ function PoiForm({
         </FieldSet>
       </FieldGroup>
 
+      {state.failures?.length ? (
+        <p className="text-sm text-amber-700">
+          Vertaling naar {state.failures.join(", ")} is mislukt — opnieuw
+          geprobeerd bij volgende opslag.
+        </p>
+      ) : null}
+
       <div className="flex gap-2">
         <Button type="submit" disabled={isPending}>
-          {isPending ? "Opslaan…" : "Opslaan"}
+          {isPending ? "Opslaan en vertalen…" : "Opslaan"}
         </Button>
         {editing && (
           <Button type="button" variant="ghost" onClick={onCancel}>

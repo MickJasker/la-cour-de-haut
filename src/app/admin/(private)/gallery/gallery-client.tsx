@@ -30,50 +30,66 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { LocaleStatus } from "@/components/locale-status";
 import {
   uploadGalleryImageAction,
   togglePublishedAction,
   deleteGalleryImageAction,
   reorderGalleryImagesAction,
-  translateAltTextAction,
   saveAltTextAction,
+  type SaveAltTextActionState,
 } from "./actions";
-import type { galleryImage, AltText } from "@/db/schema";
+import type { galleryImage, AltText, LocalizedSource } from "@/db/schema";
 
 type GalleryImage = typeof galleryImage.$inferSelect;
 
 function GalleryAltTextDialog({
   imageId,
   initialAltText,
+  initialAltTextSource,
 }: {
   imageId: string;
   initialAltText: AltText | null | undefined;
+  initialAltTextSource: LocalizedSource | null | undefined;
 }) {
   const [open, setOpen] = useState(false);
   const [nl, setNl] = useState(initialAltText?.nl ?? "");
   const [isPending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveFailures, setSaveFailures] =
+    useState<SaveAltTextActionState["failures"]>(undefined);
 
   // Reset nl to the latest server value when the dialog opens (avoids stale
   // state after a background RSC re-render updates initialAltText).
   const [prevOpen, setPrevOpen] = useState(open);
   if (prevOpen !== open) {
     setPrevOpen(open);
-    if (open) setNl(initialAltText?.nl ?? "");
+    if (open) {
+      setNl(initialAltText?.nl ?? "");
+      setSaveFailures(undefined);
+    }
   }
 
   function handleSave() {
     setSaveError(null);
     startTransition(async () => {
       try {
-        const translations = await translateAltTextAction(nl);
-        await saveAltTextAction(imageId, { nl, ...translations });
-        setOpen(false);
+        const result = await saveAltTextAction(imageId, nl);
+        setSaveFailures(result.failures);
+        // Keep the dialog open when translation failed so the owner can see
+        // the warning below — otherwise it would close before being visible.
+        if (!result.failures?.length) {
+          setOpen(false);
+        }
       } catch {
         setSaveError("Opslaan mislukt. Probeer het opnieuw.");
       }
     });
   }
+
+  const sourceForStatus: LocalizedSource = initialAltTextSource ?? {
+    nl: "human",
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -97,9 +113,16 @@ function GalleryAltTextDialog({
             onChange={(e) => setNl(e.target.value)}
             placeholder="Beschrijf de afbeelding in het Nederlands"
           />
+          <LocaleStatus source={sourceForStatus} />
           {saveError && <p className="text-sm text-destructive">{saveError}</p>}
+          {saveFailures?.length ? (
+            <p className="text-sm text-amber-700">
+              Vertaling naar {saveFailures.join(", ")} is mislukt — opnieuw
+              geprobeerd bij volgende opslag.
+            </p>
+          ) : null}
           <Button onClick={handleSave} disabled={isPending || nl.trim() === ""}>
-            {isPending ? "Vertalen…" : "Vertalen & opslaan"}
+            {isPending ? "Opslaan en vertalen…" : "Opslaan"}
           </Button>
         </div>
       </DialogContent>
@@ -175,6 +198,7 @@ function GalleryRow({
         <GalleryAltTextDialog
           imageId={image.id}
           initialAltText={image.altText}
+          initialAltTextSource={image.altTextSource}
         />
         <Button
           variant="ghost"

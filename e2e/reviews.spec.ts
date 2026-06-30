@@ -277,4 +277,47 @@ test.describe("reviews: admin", () => {
       row.getByRole("checkbox", { name: /gepubliceerd/i }),
     ).toBeChecked();
   });
+
+  test("translate-on-save: auto-detects language and fills all display locales", async ({
+    page,
+  }) => {
+    const authorName = "E2ETranslateAuthor";
+    const body = "Great place to stay";
+
+    await page.goto("/admin/reviews/new");
+    await page.getByLabel(/auteur/i).fill(authorName);
+    // Open the calendar popover and pick the 15th of whatever month is shown
+    await page.getByRole("button", { name: /pick a date/i }).click();
+    await page.getByRole("gridcell", { name: "15" }).first().click();
+    await page.getByLabel(/recensie/i).fill(body);
+    await page.getByRole("button", { name: /opslaan/i }).click();
+
+    // Wait for redirect and new row to appear
+    await expect(page.locator("[data-testid^='review-row-']")).toHaveCount(1);
+
+    // Assert via SQL: E2E stub detects "en" for "und" and stubs other locales
+    // as "<text> [<locale>]"; the source slot (en) is seeded verbatim as human.
+    const sql = neon(process.env.DATABASE_URL!);
+    const rows = await sql`
+      SELECT original_locale, body, body_source
+      FROM review
+      WHERE author_name = ${authorName}
+    `;
+    expect(rows).toHaveLength(1);
+    const row = rows[0] as {
+      original_locale: string;
+      body: Record<string, string>;
+      body_source: Record<string, string>;
+    };
+
+    expect(row.original_locale).toBe("en");
+    expect(row.body.en).toBe(body);
+    expect(row.body.nl).toBe(`${body} [nl]`);
+    expect(row.body.fr).toBe(`${body} [fr]`);
+    expect(row.body.de).toBe(`${body} [de]`);
+    expect(row.body_source.en).toBe("human");
+    expect(row.body_source.nl).toBe("machine");
+    expect(row.body_source.fr).toBe("machine");
+    expect(row.body_source.de).toBe("machine");
+  });
 });

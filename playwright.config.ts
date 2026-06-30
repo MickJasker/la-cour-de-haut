@@ -18,6 +18,11 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     // A production build can take a couple of minutes on a cold CI runner.
     timeout: 180_000,
+    // Inject E2E_TESTING so the server activates the deterministic translation
+    // stub ("<text> [locale]") instead of calling real Google Translate.
+    // Matches the CI environment so `pnpm test:e2e` passes locally without
+    // needing the var set in the shell.
+    env: { E2E_TESTING: "1" },
   },
   retries: 1,
   use: {

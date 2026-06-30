@@ -10,8 +10,12 @@ import { getDb } from "@/db";
 import { review } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { translateToAllLocales, translateReviewBody } from "@/lib/translate";
-import { buildReviewBody, type ReviewBody } from "@/lib/review-i18n";
+import { translateReviewBody } from "@/lib/translate";
+import {
+  buildReviewBody,
+  type ReviewBody,
+  type ReviewBodySource,
+} from "@/lib/review-i18n";
 import { reviewFormOpts, reviewFormServerSchema } from "./shared";
 
 export type ReviewActionState = {
@@ -36,22 +40,67 @@ function invalidate() {
   updateTag("reviews");
 }
 
-// The display-locale translations the owner may have fetched before saving.
-// buildReviewBody is the single authority on body/bodySource, so this only
-// needs to surface whatever machine translations exist.
-function parseTranslations(formData: FormData): ReviewBody {
-  const raw = formData.get("translations");
-  if (typeof raw !== "string" || !raw) return {};
-  try {
-    const obj = JSON.parse(raw) as Record<string, unknown>;
-    const out: ReviewBody = {};
-    for (const locale of ["nl", "en", "fr", "de"] as const) {
-      const value = obj[locale];
-      if (typeof value === "string" && value.trim()) out[locale] = value.trim();
+const DISPLAY_LOCALES = ["nl", "en", "fr", "de"] as const;
+
+/**
+ * Auto-detects the review's source language and translates outward to the other
+ * display locales. Includes a dirty-check + gap-fill so unchanged reviews skip
+ * the Google call entirely, and degrades gracefully on translation failures so
+ * the save never blocks. See ADR-0016.
+ */
+async function translateReviewOnSave(
+  originalBody: string,
+  stored?: {
+    originalBody: string;
+    originalLocale: string;
+    body: ReviewBody;
+    bodySource: ReviewBodySource;
+  },
+): Promise<{
+  originalLocale: string;
+  body: ReviewBody;
+  bodySource: ReviewBodySource;
+}> {
+  // Dirty-check + gap-fill: skip translation when body is unchanged and every
+  // target display locale (i.e. every locale that is not the stored source) is
+  // already present in the stored body.
+  if (stored) {
+    const targetLocales = DISPLAY_LOCALES.filter(
+      (l) => l !== stored.originalLocale,
+    );
+    const hasAllTargets = targetLocales.every((l) => !!stored.body[l]);
+    if (stored.originalBody === originalBody && hasAllTargets) {
+      return {
+        originalLocale: stored.originalLocale,
+        body: stored.body,
+        bodySource: stored.bodySource,
+      };
     }
-    return out;
+  }
+
+  // Translate: always auto-detect source language via the "und" sentinel.
+  try {
+    const { detectedSource, translations } = await translateReviewBody(
+      originalBody,
+      "und",
+    );
+    const { body, bodySource } = buildReviewBody({
+      originalLocale: detectedSource,
+      originalBody,
+      translations,
+    });
+    return { originalLocale: detectedSource, body, bodySource };
   } catch {
-    return {};
+    // Degrade gracefully: persist the original text; missing locales heal on
+    // the next save (gap-fill will re-translate them). The owner never loses
+    // work and is never blocked by a Google outage.
+    const fallbackLocale = stored?.originalLocale ?? "und";
+    const { body, bodySource } = buildReviewBody({
+      originalLocale: fallbackLocale,
+      originalBody,
+      translations: {},
+    });
+    return { originalLocale: fallbackLocale, body, bodySource };
   }
 }
 
@@ -63,11 +112,8 @@ export async function createReviewAction(
   try {
     const data = await serverValidate(formData);
     const originalBody = data.originalBody.trim();
-    const { body, bodySource } = buildReviewBody({
-      originalLocale: data.originalLocale,
-      originalBody,
-      translations: parseTranslations(formData),
-    });
+    const { originalLocale, body, bodySource } =
+      await translateReviewOnSave(originalBody);
     const db = getDb();
     await db.insert(review).values({
       id: crypto.randomUUID(),
@@ -75,7 +121,7 @@ export async function createReviewAction(
       rating: data.rating,
       reviewDate: data.reviewDate,
       source: data.source,
-      originalLocale: data.originalLocale,
+      originalLocale,
       originalBody,
       body,
       bodySource,
@@ -101,12 +147,27 @@ export async function updateReviewAction(
   try {
     const data = await serverValidate(formData);
     const originalBody = data.originalBody.trim();
-    const { body, bodySource } = buildReviewBody({
-      originalLocale: data.originalLocale,
-      originalBody,
-      translations: parseTranslations(formData),
-    });
     const db = getDb();
+    const [existing] = await db
+      .select({
+        originalBody: review.originalBody,
+        originalLocale: review.originalLocale,
+        body: review.body,
+        bodySource: review.bodySource,
+      })
+      .from(review)
+      .where(eq(review.id, id));
+    const { originalLocale, body, bodySource } = await translateReviewOnSave(
+      originalBody,
+      existing
+        ? {
+            originalBody: existing.originalBody,
+            originalLocale: existing.originalLocale,
+            body: existing.body,
+            bodySource: existing.bodySource,
+          }
+        : undefined,
+    );
     await db
       .update(review)
       .set({
@@ -114,7 +175,7 @@ export async function updateReviewAction(
         rating: data.rating,
         reviewDate: data.reviewDate,
         source: data.source,
-        originalLocale: data.originalLocale,
+        originalLocale,
         originalBody,
         body,
         bodySource,
@@ -159,50 +220,5 @@ export async function reorderReviewsAction(ids: string[]) {
         .where(eq(review.id, id)),
     ),
   );
-  invalidate();
-}
-
-// Authored content (POIs, content blocks): always Dutch → EN/FR/DE.
-export async function translateTextAction(
-  text: string,
-): Promise<{ en: string; fr: string; de: string }> {
-  await verifySession();
-  return translateToAllLocales(text);
-}
-
-// Quoted content (reviews): translate outward from the review's original
-// locale, auto-detecting when it is "und". Returns the detected source plus
-// the machine translations for the non-source display locales. See ADR-0014.
-export async function translateReviewTextAction(
-  text: string,
-  sourceLocale: string,
-): Promise<{ detectedSource: string; translations: ReviewBody }> {
-  await verifySession();
-  return translateReviewBody(text, sourceLocale);
-}
-
-// Persists machine translations onto an existing review. buildReviewBody
-// recomputes both body and bodySource from the review's verbatim original,
-// and original_locale is overwritten with the (possibly detected) source.
-export async function translateReviewAction(
-  id: string,
-  input: { sourceLocale: string; translations: ReviewBody },
-): Promise<void> {
-  await verifySession();
-  const db = getDb();
-  const [row] = await db
-    .select({ originalBody: review.originalBody })
-    .from(review)
-    .where(eq(review.id, id));
-  if (!row) return;
-  const { body, bodySource } = buildReviewBody({
-    originalLocale: input.sourceLocale,
-    originalBody: row.originalBody,
-    translations: input.translations,
-  });
-  await db
-    .update(review)
-    .set({ originalLocale: input.sourceLocale, body, bodySource })
-    .where(eq(review.id, id));
   invalidate();
 }

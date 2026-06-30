@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "20mb",
     },
+    // The proxy (src/proxy.ts) matches /admin/* and buffers the whole request
+    // body before forwarding it, capped by this limit (default 10mb). Image
+    // uploads POST multipart bodies through the POI/gallery/hero server actions,
+    // so this must be >= serverActions.bodySizeLimit or the body is truncated
+    // mid-upload and FormData parsing fails with "Unexpected end of form".
+    // (Next 16 renamed `middlewareClientMaxBodySize` to this.)
+    proxyClientMaxBodySize: "20mb",
     // Multiple root layouts (`[locale]` + `admin`) plus a top-level dynamic
     // `[locale]` segment mean there is no `app/layout.tsx` to host an
     // `app/not-found.tsx`. `global-not-found.tsx` is the documented catch-all for
