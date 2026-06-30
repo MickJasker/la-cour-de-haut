@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Metadata } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
 import { notFound } from "next/navigation";
@@ -88,19 +88,23 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
   const messages = await getDictionary(locale);
 
   return (
-    <>
-      <html
-        lang={locale}
-        className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
-      >
-        <body className="min-h-full flex flex-col">
-          <I18nProvider locale={locale} messages={messages}>
-            {children}
-            {modal}
-          </I18nProvider>
-        </body>
-      </html>
-      <SpeedInsights />
-    </>
+    <html
+      lang={locale}
+      className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
+    >
+      <body className="min-h-full flex flex-col">
+        <I18nProvider locale={locale} messages={messages}>
+          {children}
+          {modal}
+        </I18nProvider>
+        {/* Client component reading useSearchParams; under Cache Components a
+            request-time read must sit in a Suspense boundary or the static
+            prerender bails ("Render in Browser should be wrapped in a suspense
+            boundary"). */}
+        <Suspense fallback={null}>
+          <SpeedInsights />
+        </Suspense>
+      </body>
+    </html>
   );
 }

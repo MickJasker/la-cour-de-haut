@@ -21,19 +21,21 @@ interface Props {
 
 export default async function LocaleLayout({ children }: Props) {
   return (
-    <>
-      <html
-        lang="nl"
-        className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
-      >
-        <body>
-          {/* Admin is fully dynamic (auth-gated via verifySession → headers()).
+    <html
+      lang="nl"
+      className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
+    >
+      <body>
+        {/* Admin is fully dynamic (auth-gated via verifySession → headers()).
             A Suspense boundary at the root opts the whole admin tree out of the
             PPR static shell, so runtime data access streams at request time. */}
-          <Suspense fallback={null}>{children}</Suspense>
-        </body>
-      </html>
-      <SpeedInsights />
-    </>
+        <Suspense fallback={null}>{children}</Suspense>
+        {/* SpeedInsights reads useSearchParams (client); Cache Components
+            requires that request-time read to live inside a Suspense boundary. */}
+        <Suspense fallback={null}>
+          <SpeedInsights />
+        </Suspense>
+      </body>
+    </html>
   );
 }
