@@ -223,7 +223,7 @@ test.describe("gallery: admin", () => {
     ).toBeVisible();
   });
 
-  test("Vertalen & opslaan saves alt text and it appears on the public page", async ({
+  test("Opslaan saves and auto-translates alt text (single-save flow)", async ({
     page,
   }) => {
     await seedImage({
@@ -238,8 +238,28 @@ test.describe("gallery: admin", () => {
       .click();
     const dialog = page.getByRole("dialog");
     await dialog.getByLabel(/alt.?tekst/i).fill("Zonnebloemenveld");
-    await dialog.getByRole("button", { name: /vertalen.*opslaan/i }).click();
+    await dialog.getByRole("button", { name: /^opslaan$/i }).click();
     await expect(dialog).not.toBeVisible({ timeout: 15000 });
+
+    // Assert the DB row has the expected machine translations (E2E stub appends " [locale]").
+    const sql = neon(process.env.DATABASE_URL!);
+    const rows =
+      await sql`SELECT alt_text, alt_text_source FROM gallery_image WHERE id = 'gal-alt-save'`;
+    const row = rows[0];
+    expect(row.alt_text).toMatchObject({
+      nl: "Zonnebloemenveld",
+      en: "Zonnebloemenveld [en]",
+      fr: "Zonnebloemenveld [fr]",
+      de: "Zonnebloemenveld [de]",
+    });
+    expect(row.alt_text_source).toMatchObject({
+      nl: "human",
+      en: "machine",
+      fr: "machine",
+      de: "machine",
+    });
+
+    // Public page still shows Dutch alt text.
     await gotoFresh(page, "/nl");
     const section = page.locator("[data-testid='gite-section']");
     await expect(section.locator("img[alt='Zonnebloemenveld']")).toBeVisible();

@@ -3,11 +3,11 @@
 import { revalidatePath, updateTag } from "next/cache";
 import { put } from "@vercel/blob";
 import { getDb } from "@/db";
-import { galleryImage, type AltText } from "@/db/schema";
+import { galleryImage } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { deleteImage, nextSortOrder } from "@/lib/gallery";
-import { translateToAllLocales } from "@/lib/translate";
+import { resolveLocalizedText } from "@/lib/localized-field";
 
 export async function uploadGalleryImageAction(formData: FormData) {
   await verifySession();
@@ -52,31 +52,29 @@ export async function deleteGalleryImageAction(id: string) {
   updateTag("gallery");
 }
 
-export async function translateAltTextAction(
-  text: string,
-): Promise<{ en: string; fr: string; de: string }> {
-  await verifySession();
-  return translateToAllLocales(text);
-}
-
-export async function saveAltTextAction(
-  id: string,
-  altText: AltText,
-): Promise<void> {
+export async function saveAltTextAction(id: string, nl: string): Promise<void> {
   await verifySession();
   const db = getDb();
+
+  // Load existing alt-text to enable dirty-check and gap-fill (ADR-0016).
+  const existing = await db
+    .select({ altText: galleryImage.altText })
+    .from(galleryImage)
+    .where(eq(galleryImage.id, id))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+
+  const stored = existing?.altText ?? undefined;
+  const result = await resolveLocalizedText(nl, stored);
+
   await db
     .update(galleryImage)
     .set({
-      altText,
-      altTextSource: {
-        nl: "human",
-        en: "machine",
-        fr: "machine",
-        de: "machine",
-      },
+      altText: result.value,
+      altTextSource: result.source,
     })
     .where(eq(galleryImage.id, id));
+
   revalidatePath("/admin/gallery");
   updateTag("gallery");
 }
