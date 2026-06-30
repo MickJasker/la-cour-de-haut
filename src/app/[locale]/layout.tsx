@@ -20,6 +20,8 @@ const OG_LOCALE: Record<string, string> = {
   de: "de_DE",
 };
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+
 async function getHeroImageUrl(): Promise<string | undefined> {
   "use cache";
   cacheLife("hours");
@@ -63,6 +65,7 @@ export async function generateMetadata({
   const heroImageUrl = await getHeroImageUrl();
 
   return {
+    metadataBase: new URL(BASE_URL),
     title: {
       default: t("title"),
       template: `%s · La Cour de Haut`,
