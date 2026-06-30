@@ -361,4 +361,68 @@ test.describe("pois: admin", () => {
       page.locator("[data-testid='poi-row-poi-del-1']"),
     ).not.toBeVisible();
   });
+
+  test("saving a POI auto-translates title and body into en/fr/de", async ({
+    page,
+  }) => {
+    const nlTitle = "Vertaal E2E Test";
+    const nlBody = "Een testbeschrijving voor vertaling.";
+
+    await page.goto("/admin/pois");
+    await page.getByLabel(/titel/i).fill(nlTitle);
+    await page.getByLabel(/beschrijving/i).fill(nlBody);
+
+    const fileInput = page.locator("[data-testid='poi-file-input']");
+    await fileInput.setInputFiles({
+      name: "poi-test.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from(
+        "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U" +
+          "HRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgN" +
+          "DRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy" +
+          "MjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAA" +
+          "AAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/" +
+          "aAAwDAQACEQMRAD8AJQAB/9k=",
+        "base64",
+      ),
+    });
+
+    await page.getByRole("button", { name: /opslaan/i }).click();
+
+    // Wait for the POI to appear in the admin list (save + translate completed).
+    await expect(page.locator("[data-testid^='poi-row-']")).toHaveCount(1, {
+      timeout: 15000,
+    });
+
+    // Query the DB directly to verify that the action wrote translated slots.
+    // E2E_TESTING stub: translateText(text, locale) → `${text} [${locale}]`
+    const sql = neon(process.env.DATABASE_URL!);
+    const [row] = await sql`
+      SELECT title, body, title_source, body_source
+      FROM poi
+      WHERE title->>'nl' = ${nlTitle}
+    `;
+
+    expect(row).toBeDefined();
+    expect(row.title.en).toBe(`${nlTitle} [en]`);
+    expect(row.title.fr).toBe(`${nlTitle} [fr]`);
+    expect(row.title.de).toBe(`${nlTitle} [de]`);
+
+    expect(row.body.en).toBe(`${nlBody} [en]`);
+    expect(row.body.fr).toBe(`${nlBody} [fr]`);
+    expect(row.body.de).toBe(`${nlBody} [de]`);
+
+    expect(row.title_source).toEqual({
+      nl: "human",
+      en: "machine",
+      fr: "machine",
+      de: "machine",
+    });
+    expect(row.body_source).toEqual({
+      nl: "human",
+      en: "machine",
+      fr: "machine",
+      de: "machine",
+    });
+  });
 });

@@ -8,16 +8,13 @@ import {
 import { revalidatePath, updateTag } from "next/cache";
 import { put, del } from "@vercel/blob";
 import { getDb } from "@/db";
-import {
-  poi,
-  type LocalizedEditorState,
-  type LocalizedSource,
-} from "@/db/schema";
+import { poi, type LocalizedEditorState } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { slugify } from "@/lib/slug";
 import { hasEditorText } from "@/lib/lexical/empty-state";
-import { translateToAllLocales } from "@/lib/translate";
+import { resolveLocalizedText } from "@/lib/localized-field";
+import { resolveLocalizedDetail } from "@/lib/localized-detail";
 import {
   poiFormOpts,
   poiFormServerSchema,
@@ -57,24 +54,6 @@ function parseLocalizedField(formData: FormData, key: string) {
   return localizedStringSchema.parse(parsed);
 }
 
-function buildLocalized(loc: ReturnType<typeof localizedStringSchema.parse>) {
-  return {
-    nl: loc.nl.trim(),
-    ...(loc.en ? { en: loc.en.trim() } : {}),
-    ...(loc.fr ? { fr: loc.fr.trim() } : {}),
-    ...(loc.de ? { de: loc.de.trim() } : {}),
-  };
-}
-
-function inferSource(loc: ReturnType<typeof localizedStringSchema.parse>) {
-  return {
-    nl: "human" as const,
-    ...(loc.en ? { en: "machine" as const } : {}),
-    ...(loc.fr ? { fr: "machine" as const } : {}),
-    ...(loc.de ? { de: "machine" as const } : {}),
-  };
-}
-
 /**
  * Parses the JSON-encoded detail field from FormData. Returns null when the
  * field is absent, malformed, or has no real text content (the editor always
@@ -93,16 +72,6 @@ function parseDetailField(formData: FormData): LocalizedEditorState | null {
   if (!result.success) return null;
   const detail = result.data;
   return hasEditorText(detail.nl) ? detail : null;
-}
-
-/** Source map for a detail field: nl human, present translations machine. */
-function buildDetailSource(detail: LocalizedEditorState): LocalizedSource {
-  return {
-    nl: "human",
-    ...(detail.en ? { en: "machine" as const } : {}),
-    ...(detail.fr ? { fr: "machine" as const } : {}),
-    ...(detail.de ? { de: "machine" as const } : {}),
-  };
 }
 
 function parseDistanceKm(raw: string | undefined): number | null {
@@ -163,25 +132,33 @@ export async function createPoiAction(
 
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
+    const detail = parseDetailField(formData);
     const db = getDb();
 
-    // Slug is derived from the English title (reusing the owner's translation
-    // when present, else translating just for this), then deduped. Generated
-    // once here and never changed on edit. See ADR-0015.
-    const englishTitle = title.en ?? (await translateToAllLocales(title.nl)).en;
-    const slug = await uniquePoiSlug(db, slugify(englishTitle));
+    // Resolve all three fields in parallel (allSettled fan-out inside each resolver).
+    const [titleRes, bodyRes] = await Promise.all([
+      resolveLocalizedText(title.nl.trim(), undefined),
+      resolveLocalizedText(body.nl.trim(), undefined),
+    ]);
+    const detailRes = detail?.nl
+      ? await resolveLocalizedDetail(detail.nl, undefined)
+      : null;
 
-    const detail = parseDetailField(formData);
+    // Slug is derived from the English title produced by the resolver (which
+    // just ran above), then deduped. Generated once here and never changed on
+    // edit. See ADR-0015.
+    const englishTitle = titleRes.value.en ?? title.nl;
+    const slug = await uniquePoiSlug(db, slugify(englishTitle));
 
     await db.insert(poi).values({
       id: crypto.randomUUID(),
       slug,
-      title: buildLocalized(title),
-      body: buildLocalized(body),
-      detail,
-      detailSource: detail ? buildDetailSource(detail) : null,
-      titleSource: inferSource(title),
-      bodySource: inferSource(body),
+      title: titleRes.value,
+      titleSource: titleRes.source,
+      body: bodyRes.value,
+      bodySource: bodyRes.source,
+      detail: detailRes?.value ?? null,
+      detailSource: detailRes?.source ?? null,
       imageUrl: blob.url,
       distanceKm: parseDistanceKm(data.distanceKm),
       sortOrder: parseSortOrder(formData.get("sortOrder")),
@@ -208,15 +185,15 @@ export async function updatePoiAction(
     const data = await serverValidate(formData);
     const db = getDb();
 
+    // Load the existing row upfront for both the image-swap check and the
+    // dirty-check / gap-fill that the translation resolvers perform.
+    const [existingPoi] = await db.select().from(poi).where(eq(poi.id, id));
+
     let imageUrl: string | undefined;
     const file = formData.get("file");
     if (file instanceof File && file.size > 0) {
-      const [existing] = await db
-        .select({ imageUrl: poi.imageUrl })
-        .from(poi)
-        .where(eq(poi.id, id));
-      if (existing?.imageUrl.includes("blob.vercel-storage.com")) {
-        await del(existing.imageUrl);
+      if (existingPoi?.imageUrl.includes("blob.vercel-storage.com")) {
+        await del(existingPoi.imageUrl);
       }
       const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
         access: "public",
@@ -227,15 +204,30 @@ export async function updatePoiAction(
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
     const detail = parseDetailField(formData);
+
+    // Resolve translations: pass stored values so unchanged sources are
+    // gap-filled only (not re-translated), and truly changed sources get a full
+    // retranslate. Failures degrade — they never block the save.
+    const [titleRes, bodyRes] = await Promise.all([
+      resolveLocalizedText(title.nl.trim(), existingPoi?.title ?? undefined),
+      resolveLocalizedText(body.nl.trim(), existingPoi?.body ?? undefined),
+    ]);
+    const detailRes = detail?.nl
+      ? await resolveLocalizedDetail(
+          detail.nl,
+          existingPoi?.detail ?? undefined,
+        )
+      : null;
+
     await db
       .update(poi)
       .set({
-        title: buildLocalized(title),
-        body: buildLocalized(body),
-        detail,
-        detailSource: detail ? buildDetailSource(detail) : null,
-        titleSource: inferSource(title),
-        bodySource: inferSource(body),
+        title: titleRes.value,
+        titleSource: titleRes.source,
+        body: bodyRes.value,
+        bodySource: bodyRes.source,
+        detail: detailRes?.value ?? null,
+        detailSource: detailRes?.source ?? null,
         distanceKm: parseDistanceKm(data.distanceKm),
         sortOrder: parseSortOrder(formData.get("sortOrder")),
         published: data.published,
