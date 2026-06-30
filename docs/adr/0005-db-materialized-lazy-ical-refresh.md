@@ -17,5 +17,5 @@ Model each feed as a first-class `ical_source` row that materializes its own las
 - Accurate per-source observability surfaced in `/admin/settings`, written precisely when a fetch happens.
 - A feed failure fails to **last-known-good** (`cachedIntervals` retained, `lastSyncedAt` not bumped, retry next read). A source that has _never_ synced contributes no busy dates (fail-open) — acceptable because the human confirm + bank-transfer step is the real double-booking safeguard.
 - Two concurrent stale reads can both fetch and upsert. Idempotent and harmless at this traffic; not guarded.
-- **Recurring events (`RRULE`) are not expanded.** Airbnb and Natuurhuisje publish concrete one-off blocks; a future source that uses recurrence rules would silently miss busy dates until expansion is added.
+- **Recurring events (`RRULE`) are not expanded.** Airbnb and Natuurhuisje publish concrete one-off blocks; a future source that uses recurrence rules would silently miss busy dates until expansion is added. _(Addressed in issue #32: `fetchIcalFeed` now expands `RRULE` occurrences — including `EXDATE`/`RECURRENCE-ID` overrides — bounded to a forward window matching the booking calendar's 12-month horizon; see `src/lib/ical-fetch.ts`.)_
 - Diverges from the issue's literal "ISR" wording, but keeps the public surface off the network on most requests without a cron.
