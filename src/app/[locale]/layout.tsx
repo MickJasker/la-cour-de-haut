@@ -11,6 +11,7 @@ import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import "../globals.css";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -87,16 +88,19 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
   const messages = await getDictionary(locale);
 
   return (
-    <html
-      lang={locale}
-      className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <I18nProvider locale={locale} messages={messages}>
-          {children}
-          {modal}
-        </I18nProvider>
-      </body>
-    </html>
+    <>
+      <html
+        lang={locale}
+        className={`${mulish.variable} ${ptSerif.variable} h-full antialiased`}
+      >
+        <body className="min-h-full flex flex-col">
+          <I18nProvider locale={locale} messages={messages}>
+            {children}
+            {modal}
+          </I18nProvider>
+        </body>
+      </html>
+      <SpeedInsights />
+    </>
   );
 }
