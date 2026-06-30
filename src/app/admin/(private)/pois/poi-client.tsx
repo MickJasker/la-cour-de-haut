@@ -37,6 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { ImageDropzone } from "../image-dropzone";
+import { uploadAdminImage } from "../upload-image";
 import {
   createPoiAction,
   updatePoiAction,
@@ -63,6 +64,10 @@ function PoiForm({
   onSaved: () => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  // Tracks the direct-to-Blob upload (browser -> Vercel Blob), which happens
+  // before the action is dispatched, so the submit button stays disabled and
+  // labelled for the whole save, not just the action round-trip. See #98.
+  const [isUploading, setIsUploading] = useState(false);
 
   const boundAction = editing
     ? updatePoiAction.bind(null, editing.id)
@@ -103,16 +108,27 @@ function PoiForm({
         state.values !== undefined ? mergeForm(baseForm, state) : baseForm,
       [state],
     ),
-    onSubmit: ({ value }) => {
-      // Build FormData manually so we can attach the File object (drag-and-drop
-      // sets file state, but the input has no name so native FormData misses it)
+    onSubmit: async ({ value }) => {
+      // Build FormData manually so we can attach the uploaded image URL
+      // (drag-and-drop sets file state, but the input has no name so native
+      // FormData misses it). The file itself goes straight to Vercel Blob
+      // from the browser before the action runs — the action only ever sees
+      // the resulting URL string, never the bytes. See #98.
       const fd = new FormData();
       fd.set("title", JSON.stringify(value.title));
       fd.set("body", JSON.stringify(value.body));
       fd.set("detail", JSON.stringify(detail));
       if (value.distanceKm) fd.set("distanceKm", value.distanceKm);
       fd.set("published", String(value.published));
-      if (file) fd.set("file", file);
+      if (file) {
+        setIsUploading(true);
+        try {
+          const imageUrl = await uploadAdminImage(file, "pois");
+          fd.set("imageUrl", imageUrl);
+        } finally {
+          setIsUploading(false);
+        }
+      }
       startTransition(() => formAction(fd));
     },
   });
@@ -270,8 +286,12 @@ function PoiForm({
       ) : null}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Opslaan en vertalen…" : "Opslaan"}
+        <Button type="submit" disabled={isPending || isUploading}>
+          {isUploading
+            ? "Afbeelding uploaden…"
+            : isPending
+              ? "Opslaan en vertalen…"
+              : "Opslaan"}
         </Button>
         {editing && (
           <Button type="button" variant="ghost" onClick={onCancel}>

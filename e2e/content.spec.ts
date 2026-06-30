@@ -232,4 +232,47 @@ test.describe("content: admin", () => {
     await giteSection.getByRole("button", { name: /opslaan/i }).click();
     await expect(giteSection.getByText(/vereist/i)).toBeVisible();
   });
+
+  // Exercises the client-side direct-to-Blob upload (#98): the file goes
+  // straight from the browser to /api/admin/blob-upload (stubbed under
+  // E2E_TESTING), and uploadHeroImageAction receives only the resulting URL.
+  test("owner can upload a hero image and it appears on the public page", async ({
+    page,
+  }) => {
+    await page.goto("/admin/content");
+    const heroSection = page.locator("[data-testid='admin-hero-section']");
+    // Wait for the dropzone to be visible so React has hydrated and attached
+    // onChange (same pattern as gallery.spec.ts / pois.spec.ts) — otherwise
+    // setInputFiles can land before the listener is attached and silently no-op.
+    await expect(heroSection.getByText(/sleep.*hierheen/i)).toBeVisible();
+    await heroSection.locator("[data-testid='hero-file-input']").setInputFiles({
+      name: "hero-test.jpg",
+      mimeType: "image/jpeg",
+      buffer: Buffer.from(
+        "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8U" +
+          "HRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgN" +
+          "DRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIy" +
+          "MjL/wAARCAABAAEDASIAAhEBAxEB/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAA" +
+          "AAAAAAAAAAAAAAD/xAAUAQEAAAAAAAAAAAAAAAAAAAAA/8QAFBEBAAAAAAAAAAAAAAAAAAAAAP/" +
+          "aAAwDAQACEQMRAD8AJQAB/9k=",
+        "base64",
+      ),
+    });
+    // Upload runs as soon as a file is picked (no separate "Opslaan" click).
+    await page.waitForLoadState("networkidle", { timeout: 15000 });
+
+    const sql = neon(process.env.DATABASE_URL!);
+    const [row] = await sql`
+      SELECT value FROM content_block WHERE key = 'hero_image_url'
+    `;
+    const url = (row?.value as { url?: string } | undefined)?.url;
+    expect(url).toContain("picsum.photos");
+
+    const seed = url!.match(/seed\/([^/]+)/)?.[1];
+    expect(seed).toBeTruthy();
+
+    await gotoFresh(page, "/nl");
+    const hero = page.locator("[data-testid='hero-section']");
+    await expect(hero.locator(`img[src*='${seed}']`)).toBeVisible();
+  });
 });

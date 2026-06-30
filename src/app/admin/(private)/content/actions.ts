@@ -6,7 +6,7 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { put, del } from "@vercel/blob";
+import { del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -137,9 +137,9 @@ export async function uploadHeroImageAction(
 ): Promise<UploadHeroActionState> {
   await verifySession();
 
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Geen geldig bestand opgegeven", success: false };
+  const imageUrl = formData.get("imageUrl");
+  if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
+    return { error: "Geen geldige afbeelding opgegeven", success: false };
   }
 
   const db = getDb();
@@ -150,11 +150,7 @@ export async function uploadHeroImageAction(
     .limit(1)
     .then((r) => r[0] ?? null);
 
-  const blob = await put(`content/${crypto.randomUUID()}-${file.name}`, file, {
-    access: "public",
-  });
-
-  const heroValue = { type: "imageUrl" as const, url: blob.url };
+  const heroValue = { type: "imageUrl" as const, url: imageUrl };
   await db
     .insert(contentBlock)
     .values({ key: "hero_image_url", value: heroValue })

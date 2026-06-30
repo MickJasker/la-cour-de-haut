@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { LocaleStatus } from "@/components/locale-status";
 import { ImageDropzone } from "../image-dropzone";
+import { uploadAdminImage } from "../upload-image";
 import {
   updateDescriptionAction,
   updateHeroDescriptionAction,
@@ -129,6 +130,10 @@ export function ContentClient({
   heroImageUrl: string | null;
 }) {
   const [heroFile, setHeroFile] = useState<File | null>(null);
+  // Tracks the direct-to-Blob upload (browser -> Vercel Blob), which happens
+  // before the action runs, so "Afbeelding uploaden…" stays visible for the
+  // whole operation, not just the action round-trip. See #98.
+  const [isUploadingToBlob, setIsUploadingToBlob] = useState(false);
   const [uploadState, uploadAction, uploadPending] = useActionState<
     UploadHeroActionState | null,
     FormData
@@ -142,9 +147,19 @@ export function ContentClient({
   function handleFileChange(file: File | null) {
     if (!file) return;
     setHeroFile(file);
-    const fd = new FormData();
-    fd.append("file", file);
-    startTransition(() => uploadAction(fd));
+    void (async () => {
+      setIsUploadingToBlob(true);
+      try {
+        // The file streams straight from the browser to Vercel Blob; the
+        // action only ever receives the resulting URL string. See #98.
+        const imageUrl = await uploadAdminImage(file, "content");
+        const fd = new FormData();
+        fd.append("imageUrl", imageUrl);
+        startTransition(() => uploadAction(fd));
+      } finally {
+        setIsUploadingToBlob(false);
+      }
+    })();
   }
 
   return (
@@ -168,7 +183,7 @@ export function ContentClient({
             existingUrl={heroImageUrl ?? undefined}
             testId="hero-file-input"
           />
-          {uploadPending && (
+          {(isUploadingToBlob || uploadPending) && (
             <p className="text-sm text-stone-500">Afbeelding uploaden…</p>
           )}
           {uploadState?.error && (
