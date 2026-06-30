@@ -2,9 +2,10 @@ import "server-only";
 import { getDb } from "@/db";
 import { icalSource } from "@/db/schema";
 import { bookingRequest, type BusyInterval } from "@/db/schema";
-import { and, eq, gte, isNull, or } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { connection } from "next/server";
 import { refreshSourceIfStale } from "./ical-cache";
+import { isActiveDirectBooking } from "./availability-utils";
 
 export type { BusyInterval };
 export { expandInterval } from "./availability-utils";
@@ -12,35 +13,32 @@ export { expandInterval } from "./availability-utils";
 /**
  * Returns all on_hold (non-expired) and confirmed direct bookings.
  * This is the single canonical filter for which bookings count as busy.
+ *
+ * Fetches both statuses from the DB, then filters with the shared
+ * `isActiveDirectBooking` predicate (ADR-0004) instead of re-encoding the
+ * expiry comparison in SQL — keeps this in lockstep with display status and
+ * dashboard categorisation, which apply the same predicate.
  */
 export async function getDirectBookings(): Promise<
   { id: string; startDate: string; endDate: string }[]
 > {
   await connection();
   const db = getDb();
-  return db
+  const rows = await db
     .select({
       id: bookingRequest.id,
       startDate: bookingRequest.startDate,
       endDate: bookingRequest.endDate,
+      status: bookingRequest.status,
+      paymentDeadline: bookingRequest.paymentDeadline,
     })
     .from(bookingRequest)
-    .where(
-      or(
-        // on_hold only counts while the payment deadline hasn't passed
-        and(
-          eq(bookingRequest.status, "on_hold"),
-          or(
-            isNull(bookingRequest.paymentDeadline),
-            gte(
-              bookingRequest.paymentDeadline,
-              new Date().toISOString().slice(0, 10),
-            ),
-          ),
-        ),
-        eq(bookingRequest.status, "confirmed"),
-      ),
-    );
+    .where(inArray(bookingRequest.status, ["on_hold", "confirmed"]));
+
+  const today = new Date().toISOString().slice(0, 10);
+  return rows
+    .filter((row) => isActiveDirectBooking(row, today))
+    .map(({ id, startDate, endDate }) => ({ id, startDate, endDate }));
 }
 
 /**

@@ -4,6 +4,7 @@ import {
   transition,
   canTransition,
   toDisplayStatus,
+  isExpiredHold,
   type DbBookingStatus,
 } from "./booking-machine";
 
@@ -115,5 +116,64 @@ describe("toDisplayStatus — lazy expiry", () => {
         toDisplayStatus({ status: s, paymentDeadline: pastDeadline }),
       ).toBe(s);
     }
+  });
+});
+
+describe("isExpiredHold — the single hold-expiry predicate (ADR-0004)", () => {
+  const TODAY = "2026-06-30";
+  const YESTERDAY = "2026-06-29";
+
+  it("on_hold with deadline yesterday is expired", () => {
+    expect(
+      isExpiredHold({ status: "on_hold", paymentDeadline: YESTERDAY }, TODAY),
+    ).toBe(true);
+  });
+
+  it("on_hold with deadline exactly today is NOT expired (boundary)", () => {
+    expect(
+      isExpiredHold({ status: "on_hold", paymentDeadline: TODAY }, TODAY),
+    ).toBe(false);
+  });
+
+  it("on_hold with a future deadline is not expired", () => {
+    expect(
+      isExpiredHold(
+        { status: "on_hold", paymentDeadline: "2026-07-01" },
+        TODAY,
+      ),
+    ).toBe(false);
+  });
+
+  it("on_hold with no deadline yet is not expired", () => {
+    expect(
+      isExpiredHold({ status: "on_hold", paymentDeadline: null }, TODAY),
+    ).toBe(false);
+  });
+
+  it("non on_hold statuses are never expired, even with a past deadline", () => {
+    const statuses = ["requested", "confirmed", "declined", "cancelled"];
+    for (const status of statuses) {
+      expect(isExpiredHold({ status, paymentDeadline: YESTERDAY }, TODAY)).toBe(
+        false,
+      );
+    }
+  });
+
+  it("defaults `today` to the real current date when omitted", () => {
+    const pastDeadline = formatISO(subDays(new Date(), 1), {
+      representation: "date",
+    });
+    expect(
+      isExpiredHold({ status: "on_hold", paymentDeadline: pastDeadline }),
+    ).toBe(true);
+  });
+
+  it("toDisplayStatus accepts an explicit `today` and agrees with isExpiredHold", () => {
+    expect(
+      toDisplayStatus({ status: "on_hold", paymentDeadline: YESTERDAY }, TODAY),
+    ).toBe("expired");
+    expect(
+      toDisplayStatus({ status: "on_hold", paymentDeadline: TODAY }, TODAY),
+    ).toBe("on_hold");
   });
 });

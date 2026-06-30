@@ -1,3 +1,5 @@
+import { isExpiredHold } from "./booking-machine";
+
 export type BookingRow = {
   id: string;
   name: string;
@@ -46,18 +48,16 @@ export function computeDashboard(
 ): DashboardData {
   return {
     newRequests: bookings.filter((b) => b.status === "requested"),
-    overdue: bookings.filter(
-      (b) =>
-        b.status === "on_hold" &&
-        b.paymentDeadline !== null &&
-        b.paymentDeadline < today,
-    ),
+    // ADR-0004: a hold is "overdue" the moment it's expired — same predicate
+    // used by busy-intervals and display status, so this can't drift.
+    overdue: bookings.filter((b) => isExpiredHold(b, today)),
     approaching: bookings.filter((b) => {
       if (b.status !== "on_hold" || b.paymentDeadline === null) return false;
+      if (isExpiredHold(b, today)) return false;
       const in3Days = new Date(new Date(today).getTime() + 3 * 86_400_000)
         .toISOString()
         .slice(0, 10);
-      return b.paymentDeadline >= today && b.paymentDeadline <= in3Days;
+      return b.paymentDeadline <= in3Days;
     }),
     brokenFeeds: icalSources.filter((f) => f.lastError !== null),
     upcoming: [
