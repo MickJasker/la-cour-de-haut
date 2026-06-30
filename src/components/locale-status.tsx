@@ -2,6 +2,7 @@ import React from "react";
 import { locales } from "@/i18n/routing";
 import type { Locale } from "@/i18n/routing";
 import { cn } from "@/lib/utils";
+import { Languages, Check, TriangleAlert } from "lucide-react";
 
 const localeDisplayName: Record<Locale, string> = {
   nl: "Nederlands",
@@ -20,24 +21,28 @@ export function LocaleStatus(props: {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs text-stone-500",
+        "flex items-center gap-1.5 text-xs text-stone-500",
         className,
       )}
     >
-      {locales.map((locale, i) => {
+      <Languages className="w-4 h-4" />
+      {locales.map((locale) => {
         const present = locale in source;
         return (
           <React.Fragment key={locale}>
-            {i > 0 && (
-              <span aria-hidden="true" className="text-stone-300">
-                ·
-              </span>
-            )}
             <span
               aria-label={`${localeDisplayName[locale]}: ${present ? "vertaald" : "ontbreekt"}`}
-              className={present ? "text-green-700" : "text-amber-600"}
+              className={cn(
+                "flex items-center gap-1",
+                present ? "text-green-700" : "text-amber-600",
+              )}
             >
-              {locale.toUpperCase()} {present ? "✓" : "⚠"}
+              {locale.toUpperCase()}{" "}
+              {present ? (
+                <Check className="w-4 h-4 inline" />
+              ) : (
+                <TriangleAlert className="w-4 h-4 inline" />
+              )}
             </span>
           </React.Fragment>
         );

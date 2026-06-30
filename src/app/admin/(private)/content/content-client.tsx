@@ -95,8 +95,6 @@ function LocalizedTextForm({
         </FieldSet>
       </FieldGroup>
 
-      <LocaleStatus source={initialValueSource ?? { nl: "human" }} />
-
       {typeof state.errorMap?.onServer === "string" && (
         <p className="text-destructive text-sm">{state.errorMap.onServer}</p>
       )}
@@ -111,6 +109,8 @@ function LocalizedTextForm({
       <Button type="submit" disabled={isPending}>
         {isPending ? "Opslaan en vertalen…" : "Opslaan"}
       </Button>
+
+      <LocaleStatus source={initialValueSource ?? { nl: "human" }} />
     </form>
   );
 }
