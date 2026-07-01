@@ -36,7 +36,7 @@ export async function Hero({ locale }: { locale: Locale }) {
   return (
     <div
       data-testid="hero-section"
-      className="grid grid-cols-[24px_1fr_24px] md:grid-cols-[24px_6fr_6fr_6fr_24px] lg:grid-cols-[2fr_3fr_4fr_4fr_2fr] xl:grid-cols-[2fr_3fr_1fr_8fr_2fr] h-svh max-h-225 gap-4 pb-30 md:pb-0 items-end md:items-center bg-brand-forest text-olive-50"
+      className="grid grid-cols-[24px_1fr_24px] md:grid-cols-[24px_6fr_6fr_6fr_24px] lg:grid-cols-[2fr_3fr_4fr_4fr_2fr] xl:grid-cols-[2fr_3fr_1fr_8fr_2fr] h-[calc(100svh-5.5rem)] md:max-h-225 gap-4 pb-20 md:pb-0 items-end md:items-center bg-brand-forest text-olive-50"
     >
       <div className="col-span-full md:col-start-3 md:col-end-6 bg-cream-50 w-full h-full row-start-1 row-end-2 relative">
         {heroImageUrl ? (
