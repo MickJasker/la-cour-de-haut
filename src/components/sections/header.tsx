@@ -36,7 +36,7 @@ export function Header({
   const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
   const mainEl = useSyncExternalStore(
     () => () => {},
-    () => document.querySelector<HTMLElement>("main"),
+    () => document.querySelector<HTMLElement>("main")?.parentElement,
     () => null,
   );
 

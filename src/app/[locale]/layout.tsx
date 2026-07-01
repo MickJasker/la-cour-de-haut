@@ -12,6 +12,7 @@ import { eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Footer } from "@/components/sections/footer";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -98,6 +99,7 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale} messages={messages}>
           {children}
+          <Footer />
           {modal}
         </I18nProvider>
         {/* Client component reading useSearchParams; under Cache Components a
