@@ -16,6 +16,17 @@
  * disagree. EXIF correction is out of scope for #103; a future EXIF issue
  * should reconcile them.
  *
+ * How it's run: manually, once — it is NOT wired into build/start or any cron.
+ * This mirrors the other one-off scripts in this repo (seed-owner,
+ * seed-ical-sources) and the decision recorded in #105. Locally it targets
+ * whatever `DATABASE_URL` is in `.env.local`. To backfill production, point it
+ * at the prod Neon database — e.g. `vercel env pull .env.local` (or paste the
+ * prod URL) — then run the command below. Run it once #104 has shipped, so the
+ * `width`/`height` columns already exist in prod (they're added by the
+ * migration `pnpm build` applies on deploy). It only issues SELECT/UPDATE (no
+ * DDL), so the pooled `DATABASE_URL` is fine — the unpooled connection that
+ * migrations need is not required. Idempotent, so it's safe to re-run.
+ *
  * Run with: pnpm backfill-gallery-dimensions
  */
 try {
