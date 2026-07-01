@@ -6,6 +6,8 @@ import { galleryImage, contentBlock } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { GiteDialog } from "./gite-dialog";
 import { cacheLife, cacheTag } from "next/cache";
+import { RichTextRenderer } from "../rich-text-renderer";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 
 export async function GiteSection({ locale }: { locale: Locale }) {
   "use cache";
@@ -21,10 +23,14 @@ export async function GiteSection({ locale }: { locale: Locale }) {
     .where(eq(contentBlock.key, "description"))
     .limit(1)
     .then((r) => r[0] ?? null);
+  const descriptionState =
+    descRow?.value?.type === "localizedEditorState"
+      ? (descRow.value[locale] ?? descRow.value.nl)
+      : null;
   const description =
-    descRow?.value?.type === "localizedText"
-      ? (descRow.value[locale] ?? descRow.value.nl ?? "")
-      : "";
+    descriptionState !== null && hasEditorText(descriptionState)
+      ? descriptionState
+      : null;
 
   const allPublished = await db
     .select({
@@ -57,7 +63,10 @@ export async function GiteSection({ locale }: { locale: Locale }) {
           <div className="space-y-6 md:pt-30 md:row-start-1 md:col-start-1 md:col-end-9 lg:col-end-7">
             <h2 className="text-style-display-large">{t("title")}</h2>
             {description && (
-              <p className="text-style-body-large">{description}</p>
+              <RichTextRenderer
+                state={description}
+                className="text-style-body-large"
+              />
             )}
           </div>
 

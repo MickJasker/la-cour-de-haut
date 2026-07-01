@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  initialFormState,
-  mergeForm,
-  revalidateLogic,
-  useForm,
-  useTransform,
-} from "@tanstack/react-form-nextjs";
 import { useActionState, useState, startTransition } from "react";
+import type { SerializedEditorState } from "lexical";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
+import { Field, FieldGroup, FieldSet } from "@/components/ui/field";
 import { LocaleStatus } from "@/components/locale-status";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
 import { ImageDropzone } from "../image-dropzone";
 import { uploadAdminImage } from "../upload-image";
 import {
@@ -21,84 +17,60 @@ import {
   type ContentActionState,
   type UploadHeroActionState,
 } from "./actions";
-import { contentFormOpts, contentFormClientSchema } from "./shared";
-import type { LocalizedText, LocalizedSource } from "@/db/schema";
+import type { LocalizedEditorState, LocalizedSource } from "@/db/schema";
 
-const inputCls =
-  "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-y";
-
-function LocalizedTextForm({
+/** "Basic prose" (bold/italic/paragraphs/links) editor form for a single
+ * content_block row (ADR-0017). No TanStack form — the rich value is opaque
+ * EditorState JSON, kept as component state and attached to FormData on
+ * submit, like POI detail's editor (ADR-0015). */
+function RichTextBlockForm({
   id,
+  label,
   initialValue,
   initialValueSource,
   action,
 }: {
   id: string;
-  initialValue: LocalizedText | null;
+  label: string;
+  initialValue: LocalizedEditorState | null;
   initialValueSource: LocalizedSource | null;
   action: (prev: unknown, formData: FormData) => Promise<ContentActionState>;
 }) {
   const [state, formAction, isPending] = useActionState<
     ContentActionState,
     FormData
-  >(action, { ...initialFormState, success: false });
+  >(action, { success: false, error: null });
 
-  const form = useForm({
-    ...contentFormOpts,
-    defaultValues: {
-      nl: initialValue?.nl ?? "",
-    },
-    validators: { onDynamic: contentFormClientSchema },
-    validationLogic: revalidateLogic({
-      mode: "submit",
-      modeAfterSubmission: "change",
-    }),
-    transform: useTransform(
-      (baseForm) =>
-        state.values !== undefined ? mergeForm(baseForm, state) : baseForm,
-      [state],
-    ),
-    onSubmit: ({ value }) => {
-      const fd = new FormData();
-      fd.set("nl", value.nl);
-      startTransition(() => formAction(fd));
-    },
-  });
+  const [value, setValue] = useState<SerializedEditorState>(
+    initialValue?.nl ?? EMPTY_EDITOR_STATE,
+  );
 
   return (
     <form
       id={id}
-      noValidate
       className="space-y-4 border border-stone-200 rounded-lg p-5 bg-stone-50"
       onSubmit={(e) => {
         e.preventDefault();
-        void form.handleSubmit();
+        const fd = new FormData();
+        fd.set("detail", JSON.stringify(value));
+        startTransition(() => formAction(fd));
       }}
     >
       <FieldGroup>
         <FieldSet>
-          <form.Field name="nl">
-            {(field) => (
-              <Field>
-                <Label htmlFor={`${id}-nl`}>Beschrijving (NL)</Label>
-                <textarea
-                  id={`${id}-nl`}
-                  rows={5}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  className={inputCls}
-                />
-                <FieldError errors={field.state.meta.errors} />
-              </Field>
-            )}
-          </form.Field>
+          <Field>
+            <Label>{label}</Label>
+            <RichTextEditor
+              initialValue={value}
+              onChange={setValue}
+              ariaLabel={label}
+              variant="basic"
+            />
+          </Field>
         </FieldSet>
       </FieldGroup>
 
-      {typeof state.errorMap?.onServer === "string" && (
-        <p className="text-destructive text-sm">{state.errorMap.onServer}</p>
-      )}
+      {state.error && <p className="text-destructive text-sm">{state.error}</p>}
 
       {state.failures?.length ? (
         <p className="text-sm text-amber-700">
@@ -123,9 +95,9 @@ export function ContentClient({
   heroDescriptionValueSource,
   heroImageUrl,
 }: {
-  description: LocalizedText | null;
+  description: LocalizedEditorState | null;
   descriptionValueSource: LocalizedSource | null;
-  heroDescription: LocalizedText | null;
+  heroDescription: LocalizedEditorState | null;
   heroDescriptionValueSource: LocalizedSource | null;
   heroImageUrl: string | null;
 }) {
@@ -179,8 +151,9 @@ export function ContentClient({
       <section data-testid="admin-hero-section" className="space-y-6">
         <h2 className="text-lg font-semibold">Hero</h2>
 
-        <LocalizedTextForm
+        <RichTextBlockForm
           id="hero-desc"
+          label="Beschrijving (NL)"
           initialValue={heroDescription}
           initialValueSource={heroDescriptionValueSource}
           action={updateHeroDescriptionAction}
@@ -208,8 +181,9 @@ export function ContentClient({
       {/* Over de gîte */}
       <section data-testid="admin-gite-section" className="space-y-6">
         <h2 className="text-lg font-semibold">Over de gîte</h2>
-        <LocalizedTextForm
+        <RichTextBlockForm
           id="gite-desc"
+          label="Beschrijving (NL)"
           initialValue={description}
           initialValueSource={descriptionValueSource}
           action={updateDescriptionAction}

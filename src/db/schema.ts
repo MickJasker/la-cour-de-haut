@@ -255,7 +255,17 @@ export type ImageUrl = {
   type: "imageUrl";
   url: string;
 };
-export type ContentBlockValue = LocalizedText | ImageUrl;
+// Rich-text content_block value (ADR-0017): a "basic prose" subset (bold,
+// italic, paragraphs, links — no headings/lists) of the Lexical EditorState
+// shape POI detail uses. Distinct `type` tag from `LocalizedText` since a
+// content_block row can hold either a plain string or serialized rich text.
+export type LocalizedEditorStateValue = {
+  type: "localizedEditorState";
+} & LocalizedEditorState;
+export type ContentBlockValue =
+  | LocalizedText
+  | ImageUrl
+  | LocalizedEditorStateValue;
 
 export type LocalizedSource = {
   nl: "human" | "machine";

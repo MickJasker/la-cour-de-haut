@@ -9,6 +9,8 @@ import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
+import { RichTextRenderer } from "../rich-text-renderer";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 
 export async function Hero({ locale }: { locale: Locale }) {
   "use cache";
@@ -28,10 +30,12 @@ export async function Hero({ locale }: { locale: Locale }) {
     imageRow?.value?.type === "imageUrl" ? imageRow.value.url : null;
 
   const descRow = rows.find((r) => r.key === "hero_description");
-  const heroDescription =
-    descRow?.value?.type === "localizedText"
-      ? (descRow.value[locale] ?? descRow.value.nl ?? "")
-      : "";
+  const heroDescriptionState =
+    descRow?.value?.type === "localizedEditorState"
+      ? (descRow.value[locale] ?? descRow.value.nl)
+      : null;
+  const showHeroDescription =
+    heroDescriptionState !== null && hasEditorText(heroDescriptionState);
 
   return (
     <div
@@ -67,8 +71,11 @@ export async function Hero({ locale }: { locale: Locale }) {
         <h1 className="contents">
           <Logo className="w-full h-auto" />
         </h1>
-        {heroDescription && (
-          <p className="text-style-body-large">{heroDescription}</p>
+        {showHeroDescription && (
+          <RichTextRenderer
+            state={heroDescriptionState}
+            className="text-style-body-large"
+          />
         )}
         <Button asChild variant="secondary" size="lg" className="max-md:hidden">
           <Link href="/book">{t("callToAction")}</Link>

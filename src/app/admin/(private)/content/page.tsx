@@ -29,11 +29,13 @@ export default async function ContentAdminPage() {
         <h1 className="text-2xl font-semibold">Inhoud</h1>
         <ContentClient
           description={
-            descRow?.value?.type === "localizedText" ? descRow.value : null
+            descRow?.value?.type === "localizedEditorState"
+              ? descRow.value
+              : null
           }
           descriptionValueSource={descRow?.valueSource ?? null}
           heroDescription={
-            heroDescRow?.value?.type === "localizedText"
+            heroDescRow?.value?.type === "localizedEditorState"
               ? heroDescRow.value
               : null
           }

@@ -341,4 +341,28 @@ describe("RichTextRenderer", () => {
       expect(html).toContain("Title");
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Behavior 8: className override (ADR-0017 — hero/gîte reuse font styling)
+  // -------------------------------------------------------------------------
+
+  describe("className override", () => {
+    it("uses the default container class when no className is given", () => {
+      const html = renderToStaticMarkup(
+        <RichTextRenderer state={makeState(paragraphNode(textNode("Hi")))} />,
+      );
+      expect(html).toContain("max-w-prose");
+    });
+
+    it("replaces the container class when className is given", () => {
+      const html = renderToStaticMarkup(
+        <RichTextRenderer
+          state={makeState(paragraphNode(textNode("Hi")))}
+          className="text-style-body-large"
+        />,
+      );
+      expect(html).not.toContain("max-w-prose");
+      expect(html).toContain("text-style-body-large");
+    });
+  });
 });

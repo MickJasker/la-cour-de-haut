@@ -29,6 +29,7 @@ import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
 import { $findMatchingParent } from "@lexical/utils";
 import {
   ALLOWED_HEADINGS,
+  BASIC_EDITOR_NODES,
   EDITOR_NODES,
   EDITOR_THEME,
 } from "@/lib/lexical/nodes";
@@ -79,7 +80,11 @@ const btnCls = "rounded border border-stone-300 px-2 py-1 hover:bg-muted";
 // Toolbar
 // ---------------------------------------------------------------------------
 
-function Toolbar(): React.ReactElement {
+function Toolbar({
+  variant,
+}: {
+  variant: "basic" | "full";
+}): React.ReactElement {
   const [editor] = useLexicalComposerContext();
   // null = link editor hidden; a string = visible with that draft URL.
   const [linkDraft, setLinkDraft] = useState<string | null>(null);
@@ -145,57 +150,63 @@ function Toolbar(): React.ReactElement {
           <Italic size={14} />
         </button>
 
-        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+        {variant === "full" && (
+          <>
+            <span className="mx-1 h-4 w-px bg-border" aria-hidden />
 
-        {ALLOWED_HEADINGS.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            title={`Kop ${tag.slice(1)}`}
-            className={btnCls}
-            onClick={() =>
-              editor.update(() =>
-                $applyBlockType(() => $createHeadingNode(tag)),
-              )
-            }
-          >
-            {HEADING_ICONS[tag]}
-          </button>
-        ))}
+            {ALLOWED_HEADINGS.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                title={`Kop ${tag.slice(1)}`}
+                className={btnCls}
+                onClick={() =>
+                  editor.update(() =>
+                    $applyBlockType(() => $createHeadingNode(tag)),
+                  )
+                }
+              >
+                {HEADING_ICONS[tag]}
+              </button>
+            ))}
 
-        <button
-          type="button"
-          title="Paragraaf"
-          className={`${btnCls} text-xs font-medium`}
-          onClick={() =>
-            editor.update(() => $applyBlockType(() => $createParagraphNode()))
-          }
-        >
-          P
-        </button>
+            <button
+              type="button"
+              title="Paragraaf"
+              className={`${btnCls} text-xs font-medium`}
+              onClick={() =>
+                editor.update(() =>
+                  $applyBlockType(() => $createParagraphNode()),
+                )
+              }
+            >
+              P
+            </button>
 
-        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+            <span className="mx-1 h-4 w-px bg-border" aria-hidden />
 
-        <button
-          type="button"
-          title="Opsomming"
-          className={btnCls}
-          onClick={() =>
-            editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
-          }
-        >
-          <List size={14} />
-        </button>
-        <button
-          type="button"
-          title="Genummerde lijst"
-          className={btnCls}
-          onClick={() =>
-            editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
-          }
-        >
-          <ListOrdered size={14} />
-        </button>
+            <button
+              type="button"
+              title="Opsomming"
+              className={btnCls}
+              onClick={() =>
+                editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined)
+              }
+            >
+              <List size={14} />
+            </button>
+            <button
+              type="button"
+              title="Genummerde lijst"
+              className={btnCls}
+              onClick={() =>
+                editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined)
+              }
+            >
+              <ListOrdered size={14} />
+            </button>
+          </>
+        )}
 
         <span className="mx-1 h-4 w-px bg-border" aria-hidden />
 
@@ -269,14 +280,19 @@ export function RichTextEditor({
   initialValue,
   onChange,
   ariaLabel,
+  variant = "full",
 }: {
   initialValue: SerializedEditorState;
   onChange: (state: SerializedEditorState) => void;
   ariaLabel?: string;
+  /** "basic" drops headings/lists from both the toolbar and the registered
+   * node set — used for shorter authored fields (ADR-0017). Defaults to the
+   * original POI detail feature set. */
+  variant?: "basic" | "full";
 }): React.ReactElement {
   const initialConfig = {
-    namespace: "poi-detail",
-    nodes: EDITOR_NODES,
+    namespace: "rich-text-editor",
+    nodes: variant === "basic" ? BASIC_EDITOR_NODES : EDITOR_NODES,
     theme: EDITOR_THEME,
     editorState: JSON.stringify(initialValue),
     onError: (e: Error) => {
@@ -287,7 +303,7 @@ export function RichTextEditor({
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="rounded border border-stone-300 focus-within:ring-2 focus-within:ring-ring">
-        <Toolbar />
+        <Toolbar variant={variant} />
         {/* Own positioning context so the placeholder anchors to the editable
             area (below the toolbar), not the whole widget. */}
         <div className="relative">
@@ -308,7 +324,7 @@ export function RichTextEditor({
           />
         </div>
         <HistoryPlugin />
-        <ListPlugin />
+        {variant === "full" && <ListPlugin />}
         <LinkPlugin validateUrl={isSafeHref} />
         <OnChangePlugin
           onChange={(editorState) => onChange(editorState.toJSON())}

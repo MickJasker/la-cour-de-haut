@@ -181,10 +181,14 @@ function renderNode(node: SerializedNode, key: number): React.ReactNode {
 
 export function RichTextRenderer({
   state,
+  className,
 }: {
   state: SerializedEditorState;
+  /** Overrides the default container class (`max-w-prose leading-relaxed`).
+   * Font styling on the container inherits down to every paragraph/heading. */
+  className?: string;
 }): React.ReactElement {
   const children = (state?.root?.children ?? []) as SerializedNode[];
   const nodes = children.map((child, idx) => renderNode(child, idx));
-  return <div className={CLS.container}>{nodes}</div>;
+  return <div className={className ?? CLS.container}>{nodes}</div>;
 }
