@@ -68,6 +68,7 @@ function PoiForm({
   // before the action is dispatched, so the submit button stays disabled and
   // labelled for the whole save, not just the action round-trip. See #98.
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const boundAction = editing
     ? updatePoiAction.bind(null, editing.id)
@@ -122,11 +123,22 @@ function PoiForm({
       fd.set("published", String(value.published));
       if (file) {
         setIsUploading(true);
+        setUploadError(null);
         try {
           const imageUrl = await uploadAdminImage(file, "pois");
           fd.set("imageUrl", imageUrl);
-        } finally {
+          // React Compiler can't lower a try/catch/finally together (only
+          // try/catch), so "stop uploading" is duplicated at the end of both
+          // the try and catch bodies instead of a shared finally.
           setIsUploading(false);
+        } catch (error) {
+          setUploadError(
+            error instanceof Error
+              ? error.message
+              : "Afbeelding uploaden mislukt",
+          );
+          setIsUploading(false);
+          return;
         }
       }
       startTransition(() => formAction(fd));
@@ -249,6 +261,9 @@ function PoiForm({
             <p className="text-destructive text-sm">
               {state.errorMap.onServer}
             </p>
+          )}
+          {uploadError && (
+            <p className="text-destructive text-sm">{uploadError}</p>
           )}
         </FieldSet>
 

@@ -134,6 +134,7 @@ export function ContentClient({
   // before the action runs, so "Afbeelding uploaden…" stays visible for the
   // whole operation, not just the action round-trip. See #98.
   const [isUploadingToBlob, setIsUploadingToBlob] = useState(false);
+  const [blobUploadError, setBlobUploadError] = useState<string | null>(null);
   const [uploadState, uploadAction, uploadPending] = useActionState<
     UploadHeroActionState | null,
     FormData
@@ -149,6 +150,7 @@ export function ContentClient({
     setHeroFile(file);
     void (async () => {
       setIsUploadingToBlob(true);
+      setBlobUploadError(null);
       try {
         // The file streams straight from the browser to Vercel Blob; the
         // action only ever receives the resulting URL string. See #98.
@@ -156,7 +158,16 @@ export function ContentClient({
         const fd = new FormData();
         fd.append("imageUrl", imageUrl);
         startTransition(() => uploadAction(fd));
-      } finally {
+        // React Compiler can't lower a try/catch/finally together (only
+        // try/catch), so the "stop uploading" call is duplicated at the end
+        // of both the try and catch bodies instead of a shared finally.
+        setIsUploadingToBlob(false);
+      } catch (error) {
+        setBlobUploadError(
+          error instanceof Error
+            ? error.message
+            : "Afbeelding uploaden mislukt",
+        );
         setIsUploadingToBlob(false);
       }
     })();
@@ -186,8 +197,10 @@ export function ContentClient({
           {(isUploadingToBlob || uploadPending) && (
             <p className="text-sm text-stone-500">Afbeelding uploaden…</p>
           )}
-          {uploadState?.error && (
-            <p className="text-sm text-red-600">{uploadState.error}</p>
+          {(blobUploadError ?? uploadState?.error) && (
+            <p className="text-sm text-red-600">
+              {blobUploadError ?? uploadState?.error}
+            </p>
           )}
         </div>
       </section>
