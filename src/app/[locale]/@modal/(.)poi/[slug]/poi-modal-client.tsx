@@ -8,12 +8,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useState } from "react";
 
 /**
- * Client Dialog wrapper for the intercepted POI route. Forced open; closing
- * (overlay/Esc/X) pops the intercepted URL via router.back(), mirroring the
- * booking modal. The server-rendered detail is passed as `children` so this
- * client boundary doesn't need to fetch or render server components itself.
+ * Client Dialog wrapper for the intercepted POI route. Starts open; closing
+ * (overlay/Esc/X) plays the dialog's exit animation, then pops the
+ * intercepted URL via router.back() once it finishes, mirroring the booking
+ * modal. The server-rendered detail is passed as `children` so this client
+ * boundary doesn't need to fetch or render server components itself.
  */
 export function PoiModalClient({
   title,
@@ -23,10 +25,16 @@ export function PoiModalClient({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const [open, setOpen] = useState(true);
 
   return (
-    <Dialog open onOpenChange={(open) => !open && router.back()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        onAnimationEnd={(e) => {
+          if (!open && e.target === e.currentTarget) router.back();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="sr-only">{title}</DialogTitle>
           <DialogDescription className="sr-only">{title}</DialogDescription>
