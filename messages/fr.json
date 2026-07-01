@@ -11,7 +11,7 @@
   },
   "sections": {
     "header": {
-      "bookNow": "Réservez votre séjour maintenant",
+      "bookNow": "Réservez maintenant",
       "bookDescription": "Remplissez le formulaire pour envoyer une demande de séjour."
     },
     "poi": {
