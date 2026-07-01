@@ -11,7 +11,7 @@
     "lint": "eslint",
     "db:push": "drizzle-kit push",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "drizzle-kit migrate && pnpm run backfill-gallery-dimensions",
     "seed-owner": "tsx scripts/seed-owner.mts",
     "seed-ical-sources": "tsx scripts/seed-ical-sources.mts",
     "backfill-gallery-dimensions": "tsx scripts/backfill-gallery-dimensions.mts",
