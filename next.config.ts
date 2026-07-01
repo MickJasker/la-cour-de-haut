@@ -20,6 +20,10 @@ const nextConfig: NextConfig = {
     globalNotFound: true,
   },
   images: {
+    // AVIF first (best compression, ~20% smaller than WebP), WebP fallback for
+    // browsers without AVIF support. Next.js picks per-request via the `Accept`
+    // header. Default was `["image/webp"]` only. See PageSpeed `image-delivery`.
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
       { protocol: "https", hostname: "picsum.photos" },

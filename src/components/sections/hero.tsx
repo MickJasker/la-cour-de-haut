@@ -45,7 +45,7 @@ export async function Hero({ locale }: { locale: Locale }) {
             alt=""
             className="w-full h-full object-cover bg-blend-multiply"
             fill
-            loading="eager"
+            preload
             aria-hidden="true"
             sizes="(max-width: 768px) 100vw, 66vw"
           />
@@ -55,7 +55,7 @@ export async function Hero({ locale }: { locale: Locale }) {
             alt=""
             className="w-full h-full object-cover bg-blend-multiply"
             fill
-            loading="eager"
+            preload
             aria-hidden="true"
             sizes="(max-width: 768px) 100vw, 66vw"
             placeholder="blur"
