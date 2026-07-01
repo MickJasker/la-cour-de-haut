@@ -1,7 +1,63 @@
 import { test, expect, type Page } from "@playwright/test";
 import { neon } from "@neondatabase/serverless";
+import zlib from "node:zlib";
 
 const PLACEHOLDER_URL = "https://picsum.photos/seed/test/800/600";
+
+// Builds a minimal, valid, uncompressed-scanline PNG buffer of the given
+// pixel dimensions (8-bit truecolor RGB, no filter, no interlace) — enough
+// for a browser's createImageBitmap()/next/image to decode and report real
+// naturalWidth/naturalHeight. Used by the aspect-ratio e2e test below to
+// produce two real uploadable images of known, distinct dimensions without
+// hardcoding opaque base64 blobs.
+function pngChunk(type: string, data: Buffer): Buffer {
+  const typeBuf = Buffer.from(type, "ascii");
+  const lenBuf = Buffer.alloc(4);
+  lenBuf.writeUInt32BE(data.length, 0);
+  const crcBuf = Buffer.alloc(4);
+  crcBuf.writeUInt32BE(zlib.crc32(Buffer.concat([typeBuf, data])) >>> 0, 0);
+  return Buffer.concat([lenBuf, typeBuf, data, crcBuf]);
+}
+
+function makePng(
+  width: number,
+  height: number,
+  rgb: [number, number, number],
+): Buffer {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+  const ihdrData = Buffer.alloc(13);
+  ihdrData.writeUInt32BE(width, 0);
+  ihdrData.writeUInt32BE(height, 4);
+  ihdrData[8] = 8; // bit depth
+  ihdrData[9] = 2; // color type: truecolor RGB
+  ihdrData[10] = 0; // compression method
+  ihdrData[11] = 0; // filter method
+  ihdrData[12] = 0; // interlace method
+  const ihdr = pngChunk("IHDR", ihdrData);
+
+  const rowBytes = 1 + width * 3;
+  const raw = Buffer.alloc(rowBytes * height);
+  for (let y = 0; y < height; y++) {
+    const offset = y * rowBytes;
+    raw[offset] = 0; // per-scanline filter type: none
+    for (let x = 0; x < width; x++) {
+      const p = offset + 1 + x * 3;
+      raw[p] = rgb[0];
+      raw[p + 1] = rgb[1];
+      raw[p + 2] = rgb[2];
+    }
+  }
+  const idat = pngChunk("IDAT", zlib.deflateSync(raw));
+  const iend = pngChunk("IEND", Buffer.alloc(0));
+
+  return Buffer.concat([signature, ihdr, idat, iend]);
+}
+
+// Known, distinct intrinsic dimensions for the aspect-ratio e2e test:
+// landscape is 2:1 (width > height), portrait is 1:2 (height > width).
+const LANDSCAPE_DIMENSIONS = { width: 400, height: 200 };
+const PORTRAIT_DIMENSIONS = { width: 200, height: 400 };
 
 async function clearGallery() {
   const sql = neon(process.env.DATABASE_URL!);
@@ -363,5 +419,103 @@ test.describe("gallery: admin", () => {
       2,
       { timeout: 15000 },
     );
+  });
+
+  test("uploaded photos render at their own aspect ratio in the public gallery dialog", async ({
+    page,
+  }) => {
+    // Real upload, through the actual admin form (same mechanism as "owner can
+    // upload an image"): one landscape (2:1) and one portrait (1:2) PNG, built
+    // with known, distinct intrinsic dimensions so the browser's
+    // createImageBitmap() captures real, distinguishable width/height.
+    await page.goto("/admin/gallery");
+    const fileInput = page.locator("[data-testid='gallery-file-input']");
+    await expect(page.getByText(/sleep.*hierheen/i)).toBeVisible();
+
+    await fileInput.setInputFiles([
+      {
+        name: "landscape.png",
+        mimeType: "image/png",
+        buffer: makePng(
+          LANDSCAPE_DIMENSIONS.width,
+          LANDSCAPE_DIMENSIONS.height,
+          [200, 100, 50],
+        ),
+      },
+      {
+        name: "portrait.png",
+        mimeType: "image/png",
+        buffer: makePng(
+          PORTRAIT_DIMENSIONS.width,
+          PORTRAIT_DIMENSIONS.height,
+          [50, 100, 200],
+        ),
+      },
+    ]);
+
+    await page
+      .getByRole("button", { name: /2 afbeeldingen uploaden/i })
+      .click();
+    await expect(page.locator("[data-testid='gallery-list'] img")).toHaveCount(
+      2,
+      { timeout: 15000 },
+    );
+
+    // Both uploads now persist their client-captured width/height. Publish
+    // them so the public section shows them. We do this in SQL rather than
+    // through the admin checkbox: togglePublishedAction is dispatched as a
+    // fire-and-forget transition (`startTransition(() => void action())`), so
+    // the checkbox re-enabling is optimistic and does NOT guarantee the write
+    // has committed before we navigate away. Direct SQL is deterministic and
+    // matches how the public-section tests above seed published rows.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`UPDATE gallery_image SET published = true`;
+
+    // The "Bekijk meer foto's" trigger is only visible on desktop when there
+    // are MORE THAN 4 published images (with ≤4 the inline grid already shows
+    // them all, so the trigger is `md:hidden` — see gite.tsx). Playwright's
+    // viewport is desktop, so seed three more published rows (5 total). They
+    // have no dimensions → they render in the fixed 3:2 fallback. Their
+    // sort_orders come after both uploads (10, 20) so the public dialog renders
+    // in a known order: landscape (img 0), portrait (img 1), then fillers.
+    for (let i = 0; i < 3; i++) {
+      await seedImage({
+        id: `gal-e2e-aspect-filler-${i}`,
+        sortOrder: 100 + i * 10,
+        published: true,
+      });
+    }
+
+    await gotoFresh(page, "/nl");
+    await page.getByRole("button", { name: /bekijk meer foto/i }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("img")).toHaveCount(5);
+
+    // GiteDialog renders images in sort_order (decorative alt=""), so identify
+    // them by position rather than alt text: img 0 = landscape, img 1 =
+    // portrait.
+    const landscapeImg = dialog.locator("img").nth(0);
+    const portraitImg = dialog.locator("img").nth(1);
+    await expect(landscapeImg).toBeVisible();
+    await expect(portraitImg).toBeVisible();
+
+    const landscapeBox = await landscapeImg.boundingBox();
+    const portraitBox = await portraitImg.boundingBox();
+    expect(landscapeBox).not.toBeNull();
+    expect(portraitBox).not.toBeNull();
+
+    const landscapeRatio = landscapeBox!.width / landscapeBox!.height;
+    const portraitRatio = portraitBox!.width / portraitBox!.height;
+
+    // The regression this guards: if a shared `aspect-3/2` crop were
+    // reintroduced, both images would render at ~1.5 regardless of their
+    // real shape. Instead each must render at (roughly) its own intrinsic
+    // ratio: 2:1 for the landscape photo, 1:2 for the portrait photo.
+    // Loose bounds tolerate sub-pixel rounding from the browser's layout.
+    expect(landscapeRatio).toBeGreaterThan(1.5);
+    expect(landscapeRatio).toBeLessThan(2.5);
+    expect(portraitRatio).toBeGreaterThan(0.4);
+    expect(portraitRatio).toBeLessThan(0.667);
   });
 });

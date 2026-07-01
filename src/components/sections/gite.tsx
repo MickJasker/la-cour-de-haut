@@ -31,6 +31,8 @@ export async function GiteSection({ locale }: { locale: Locale }) {
       id: galleryImage.id,
       imageUrl: galleryImage.imageUrl,
       altText: galleryImage.altText,
+      width: galleryImage.width,
+      height: galleryImage.height,
     })
     .from(galleryImage)
     .where(eq(galleryImage.published, true))

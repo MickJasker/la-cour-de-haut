@@ -191,6 +191,12 @@ export const galleryImage = pgTable("gallery_image", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   altText: jsonb("alt_text").$type<AltText>(),
   altTextSource: jsonb("alt_text_source").$type<LocalizedSource>(),
+  // Real intrinsic pixel dimensions, captured client-side at upload time
+  // (see #103/#104). Nullable: never backfilled for legacy rows in this
+  // slice, and a capture failure must never block the upload — the dialog
+  // falls back to a fixed 3:2 crop when either is absent.
+  width: integer("width"),
+  height: integer("height"),
 });
 
 export const poi = pgTable("poi", {

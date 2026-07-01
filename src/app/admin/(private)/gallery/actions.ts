@@ -10,7 +10,15 @@ import { resolveLocalizedText } from "@/lib/localized-field";
 
 // Receives only the resulting Blob URL — the file itself was already
 // streamed from the browser straight to Vercel Blob (see #98, upload-image.ts).
-export async function uploadGalleryImageAction(imageUrl: string) {
+// `dimensions` are the file's real pixel width/height, read client-side
+// before upload (see gallery-client.tsx's readImageDimensions) — a failed or
+// zero-dimension capture is passed as null/undefined and never blocks the
+// upload; the row is simply stored without dimensions, identical to a legacy
+// row (see #103/#104).
+export async function uploadGalleryImageAction(
+  imageUrl: string,
+  dimensions?: { width: number; height: number } | null,
+) {
   await verifySession();
   if (!imageUrl) {
     throw new Error("No image URL provided");
@@ -24,6 +32,8 @@ export async function uploadGalleryImageAction(imageUrl: string) {
     imageUrl,
     sortOrder: nextSort,
     published: false,
+    width: dimensions?.width ?? null,
+    height: dimensions?.height ?? null,
   });
 
   revalidatePath("/admin/gallery");

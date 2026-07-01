@@ -279,6 +279,29 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
   );
 }
 
+// Reads a File's real pixel dimensions in the browser, before it's uploaded.
+// Client-side only — preserves the invariant that server actions never read
+// file bytes (see upload-image.ts, #103). Never throws: any failure (decode
+// error, or a zero/NaN width or height) resolves to null so the caller can
+// fall back to storing no dimensions, which must never block the upload.
+async function readImageDimensions(
+  file: File,
+): Promise<{ width: number; height: number } | null> {
+  let bitmap: ImageBitmap | undefined;
+  try {
+    bitmap = await createImageBitmap(file);
+    const { width, height } = bitmap;
+    if (!width || !height || Number.isNaN(width) || Number.isNaN(height)) {
+      return null;
+    }
+    return { width, height };
+  } catch {
+    return null;
+  } finally {
+    bitmap?.close();
+  }
+}
+
 export function UploadForm() {
   const [files, setFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -309,8 +332,10 @@ export function UploadForm() {
         setProgress(`Uploaden ${i + 1} / ${filesToUpload.length}…`);
         // The file streams straight from the browser to Vercel Blob; the
         // action only ever receives the resulting URL string. See #98.
-        const imageUrl = await uploadAdminImage(filesToUpload[i]!, "gallery");
-        await uploadGalleryImageAction(imageUrl);
+        const file = filesToUpload[i]!;
+        const dimensions = await readImageDimensions(file);
+        const imageUrl = await uploadAdminImage(file, "gallery");
+        await uploadGalleryImageAction(imageUrl, dimensions);
       }
       setFiles([]);
       setProgress(null);
