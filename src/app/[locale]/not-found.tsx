@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import { useLocale, useTranslations } from "@/i18n/provider";
+import { useLocale } from "@/i18n/provider";
+import { usePlainTranslations } from "@/i18n/use-messages";
 
 // Renders for an explicit `notFound()` thrown within the public `[locale]` tree.
 // It is wrapped by `[locale]/layout.tsx`, so the I18nProvider is available and the
 // copy is localized. Genuinely unmatched URLs (e.g. `/nl/typo`) bubble to the
 // app-level `global-not-found` instead — see ADR-0011.
 export default function LocaleNotFound() {
-  const t = useTranslations("errors.notFound");
+  const t = usePlainTranslations("errors.notFound");
   const locale = useLocale();
 
   return (

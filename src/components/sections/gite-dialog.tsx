@@ -1,9 +1,16 @@
 "use client";
 
 import { ComponentProps, useState } from "react";
-import Image from "next/image";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
+// Lazy-load the Dialog (and its @radix-ui/react-dialog runtime) only once the
+// user opens the gallery. `ssr: false` is valid here because this is a Client
+// Component; the lightbox has no SSR value (it starts closed). Keeps the radix
+// Dialog chunk out of the homepage's initial JS. See gite-gallery-dialog.tsx.
+const GiteGalleryDialog = dynamic(() => import("./gite-gallery-dialog"), {
+  ssr: false,
+});
 
 type GalleryImage = {
   id: string;
@@ -20,52 +27,30 @@ export function GiteDialog({
   images: GalleryImage[];
 } & ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
+  // Once opened, keep the dialog mounted so radix can play its close animation
+  // (unmounting on close would skip the exit transition).
+  const [everOpened, setEverOpened] = useState(false);
 
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)} {...props}>
+      <Button
+        variant="secondary"
+        onClick={() => {
+          setEverOpened(true);
+          setOpen(true);
+        }}
+        {...props}
+      >
         {children}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-400" aria-describedby={undefined}>
-          <DialogTitle className="sr-only">{children}</DialogTitle>
-          {/* CSS multi-column (not grid) packs mixed portrait/landscape/square
-              photos gap-free — grid would leave visible gaps under shorter
-              cells in a mismatched row. break-inside-avoid keeps each photo
-              from splitting across columns. */}
-          <div className="columns-1 md:columns-2 gap-2 md:gap-3">
-            {images.map((img) => {
-              const hasDimensions =
-                !!img.width && !!img.height && img.width > 0 && img.height > 0;
-
-              return (
-                <div key={img.id} className="mb-2 md:mb-3 break-inside-avoid">
-                  {hasDimensions ? (
-                    <Image
-                      src={img.imageUrl}
-                      alt=""
-                      width={img.width!}
-                      height={img.height!}
-                      className="w-full h-auto"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                    />
-                  ) : (
-                    <div className="relative aspect-3/2">
-                      <Image
-                        src={img.imageUrl}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, 50vw"
-                      />
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {everOpened && (
+        <GiteGalleryDialog
+          images={images}
+          open={open}
+          onOpenChange={setOpen}
+          title={children}
+        />
+      )}
     </>
   );
 }

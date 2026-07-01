@@ -5,6 +5,7 @@ import {
   isValidElement,
   type ReactNode,
 } from "react";
+import { resolvePath } from "./resolve";
 
 // Pure formatting layer — no request-scoped or server-only imports, so it is safe
 // to use from both Server and Client Components. It wraps `intl-messageformat`
@@ -39,15 +40,6 @@ function keyChildren(node: ReactNode | ReactNode[]): ReactNode {
     );
   }
   return node;
-}
-
-function resolvePath(obj: unknown, path: string): unknown {
-  return path.split(".").reduce<unknown>((acc, key) => {
-    if (acc && typeof acc === "object") {
-      return (acc as Record<string, unknown>)[key];
-    }
-    return undefined;
-  }, obj);
 }
 
 export type Translator = {

@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BookForm } from "@/components/sections/book-form";
-import { useTranslations } from "@/i18n/provider";
+import { useTranslations } from "@/i18n/use-translations";
 import { Suspense } from "react";
 import { LoaderCircle } from "lucide-react";
 

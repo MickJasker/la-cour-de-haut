@@ -3,7 +3,8 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useLocale, useTranslations } from "@/i18n/provider";
+import { useLocale } from "@/i18n/provider";
+import { usePlainTranslations } from "@/i18n/use-messages";
 
 // Catches unexpected runtime errors thrown by public *pages* (e.g. a data-fetch
 // failure). It renders inside `[locale]/layout.tsx`, so the I18nProvider is intact
@@ -16,7 +17,7 @@ export default function LocaleError({
   error: Error & { digest?: string };
   unstable_retry: () => void;
 }) {
-  const t = useTranslations("errors.serverError");
+  const t = usePlainTranslations("errors.serverError");
   const locale = useLocale();
 
   useEffect(() => {
