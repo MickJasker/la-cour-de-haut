@@ -17,7 +17,11 @@ const SOURCE_LABELS: Record<string, string> = {
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <div aria-label={`${rating} van 5 sterren`} className="flex gap-0.5">
+    <div
+      role="img"
+      aria-label={`${rating} van 5 sterren`}
+      className="flex gap-0.5"
+    >
       {Array.from({ length: 5 }, (_, i) => (
         <svg
           key={i}
@@ -91,13 +95,13 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
                 </blockquote>
                 {markerText !== null && (
                   <p
-                    className="text-xs text-stone-400 italic"
+                    className="text-xs text-stone-600 italic"
                     data-testid="review-translated-marker"
                   >
                     {markerText}
                   </p>
                 )}
-                <footer className="text-sm text-stone-500 text-right">
+                <footer className="text-sm text-stone-600 text-right">
                   <p>— {r.authorName}</p>
                   <p>
                     {t("roughDate", {
