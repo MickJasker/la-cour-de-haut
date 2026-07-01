@@ -13,6 +13,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/sections/footer";
+import { ModalSlot } from "./modal-slot";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -100,7 +101,7 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
         <I18nProvider locale={locale} messages={messages}>
           {children}
           <Footer locale={locale} />
-          {modal}
+          <ModalSlot>{modal}</ModalSlot>
         </I18nProvider>
         {/* Client component reading useSearchParams; under Cache Components a
             request-time read must sit in a Suspense boundary or the static
