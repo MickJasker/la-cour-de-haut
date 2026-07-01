@@ -12,14 +12,12 @@
  * Idempotent: rows already in the new shape (`type: "localizedEditorState"`)
  * are skipped, so re-running after a partial run just picks up what's left.
  *
- * How it's run: manually, once, before the rich-text UI ships — same pattern
- * as the other one-off scripts (seed-owner, backfill-gallery-dimensions). Not
- * wired into build/start or any cron. To migrate production, point it at the
- * prod Neon database (e.g. `vercel env pull .env.local`), then run the
- * command below. Only issues SELECT/UPDATE (no DDL), so the pooled
- * `DATABASE_URL` is fine.
+ * Wired into `db:migrate` (which `pnpm build`/`pnpm start` already run), same
+ * as `backfill-gallery-dimensions` — safe to leave there permanently since
+ * every run after the first is a no-op (both rows are already the new shape).
+ * Only issues SELECT/UPDATE (no DDL), so the pooled `DATABASE_URL` is fine.
  *
- * Run with: pnpm migrate-content-blocks-to-rich-text
+ * Run directly with: pnpm migrate-content-blocks-to-rich-text
  */
 import type { SerializedEditorState } from "lexical";
 import type { LocalizedEditorStateValue } from "@/db/schema.js";
