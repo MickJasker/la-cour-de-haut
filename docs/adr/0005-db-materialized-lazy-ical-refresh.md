@@ -10,7 +10,7 @@ But the owner needs per-source **sync health** (when did we last pull this feed,
 
 ## Decision
 
-Model each feed as a first-class `ical_source` row that materializes its own last-known result (`cachedIntervals`, `lastSyncedAt`, `lastError`, `lastErrorAt`). Refresh **lazily on read**: `getBusyIntervals()` re-fetches a source only when it is older than ~1 hour, writes the result (or error) back to the row, and otherwise reads `cachedIntervals` directly. Live DB holds are merged on every call (never cached). The refresh write happens inside the server-action path, not bare render. This mirrors the lazy-on-read, no-cron philosophy of [ADR-0004](./0004-lazy-hold-expiry-no-cron.md).
+Model each feed as a first-class `ical_source` row that materializes its own last-known result (`cachedIntervals`, `lastSyncedAt`, `lastError`, `lastErrorAt`). Refresh **lazily on read**: `getBusyIntervals()` re-fetches a source only when it is older than 5 minutes, writes the result (or error) back to the row, and otherwise reads `cachedIntervals` directly. Live DB holds are merged on every call (never cached). The refresh write happens inside the server-action path, not bare render. This mirrors the lazy-on-read, no-cron philosophy of [ADR-0004](./0004-lazy-hold-expiry-no-cron.md).
 
 ## Consequences
 

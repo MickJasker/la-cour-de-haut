@@ -9,8 +9,7 @@ import {
 } from "./booking-machine";
 import { getSettings, hasBankDetails } from "./settings";
 import { sendBankTransferEmail } from "./bank-transfer-email";
-import { getBusyIntervals } from "./availability";
-import { hasConflict } from "./availability-utils";
+import { isRangeAvailable } from "./availability";
 
 export type ApplyTransitionOpts = {
   paymentDeadline?: string;
@@ -45,17 +44,17 @@ export async function applyTransition(
     ) {
       throw new Error("Payment deadline must be today or in the future");
     }
-    let busyIntervals: Awaited<ReturnType<typeof getBusyIntervals>>;
-    [settings, busyIntervals] = await Promise.all([
+    let available: boolean;
+    [settings, available] = await Promise.all([
       getSettings(),
-      getBusyIntervals(),
+      isRangeAvailable(booking.startDate, booking.endDate),
     ]);
     if (!hasBankDetails(settings)) {
       throw new Error(
         "Bank details must be configured before confirming a booking",
       );
     }
-    if (hasConflict(busyIntervals, booking.startDate, booking.endDate)) {
+    if (!available) {
       throw new Error(
         "These dates conflict with an existing booking or platform hold. Check the availability calendar before confirming.",
       );
@@ -77,8 +76,9 @@ export async function applyTransition(
     .where(eq(bookingRequest.id, bookingId));
 
   // blockInFeed / releaseFromFeed: availability is computed from DB status, so
-  // the update above already blocks or releases dates in getBusyIntervals().
-  // A future integration (e.g. push to external calendar) would go here.
+  // the update above already blocks or releases dates seen via
+  // isRangeAvailable / getBookedDays. A future integration (e.g. push to an
+  // external calendar) would go here.
 
   if (result.sideEffects.sendBankTransferEmail) {
     settings ??= await getSettings();

@@ -1,3 +1,5 @@
+import { expandInterval } from "../src/lib/availability-utils";
+
 function toDateString(d: Date): string {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -22,8 +24,11 @@ export const blockedRange = {
   endExclusive: toDateString(blockedEndExclusiveDate),
 };
 
-export const blockedDates = [0, 1, 2, 3].map((offset) =>
-  toDateString(addDays(blockedStartDate, offset)),
-);
+// Reuse the same day-expansion logic the app uses (src/lib/availability-utils)
+// instead of re-deriving the list of blocked dates here.
+export const blockedDates = expandInterval({
+  start: blockedRange.start,
+  end: blockedRange.endExclusive,
+});
 
 export const checkoutDate = toDateString(addDays(blockedStartDate, 4));

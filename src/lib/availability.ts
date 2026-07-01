@@ -5,10 +5,13 @@ import { bookingRequest, type BusyInterval } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { connection } from "next/server";
 import { refreshSourceIfStale } from "./ical-cache";
-import { isActiveDirectBooking } from "./availability-utils";
+import {
+  expandInterval,
+  hasConflict,
+  isActiveDirectBooking,
+} from "./availability-utils";
 
 export type { BusyInterval };
-export { expandInterval } from "./availability-utils";
 
 /**
  * Returns all on_hold (non-expired) and confirmed direct bookings.
@@ -18,6 +21,11 @@ export { expandInterval } from "./availability-utils";
  * `isActiveDirectBooking` predicate (ADR-0004) instead of re-encoding the
  * expiry comparison in SQL — keeps this in lockstep with display status and
  * dashboard categorisation, which apply the same predicate.
+ *
+ * Stays exported: the outbound iCal export feed (`/api/ical/[token]`) needs
+ * the underlying booking ids, not just an availability answer. Anything that
+ * only needs "is this range free" / "which days are booked" should use
+ * `isRangeAvailable` / `getBookedDays` below instead.
  */
 export async function getDirectBookings(): Promise<
   { id: string; startDate: string; endDate: string }[]
@@ -43,10 +51,15 @@ export async function getDirectBookings(): Promise<
 
 /**
  * Returns the merged busy intervals from all enabled iCal sources plus live DB holds.
- * Stale sources (>5 min) are lazily re-fetched; failures retain last-known-good intervals.
- * A never-synced source that fails contributes no intervals (fail-open).
+ * Stale sources (>~1 hour) are lazily re-fetched; failures retain last-known-good
+ * intervals (ADR-0005). A never-synced source that fails contributes no intervals
+ * (fail-open).
+ *
+ * Internal implementation detail of this module — callers outside should use
+ * `isRangeAvailable` / `getBookedDays`, the two operations the rest of the
+ * app actually needs instead of recombining busy intervals themselves.
  */
-export async function getBusyIntervals(): Promise<BusyInterval[]> {
+async function getBusyIntervals(): Promise<BusyInterval[]> {
   const db = getDb();
 
   const [sources, holds] = await Promise.all([
@@ -68,4 +81,28 @@ export async function getBusyIntervals(): Promise<BusyInterval[]> {
   }
 
   return intervals;
+}
+
+/**
+ * The single availability seam: "is this date range free?" — merges iCal
+ * intervals with live DB holds and checks for a conflict in one call, so
+ * callers (booking form submission, admin confirm guard) don't have to fetch
+ * busy intervals and run `hasConflict` themselves.
+ */
+export async function isRangeAvailable(
+  start: string,
+  end: string,
+): Promise<boolean> {
+  const busyIntervals = await getBusyIntervals();
+  return !hasConflict(busyIntervals, start, end);
+}
+
+/**
+ * The other half of the availability seam: "which days are booked?" —
+ * expands the merged busy intervals into a deduplicated list of date strings
+ * for the booking calendar's disabled-dates.
+ */
+export async function getBookedDays(): Promise<string[]> {
+  const busyIntervals = await getBusyIntervals();
+  return [...new Set(busyIntervals.flatMap(expandInterval))];
 }

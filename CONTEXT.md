@@ -36,7 +36,7 @@ requested ──(owner confirms)──► on_hold ──(payment received)──
 
 ## iCal sync
 
-**Inbound** (read): the site fetches **iCal sources** (Airbnb, Natuurhuisje, and any others the owner adds), merges them into **busy intervals**, and uses them to render the availability calendar and prevent the owner from confirming a conflicting request. Each source is a first-class record (not a fixed setting), so new platforms can be added without a schema change. Feeds are refreshed **lazily on read**: a source older than ~1 hour is re-fetched and its result cached back onto the source record, mirroring the lazy-expiry pattern of [ADR-0004](docs/adr/0004-lazy-hold-expiry-no-cron.md) (see also [ADR-0005](docs/adr/0005-db-materialized-lazy-ical-refresh.md)). No cron.
+**Inbound** (read): the site fetches **iCal sources** (Airbnb, Natuurhuisje, and any others the owner adds), merges them into **busy intervals**, and uses them to render the availability calendar and prevent the owner from confirming a conflicting request. Each source is a first-class record (not a fixed setting), so new platforms can be added without a schema change. Feeds are refreshed **lazily on read**: a source older than 5 minutes is re-fetched and its result cached back onto the source record, mirroring the lazy-expiry pattern of [ADR-0004](docs/adr/0004-lazy-hold-expiry-no-cron.md) (see also [ADR-0005](docs/adr/0005-db-materialized-lazy-ical-refresh.md)). No cron.
 
 **Outbound** (write-back): the site exposes its own **export feed** at a stable, unguessable URL (`/api/ical/{token}.ics`) listing held and confirmed direct bookings. Platforms subscribe once during setup and block those dates on their end.
 

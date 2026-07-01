@@ -14,9 +14,8 @@ import {
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
-import { getBusyIntervals } from "@/lib/availability";
+import { isRangeAvailable, getBookedDays } from "@/lib/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
-import { expandInterval, hasConflict } from "@/lib/availability-utils";
 import { getCountryName } from "@/lib/countries";
 
 const serverValidate = createServerValidate({
@@ -177,8 +176,11 @@ export async function submitBookingAction(
     const data = await serverValidate(formData);
 
     // 3a. Server-side overlap check — guards against races and crafted POSTs
-    const busyIntervals = await getBusyIntervals();
-    if (hasConflict(busyIntervals, data.stayDates.from, data.stayDates.to)) {
+    const available = await isRangeAvailable(
+      data.stayDates.from,
+      data.stayDates.to,
+    );
+    if (!available) {
       const t = await getTranslations({ locale, namespace: "booking" });
       return {
         ...initialFormState,
@@ -232,8 +234,7 @@ export async function submitBookingAction(
 }
 
 export async function getBookedDatesAction(): Promise<string[]> {
-  const intervals = await getBusyIntervals();
-  return [...new Set(intervals.flatMap(expandInterval))];
+  return getBookedDays();
 }
 
 export async function getPricePerNightAction(): Promise<number> {
