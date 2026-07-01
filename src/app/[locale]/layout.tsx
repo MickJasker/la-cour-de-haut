@@ -99,7 +99,7 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
       <body className="min-h-full flex flex-col">
         <I18nProvider locale={locale} messages={messages}>
           {children}
-          <Footer />
+          <Footer locale={locale} />
           {modal}
         </I18nProvider>
         {/* Client component reading useSearchParams; under Cache Components a
