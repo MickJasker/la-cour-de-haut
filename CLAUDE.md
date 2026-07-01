@@ -5,7 +5,7 @@
 Gîte vacation-rental site (Normandy) — an **inquiry-and-confirmation funnel**, not a booking engine; no online payments. Single owner manages requests + content via `/admin`.
 
 - **Domain model, booking lifecycle, iCal sync, i18n** → read `CONTEXT.md` first.
-- **Why things are the way they are** → `docs/adr/` (10 ADRs).
+- **Why things are the way they are** → `docs/adr/`.
 - **Stack:** Next.js 16 (App Router) · React 19 · Drizzle ORM + Neon Postgres · Better Auth · Tailwind · native i18n (no next-intl). Package manager: **pnpm**.
 
 ## Pre-Commit / CI Checklist
@@ -15,6 +15,7 @@ Always run typecheck, lint, format, and the relevant tests locally BEFORE commit
 The lefthook `pre-commit` hook already runs **format, lint, and typecheck** automatically on staged files. Tests and the production build are **not** in the hook — run those yourself:
 
 - `pnpm tsc --noEmit` — TypeScript typecheck (also run by the pre-commit hook; there is no `typecheck` npm script)
+  - In a fresh worktree, run `pnpm exec next typegen` first — `next-env.d.ts` is gitignored, so typecheck fails on image/JSX types without it
 - `pnpm lint` — ESLint (also run by the pre-commit hook)
 - `pnpm format:check` — Prettier (use `pnpm format` to auto-fix; the hook auto-formats staged files)
 - `pnpm test` — Vitest unit tests (not in the hook)
@@ -31,7 +32,7 @@ The DB client (`src/db/index.ts`) accesses `DATABASE_URL` **lazily**, because `n
 
 - `pnpm dev` — dev server (http://localhost:3000)
 - `pnpm db:generate` — generate a migration from `src/db/schema.ts` changes
-- `pnpm db:migrate` — apply migrations (`drizzle/`); also runs inside `pnpm build`
+- `pnpm db:migrate` — apply migrations (`drizzle/`) + chained backfill scripts; also runs inside `pnpm build`
 - `pnpm db:push` — push schema directly (prototyping only, skips migration files)
 - `pnpm seed-owner` / `pnpm seed-ical-sources` — seed scripts (`scripts/*.mts`)
 
