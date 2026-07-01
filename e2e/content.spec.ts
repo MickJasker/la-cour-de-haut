@@ -6,12 +6,50 @@ async function clearContentBlocks() {
   await sql`DELETE FROM content_block`;
 }
 
-async function seedLocalizedText(opts: {
+// Minimal single-paragraph serialized Lexical EditorState — the "basic
+// prose" shape hero_description/description are stored as (ADR-0017).
+function paragraphState(text: string) {
+  return {
+    root: {
+      type: "root",
+      version: 1,
+      direction: null,
+      format: "",
+      indent: 0,
+      children: [
+        {
+          type: "paragraph",
+          version: 1,
+          direction: null,
+          format: "",
+          indent: 0,
+          children: [
+            {
+              type: "text",
+              version: 1,
+              text,
+              format: 0,
+              style: "",
+              mode: "normal",
+              detail: 0,
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+async function seedRichText(opts: {
   key: string;
   value: { nl: string; en?: string; fr?: string; de?: string };
 }) {
   const sql = neon(process.env.DATABASE_URL!);
-  const value = JSON.stringify({ type: "localizedText", ...opts.value });
+  const localized: Record<string, unknown> = { type: "localizedEditorState" };
+  for (const [locale, text] of Object.entries(opts.value)) {
+    localized[locale] = paragraphState(text);
+  }
+  const value = JSON.stringify(localized);
   const valueSource = JSON.stringify({ nl: "human" });
   await sql`
     INSERT INTO content_block (key, value, value_source, updated_at)
@@ -58,7 +96,7 @@ test.describe("content: gîte description — public", () => {
   test("description from content_block appears in the Gîte section", async ({
     page,
   }) => {
-    await seedLocalizedText({
+    await seedRichText({
       key: "description",
       value: { nl: "Een prachtige gîte in Normandië." },
     });
@@ -97,7 +135,7 @@ test.describe("content: gîte description — public", () => {
   test("description falls back to Dutch when requested locale key is absent", async ({
     page,
   }) => {
-    await seedLocalizedText({
+    await seedRichText({
       key: "description",
       value: { nl: "Nederlandse tekst." },
       // no 'fr' key
@@ -110,7 +148,7 @@ test.describe("content: gîte description — public", () => {
   test("locale-specific description renders when locale key is present", async ({
     page,
   }) => {
-    await seedLocalizedText({
+    await seedRichText({
       key: "description",
       value: { nl: "Nederlands", en: "English description here." },
     });
@@ -167,14 +205,14 @@ test.describe("content: admin", () => {
     await expect(page.getByRole("link", { name: /inhoud/i })).toBeVisible();
   });
 
-  test("description textarea is pre-filled from DB", async ({ page }) => {
-    await seedLocalizedText({
+  test("description is pre-filled from DB", async ({ page }) => {
+    await seedRichText({
       key: "description",
       value: { nl: "Vooraf ingevulde tekst." },
     });
     await page.goto("/admin/content");
     const giteSection = page.locator("[data-testid='admin-gite-section']");
-    await expect(giteSection.getByLabel("Beschrijving (NL)")).toHaveValue(
+    await expect(giteSection.getByLabel("Beschrijving (NL)")).toContainText(
       "Vooraf ingevulde tekst.",
     );
   });
@@ -218,17 +256,17 @@ test.describe("content: admin", () => {
     expect(src?.fr).toBe("machine");
     expect(src?.de).toBe("machine");
 
-    // value: translated locales must match the E2E stub ("<nl> [<locale>]")
-    const val = row?.value as Record<string, string> | undefined;
-    expect(val?.en).toBe(`${nl} [en]`);
-    expect(val?.fr).toBe(`${nl} [fr]`);
-    expect(val?.de).toBe(`${nl} [de]`);
+    // Every target locale got translated content (exact shape of the
+    // HTML-bridge round-trip is covered at the unit level by bridge.test.ts).
+    const val = row?.value as Record<string, unknown> | undefined;
+    expect(val?.en).toBeTruthy();
+    expect(val?.fr).toBeTruthy();
+    expect(val?.de).toBeTruthy();
   });
 
-  test("empty Dutch description shows a validation error", async ({ page }) => {
+  test("empty description shows a validation error", async ({ page }) => {
     await page.goto("/admin/content");
     const giteSection = page.locator("[data-testid='admin-gite-section']");
-    await giteSection.getByLabel("Beschrijving (NL)").fill("");
     await giteSection.getByRole("button", { name: /opslaan/i }).click();
     await expect(giteSection.getByText(/vereist/i)).toBeVisible();
   });

@@ -20,6 +20,16 @@ export const EDITOR_NODES: ReadonlyArray<Klass<LexicalNode>> = [
   LinkNode,
 ];
 
+/**
+ * "Basic prose" set for shorter authored fields (hero/gîte description, ADR-0017):
+ * bold/italic/paragraphs (built in) plus links, deliberately without headings or
+ * lists so the toolbar can't produce block structure that would fight a fixed
+ * layout slot. The HTML translation bridge stays registered with the full
+ * `EDITOR_NODES` set regardless — a harmless superset since basic-field content
+ * can only ever be a subset of it.
+ */
+export const BASIC_EDITOR_NODES: ReadonlyArray<Klass<LexicalNode>> = [LinkNode];
+
 /** Headings the editor is allowed to produce; anything else clamps to h3. */
 export const ALLOWED_HEADINGS = ["h2", "h3"] as const;
 export type AllowedHeading = (typeof ALLOWED_HEADINGS)[number];

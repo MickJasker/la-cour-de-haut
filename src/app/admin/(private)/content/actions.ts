@@ -1,45 +1,44 @@
 "use server";
 
-import {
-  createServerValidate,
-  ServerValidateError,
-  initialFormState,
-} from "@tanstack/react-form-nextjs";
+import type { SerializedEditorState } from "lexical";
 import { revalidatePath, updateTag } from "next/cache";
 import { del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { contentFormOpts, contentFormServerSchema } from "./shared";
-import { resolveLocalizedText } from "@/lib/localized-field";
+import { resolveLocalizedDetail } from "@/lib/localized-detail";
+import { hasEditorText } from "@/lib/lexical/empty-state";
 
 export type ContentActionState = {
   success: boolean;
-  errorMap: { onServer?: unknown };
-  values: unknown;
-  errors: unknown[];
+  error: string | null;
   failures?: string[];
 };
-
-const serverValidate = createServerValidate({
-  ...contentFormOpts,
-  onServerValidate: ({ value }) => {
-    const result = contentFormServerSchema.safeParse(value);
-    if (!result.success) {
-      return result.error.issues[0]?.message ?? "Validatie mislukt";
-    }
-  },
-});
 
 function invalidate() {
   revalidatePath("/admin/content");
   updateTag("content");
 }
 
-async function upsertLocalizedText(
+/**
+ * Parses the JSON-encoded "detail" FormData field the way poi actions.ts's
+ * parseDetailField does. Returns null on a missing/malformed field, which the
+ * caller treats as "no content" (same as an editor-serialized empty paragraph).
+ */
+function parseDetailField(formData: FormData): SerializedEditorState | null {
+  const raw = formData.get("detail");
+  if (typeof raw !== "string") return null;
+  try {
+    return JSON.parse(raw) as SerializedEditorState;
+  } catch {
+    return null;
+  }
+}
+
+async function upsertRichText(
   key: string,
-  nl: string,
+  nl: SerializedEditorState,
 ): Promise<{ failures: string[] }> {
   const db = getDb();
 
@@ -52,7 +51,7 @@ async function upsertLocalizedText(
     .then((r) => r[0] ?? null);
 
   const stored =
-    existing?.value?.type === "localizedText"
+    existing?.value?.type === "localizedEditorState"
       ? {
           nl: existing.value.nl,
           en: existing.value.en,
@@ -61,10 +60,10 @@ async function upsertLocalizedText(
         }
       : undefined;
 
-  const result = await resolveLocalizedText(nl, stored);
+  const result = await resolveLocalizedDetail(nl, stored);
 
   const value = {
-    type: "localizedText" as const,
+    type: "localizedEditorState" as const,
     nl: result.value.nl,
     ...(result.value.en ? { en: result.value.en } : {}),
     ...(result.value.fr ? { fr: result.value.fr } : {}),
@@ -87,21 +86,17 @@ export async function updateDescriptionAction(
   formData: FormData,
 ): Promise<ContentActionState> {
   await verifySession();
-  try {
-    const data = await serverValidate(formData);
-    const { failures } = await upsertLocalizedText("description", data.nl);
-    invalidate();
-    return {
-      ...initialFormState,
-      success: true,
-      failures: failures.length ? failures : undefined,
-    };
-  } catch (e) {
-    if (e instanceof ServerValidateError) {
-      return { ...e.formState, success: false };
-    }
-    throw e;
+  const detail = parseDetailField(formData);
+  if (!detail || !hasEditorText(detail)) {
+    return { success: false, error: "Vereist" };
   }
+  const { failures } = await upsertRichText("description", detail);
+  invalidate();
+  return {
+    success: true,
+    error: null,
+    failures: failures.length ? failures : undefined,
+  };
 }
 
 export async function updateHeroDescriptionAction(
@@ -109,21 +104,17 @@ export async function updateHeroDescriptionAction(
   formData: FormData,
 ): Promise<ContentActionState> {
   await verifySession();
-  try {
-    const data = await serverValidate(formData);
-    const { failures } = await upsertLocalizedText("hero_description", data.nl);
-    invalidate();
-    return {
-      ...initialFormState,
-      success: true,
-      failures: failures.length ? failures : undefined,
-    };
-  } catch (e) {
-    if (e instanceof ServerValidateError) {
-      return { ...e.formState, success: false };
-    }
-    throw e;
+  const detail = parseDetailField(formData);
+  if (!detail || !hasEditorText(detail)) {
+    return { success: false, error: "Vereist" };
   }
+  const { failures } = await upsertRichText("hero_description", detail);
+  invalidate();
+  return {
+    success: true,
+    error: null,
+    failures: failures.length ? failures : undefined,
+  };
 }
 
 export type UploadHeroActionState = {
