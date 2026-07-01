@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { LocaleStatus } from "@/components/locale-status";
+import { uploadAdminImage } from "../upload-image";
 import {
   uploadGalleryImageAction,
   togglePublishedAction,
@@ -306,9 +307,10 @@ export function UploadForm() {
     startTransition(async () => {
       for (let i = 0; i < filesToUpload.length; i++) {
         setProgress(`Uploaden ${i + 1} / ${filesToUpload.length}…`);
-        const formData = new FormData();
-        formData.append("file", filesToUpload[i]!);
-        await uploadGalleryImageAction(formData);
+        // The file streams straight from the browser to Vercel Blob; the
+        // action only ever receives the resulting URL string. See #98.
+        const imageUrl = await uploadAdminImage(filesToUpload[i]!, "gallery");
+        await uploadGalleryImageAction(imageUrl);
       }
       setFiles([]);
       setProgress(null);

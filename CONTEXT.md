@@ -78,7 +78,7 @@ Current keys: `iban`, `bank_name`, `account_holder`, `payment_deadline_days` (de
 
 ## Media storage
 
-Binary assets (photos) are stored in **Vercel Blob**; only the public URL is kept in the DB. The upload flow is: `<input type="file">` → server action → `put()` to Blob → insert row with `imageUrl`. Deleting an image calls `del(imageUrl)` (skipped for non-Blob URLs, e.g. in tests) then removes the DB row.
+Binary assets (photos) are stored in **Vercel Blob**; only the public URL is kept in the DB. Uploads (POI, gallery, hero) go **client-side direct-to-Blob**: the browser calls `upload()` (`@vercel/blob/client`), which fetches a short-lived token from `POST /api/admin/blob-upload` (`handleUpload`, gated by `verifySession()`, images only, size-capped) and then streams the file straight to Blob — server actions never see the file bytes, only the resulting URL string, which they persist as-is. This avoids both the proxy's request-body buffer (`proxyClientMaxBodySize`, `src/proxy.ts`) and the Vercel Functions request-body limit that putting bytes through a server action would otherwise hit. Deleting/replacing an image calls `del(imageUrl)` (skipped for non-Blob URLs, e.g. in tests) then removes/updates the DB row. In `E2E_TESTING`, the client and token route short-circuit to a deterministic same-origin stub (an already-allowlisted `picsum.photos` URL) instead of touching real Vercel Blob — see `src/app/admin/(private)/upload-image.ts` and the matching branch in the route handler.
 
 ## Key domain terms
 

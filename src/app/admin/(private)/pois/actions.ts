@@ -6,7 +6,7 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { put, del } from "@vercel/blob";
+import { del } from "@vercel/blob";
 import { getDb } from "@/db";
 import { poi, type LocalizedEditorState } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -123,18 +123,14 @@ export async function createPoiAction(
   try {
     const data = await serverValidate(formData);
 
-    const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) {
+    const imageUrl = formData.get("imageUrl");
+    if (typeof imageUrl !== "string" || imageUrl.trim() === "") {
       return {
         ...initialFormState,
         success: false,
         errorMap: { onServer: "Afbeelding is vereist" },
       };
     }
-
-    const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
-      access: "public",
-    });
 
     const title = parseLocalizedField(formData, "title");
     const body = parseLocalizedField(formData, "body");
@@ -165,7 +161,7 @@ export async function createPoiAction(
       bodySource: bodyRes.source,
       detail: detailRes?.value ?? null,
       detailSource: detailRes?.source ?? null,
-      imageUrl: blob.url,
+      imageUrl,
       distanceKm: parseDistanceKm(data.distanceKm),
       sortOrder: parseSortOrder(formData.get("sortOrder")),
       published: data.published,
@@ -205,15 +201,12 @@ export async function updatePoiAction(
     const [existingPoi] = await db.select().from(poi).where(eq(poi.id, id));
 
     let imageUrl: string | undefined;
-    const file = formData.get("file");
-    if (file instanceof File && file.size > 0) {
+    const newImageUrl = formData.get("imageUrl");
+    if (typeof newImageUrl === "string" && newImageUrl.trim() !== "") {
       if (existingPoi?.imageUrl.includes("blob.vercel-storage.com")) {
         await del(existingPoi.imageUrl);
       }
-      const blob = await put(`pois/${crypto.randomUUID()}-${file.name}`, file, {
-        access: "public",
-      });
-      imageUrl = blob.url;
+      imageUrl = newImageUrl;
     }
 
     const title = parseLocalizedField(formData, "title");

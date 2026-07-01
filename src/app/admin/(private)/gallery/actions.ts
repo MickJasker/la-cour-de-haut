@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath, updateTag } from "next/cache";
-import { put } from "@vercel/blob";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -9,23 +8,20 @@ import { verifySession } from "@/lib/dal";
 import { deleteImage, nextSortOrder } from "@/lib/gallery";
 import { resolveLocalizedText } from "@/lib/localized-field";
 
-export async function uploadGalleryImageAction(formData: FormData) {
+// Receives only the resulting Blob URL — the file itself was already
+// streamed from the browser straight to Vercel Blob (see #98, upload-image.ts).
+export async function uploadGalleryImageAction(imageUrl: string) {
   await verifySession();
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("No file provided");
+  if (!imageUrl) {
+    throw new Error("No image URL provided");
   }
-
-  const blob = await put(`gallery/${crypto.randomUUID()}-${file.name}`, file, {
-    access: "public",
-  });
 
   const db = getDb();
   const nextSort = await nextSortOrder();
 
   await db.insert(galleryImage).values({
     id: crypto.randomUUID(),
-    imageUrl: blob.url,
+    imageUrl,
     sortOrder: nextSort,
     published: false,
   });
