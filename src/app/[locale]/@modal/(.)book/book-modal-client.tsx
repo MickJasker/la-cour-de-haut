@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { BookForm } from "@/components/sections/book-form";
 import { useTranslations } from "@/i18n/provider";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 
 export function BookModalClient({
@@ -22,10 +22,15 @@ export function BookModalClient({
 }) {
   const router = useRouter();
   const t = useTranslations("sections.header");
+  const [open, setOpen] = useState(true);
 
   return (
-    <Dialog open onOpenChange={(open) => !open && router.back()}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent
+        onAnimationEnd={(e) => {
+          if (!open && e.target === e.currentTarget) router.back();
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="text-style-eyebrow-medium text-center">
             {t("bookNow")}
