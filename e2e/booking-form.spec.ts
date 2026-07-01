@@ -245,7 +245,8 @@ test.describe("booking form — modal", () => {
     page,
   }) => {
     await page.goto("/nl");
-    await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
+    // Header CTA located by its /book href, not its label (see book.spec.ts).
+    await page.getByRole("banner").locator("a[href$='/book']").click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
     const dialog = page.getByRole("dialog");

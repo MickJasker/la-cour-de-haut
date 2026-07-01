@@ -8,7 +8,7 @@ test.describe("booking dialog — intercepting route", () => {
   test("clicking 'Book now' in the header opens the dialog without leaving the page", async ({
     page,
   }) => {
-    await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
+    await page.getByRole("banner").locator("a[href$='/book']").click();
 
     // The intercepting route is pre-compiled by warmup.setup.ts, so the dialog
     // appears promptly. Once it's visible the URL has already updated.
@@ -29,7 +29,7 @@ test.describe("booking dialog — intercepting route", () => {
   test("Escape closes the dialog and returns to the previous page", async ({
     page,
   }) => {
-    await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
+    await page.getByRole("banner").locator("a[href$='/book']").click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
     await page.keyboard.press("Escape");
@@ -39,7 +39,7 @@ test.describe("booking dialog — intercepting route", () => {
   });
 
   test("close button dismisses the dialog", async ({ page }) => {
-    await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
+    await page.getByRole("banner").locator("a[href$='/book']").click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
     await page.getByRole("button", { name: /close/i }).click();
@@ -49,7 +49,7 @@ test.describe("booking dialog — intercepting route", () => {
   });
 
   test("clicking the overlay closes the dialog", async ({ page }) => {
-    await page.getByRole("banner").getByRole("link", { name: /boek/i }).click();
+    await page.getByRole("banner").locator("a[href$='/book']").click();
     await expect(page.getByRole("dialog")).toBeVisible();
 
     // Click the top-left corner of the viewport — outside the dialog panel
@@ -89,10 +89,10 @@ test.describe("booking dialog — locale variants", () => {
   for (const locale of ["nl", "en", "fr", "de"]) {
     test(`dialog opens correctly on /${locale}`, async ({ page }) => {
       await page.goto(`/${locale}`);
-      await page
-        .getByRole("banner")
-        .getByRole("link", { name: /book|boek|réserv|buchen/i })
-        .click();
+      // Locate the header CTA by its /book href, not its per-locale label
+      // (nl "Reserveer nu", en "Book now", etc.) — the href is stable across
+      // locales and copy edits.
+      await page.getByRole("banner").locator("a[href$='/book']").click();
 
       await expect(page).toHaveURL(new RegExp(`\\/${locale}\\/book`));
       await expect(page.getByRole("dialog")).toBeVisible();
