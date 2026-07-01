@@ -11,7 +11,7 @@ import { cacheLife, cacheTag } from "next/cache";
  */
 export async function getPublishedPoiBySlug(slug: string) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("poi");
 
   const [row] = await getDb()
@@ -25,7 +25,7 @@ export async function getPublishedPoiBySlug(slug: string) {
 /** Slugs of all published POIs (for the sitemap), ordered like the section. */
 export async function getPublishedPoiSlugs(): Promise<string[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("poi");
 
   const rows = await getDb()

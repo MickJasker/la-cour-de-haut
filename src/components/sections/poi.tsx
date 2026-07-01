@@ -9,7 +9,7 @@ import Image from "next/image";
 
 export async function PoiSection({ locale }: { locale: Locale }) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("poi");
 
   const [t, published] = await Promise.all([

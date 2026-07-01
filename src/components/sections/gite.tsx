@@ -9,7 +9,7 @@ import { cacheLife, cacheTag } from "next/cache";
 
 export async function GiteSection({ locale }: { locale: Locale }) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("gallery");
   cacheTag("content");
   const t = await getTranslations({ locale, namespace: "sections.gite" });

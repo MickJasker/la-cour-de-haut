@@ -35,7 +35,7 @@ function Stars({ rating }: { rating: number }) {
 
 export async function ReviewsSection({ locale }: { locale: Locale }) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("reviews");
 
   const [t, published] = await Promise.all([

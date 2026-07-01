@@ -12,7 +12,7 @@ import { cacheLife, cacheTag } from "next/cache";
 
 export async function Hero({ locale }: { locale: Locale }) {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("content");
 
   const t = await getTranslations({ locale, namespace: "sections.hero" });

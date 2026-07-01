@@ -24,7 +24,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
 async function getHeroImageUrl(): Promise<string | undefined> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("max");
   cacheTag("content");
 
   const db = getDb();
