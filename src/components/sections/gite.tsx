@@ -49,7 +49,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
     <section data-testid="gite-section" className="py-16">
       <div
         data-testid="gite-grid"
-        className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 pb-30 md:pb-0 md:items-center max-md:px-4"
+        className="flex flex-col md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:gap-6 md:items-center max-md:px-4"
       >
         <div className="max-md:contents md:col-start-2 md:col-end-9 lg:col-end-7 md:grid md:grid-cols-subgrid gap-4 md:gap-6">
           <div className="space-y-6 md:pt-30 md:row-start-1 md:col-start-1 md:col-end-9 lg:col-end-7">
@@ -112,7 +112,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
           {allPublished.length > 2 && (
             <GiteDialog
               images={allPublished}
-              className={`justify-self-start md:row-start-3 md:col-start-9 lg:col-start-7 ${
+              className={`justify-self-start md:row-start-3 md:col-start-9 lg:col-start-1 lg:col-end-7 ${
                 allPublished.length <= 4 ? "md:hidden" : ""
               }`}
             >

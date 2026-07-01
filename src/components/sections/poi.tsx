@@ -37,7 +37,7 @@ export async function PoiSection({ locale }: { locale: Locale }) {
             <article
               key={item.id}
               data-testid="poi-card"
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-2"
             >
               <Link
                 href={`/poi/${item.slug}`}
