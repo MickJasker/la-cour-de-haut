@@ -284,6 +284,12 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
 // file bytes (see upload-image.ts, #103). Never throws: any failure (decode
 // error, or a zero/NaN width or height) resolves to null so the caller can
 // fall back to storing no dimensions, which must never block the upload.
+//
+// NB: createImageBitmap applies EXIF orientation, so for a rotated photo these
+// are the *displayed* (post-rotation) dimensions — whereas the backfill script
+// (scripts/backfill-gallery-dimensions.mts, probe-image-size) reads *pre*-
+// orientation dimensions. EXIF correction is explicitly out of scope for #103;
+// a future EXIF issue should reconcile these two ingest paths.
 async function readImageDimensions(
   file: File,
 ): Promise<{ width: number; height: number } | null> {

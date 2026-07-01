@@ -10,6 +10,12 @@
  * exactly where it left off. A row that can't be measured is skipped and
  * logged; it never aborts the rest of the run.
  *
+ * NB: probe-image-size reads *pre*-orientation (EXIF) dimensions, whereas fresh
+ * uploads capture *post*-orientation dimensions via createImageBitmap (see
+ * gallery-client.tsx). For a rotated photo the two ingest paths can therefore
+ * disagree. EXIF correction is out of scope for #103; a future EXIF issue
+ * should reconcile them.
+ *
  * Run with: pnpm backfill-gallery-dimensions
  */
 try {

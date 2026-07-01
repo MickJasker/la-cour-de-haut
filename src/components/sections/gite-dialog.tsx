@@ -47,7 +47,7 @@ export function GiteDialog({
                       width={img.width!}
                       height={img.height!}
                       className="w-full h-auto"
-                      sizes="(max-width: 768px) 50vw, 33vw"
+                      sizes="(max-width: 768px) 100vw, 50vw"
                     />
                   ) : (
                     <div className="relative aspect-3/2">
@@ -56,7 +56,7 @@ export function GiteDialog({
                         alt=""
                         fill
                         className="object-cover"
-                        sizes="(max-width: 768px) 50vw, 33vw"
+                        sizes="(max-width: 768px) 100vw, 50vw"
                       />
                     </div>
                   )}
