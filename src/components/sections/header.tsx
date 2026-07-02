@@ -1,17 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, usePathname } from "next/navigation";
-import {
-  ComponentProps,
-  ReactNode,
-  useOptimistic,
-  useSyncExternalStore,
-  useTransition,
-} from "react";
+import { ReactNode, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 const LOCALES = ["fr", "en", "nl", "de"] as const;
+
+// Matches the pill's `duration-200` transition — how long to let the slide
+// play before the hard navigation tears the page down.
+const PILL_SLIDE_MS = 200;
 
 const LOCALE_LABEL: Record<string, string> = {
   fr: "Français",
@@ -20,35 +17,31 @@ const LOCALE_LABEL: Record<string, string> = {
   de: "Deutsch",
 };
 
-export function Header({
-  action,
-  localeSwitchFullReload = false,
-}: {
-  action: ReactNode;
-  // On pages that are the standalone version of an intercepted route
-  // (/book, /poi/[slug]), a soft-nav locale switch would be caught by the
-  // interceptor and pop the modal. A full reload bypasses interception.
-  localeSwitchFullReload?: boolean;
-}) {
+export function Header({ action }: { action: ReactNode }) {
   const { locale } = useParams<{ locale: string }>();
   const pathname = usePathname();
-  const [, startTransition] = useTransition();
-  const [optimisticLocale, setOptimisticLocale] = useOptimistic(locale);
   const mainEl = useSyncExternalStore(
     () => () => {},
     () => document.querySelector<HTMLElement>("main")?.parentElement,
     () => null,
   );
 
+  // The locale being navigated to, tracked so the pill can slide to its new
+  // position while the full-document navigation is in flight.
+  const [pendingLocale, setPendingLocale] = useState<string | null>(null);
+  const activeLocale = pendingLocale ?? locale;
   const displayIndex = LOCALES.indexOf(
-    optimisticLocale as (typeof LOCALES)[number],
+    activeLocale as (typeof LOCALES)[number],
   );
 
-  const switchLocale = (loc: string) => {
-    startTransition(async () => {
-      setOptimisticLocale(loc);
-      await new Promise<void>((resolve) => setTimeout(resolve, 200));
-    });
+  const switchLocale = (loc: string, href: string) => {
+    setPendingLocale(loc);
+    // Locale switching is a full document navigation (see LanguageLink), which
+    // would cut off the pill slide if it fired immediately. Let the slide play,
+    // then hard-navigate.
+    window.setTimeout(() => {
+      window.location.href = href;
+    }, PILL_SLIDE_MS);
   };
 
   return (
@@ -83,10 +76,9 @@ export function Header({
               <LanguageLink
                 key={loc}
                 locale={loc}
-                isActive={loc === optimisticLocale}
+                isActive={loc === locale}
                 currentPathname={pathname}
-                fullReload={localeSwitchFullReload}
-                onNavigate={() => switchLocale(loc)}
+                onSwitch={switchLocale}
               />
             ))}
           </div>
@@ -102,14 +94,12 @@ function LanguageLink({
   locale,
   isActive,
   currentPathname,
-  fullReload,
-  onNavigate,
+  onSwitch,
 }: {
   locale: string;
   isActive: boolean;
   currentPathname: string | null;
-  fullReload: boolean;
-  onNavigate: ComponentProps<typeof Link>["onNavigate"];
+  onSwitch: (locale: string, href: string) => void;
 }) {
   // Strip the leading /<currentLocale> segment so we can swap in the new locale
   // e.g. /fr/book → /book, /fr → ""
@@ -120,31 +110,37 @@ function LanguageLink({
   const className =
     "w-10 p-1 text-center rounded-full font-bold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800";
 
-  // A plain anchor does a full document navigation, which leaves the Next
-  // router and so is never caught by an intercepting route's modal.
-  if (fullReload) {
-    return (
-      <a
-        className={className}
-        href={href}
-        aria-label={`Switch to ${LOCALE_LABEL[locale]}`}
-        aria-current={isActive ? "page" : undefined}
-      >
-        {locale.toUpperCase()}
-      </a>
-    );
-  }
-
+  // A real <a href> so a full document navigation is the default: each locale
+  // is its own root layout (`[locale]` renders its own <html>/<body> —
+  // ADR-0011), so a soft <Link> nav can't swap the root layout and leaves the
+  // previous locale's whole tree mounted in a hidden `<Activity>` boundary
+  // (duplicate <main>/<header>/<footer> + DOM ids). A hard nav also sidesteps
+  // the intercepting-route modal on the standalone /book & /poi pages.
+  //
+  // On a plain left-click we defer that hard nav briefly so the indicator pill
+  // can slide first; modified clicks (new tab, etc.) fall through to the native
+  // anchor unchanged.
   return (
-    <Link
+    <a
       className={className}
       href={href}
-      scroll={false}
-      onNavigate={onNavigate}
+      onClick={(e) => {
+        if (
+          e.button !== 0 ||
+          e.metaKey ||
+          e.ctrlKey ||
+          e.shiftKey ||
+          e.altKey
+        ) {
+          return;
+        }
+        e.preventDefault();
+        onSwitch(locale, href);
+      }}
       aria-label={`Switch to ${LOCALE_LABEL[locale]}`}
       aria-current={isActive ? "page" : undefined}
     >
       {locale.toUpperCase()}
-    </Link>
+    </a>
   );
 }

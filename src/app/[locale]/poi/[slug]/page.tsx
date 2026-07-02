@@ -62,7 +62,6 @@ export default async function PoiPage({
   return (
     <>
       <Header
-        localeSwitchFullReload
         action={
           <Button
             asChild
