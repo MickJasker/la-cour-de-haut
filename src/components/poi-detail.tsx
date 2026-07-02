@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Locale } from "@/i18n/routing";
 import type { poi } from "@/db/schema";
 import { RichTextRenderer } from "@/components/rich-text-renderer";
+import { pickLocalized } from "@/lib/localized-field";
 
 type Poi = typeof poi.$inferSelect;
 
@@ -12,9 +13,9 @@ type Poi = typeof poi.$inferSelect;
  * neutral. The rich `detail` falls back to Dutch when a locale is missing.
  */
 export function PoiDetail({ item, locale }: { item: Poi; locale: Locale }) {
-  const title = item.title[locale] ?? item.title.nl;
-  const body = item.body[locale] ?? item.body.nl;
-  const detailState = item.detail?.[locale] ?? item.detail?.nl ?? null;
+  const title = pickLocalized(item.title, locale);
+  const body = pickLocalized(item.body, locale);
+  const detailState = item.detail ? pickLocalized(item.detail, locale) : null;
 
   return (
     <article className="flex flex-col gap-5">

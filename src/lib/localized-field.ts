@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/routing";
 import { translateText } from "@/lib/translate";
 
 export const TARGET_LOCALES = ["en", "fr", "de"] as const;
@@ -132,4 +133,21 @@ export function resolveLocalizedText(
     equals: (a, b) => a === b,
     translate: (s, t) => translateText(s, t),
   });
+}
+
+/**
+ * Public read-path fallback rule for **authored content** (CONTEXT.md's
+ * "translate content model"): show the active locale's slot, falling back to
+ * the Dutch source slot when the active locale's machine translation is
+ * missing. This is the read-side counterpart to `resolveAuthoredField` above,
+ * and governs POIs and content blocks only — quoted content (reviews) has its
+ * own longer chain ending at the verbatim original, see
+ * `resolveReviewBody` (ADR-0014).
+ *
+ * Deliberately does not handle a field that is itself absent (e.g. an
+ * optional jsonb column with no row yet) — that is a presence concern for the
+ * call site, not a locale concern for this seam.
+ */
+export function pickLocalized<T>(field: Localized<T>, locale: Locale): T {
+  return field[locale] ?? field.nl;
 }

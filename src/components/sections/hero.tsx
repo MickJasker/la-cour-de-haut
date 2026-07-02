@@ -11,6 +11,7 @@ import { inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { RichTextRenderer } from "../rich-text-renderer";
 import { hasEditorText } from "@/lib/lexical/empty-state";
+import { pickLocalized } from "@/lib/localized-field";
 
 export async function Hero({ locale }: { locale: Locale }) {
   "use cache";
@@ -32,7 +33,7 @@ export async function Hero({ locale }: { locale: Locale }) {
   const descRow = rows.find((r) => r.key === "hero_description");
   const heroDescriptionState =
     descRow?.value?.type === "localizedEditorState"
-      ? (descRow.value[locale] ?? descRow.value.nl)
+      ? pickLocalized(descRow.value, locale)
       : null;
   const showHeroDescription =
     heroDescriptionState !== null && hasEditorText(heroDescriptionState);
