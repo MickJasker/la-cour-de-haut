@@ -6,7 +6,7 @@ import {
   getSettings,
   hasBankDetails,
   paymentDeadlineDays,
-} from "@/lib/settings";
+} from "@/lib/settings/settings";
 import {
   toDisplayStatus,
   type DisplayStatus,

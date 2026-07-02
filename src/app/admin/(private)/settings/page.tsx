@@ -1,5 +1,5 @@
 import { verifySession } from "@/lib/dal";
-import { getSettings } from "@/lib/settings";
+import { getSettings } from "@/lib/settings/settings";
 import { SettingsForm } from "./settings-form";
 
 export default async function SettingsPage() {

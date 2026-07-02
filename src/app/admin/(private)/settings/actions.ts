@@ -7,7 +7,7 @@ import {
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/dal";
-import { saveSettings } from "@/lib/settings";
+import { saveSettings } from "@/lib/settings/settings";
 import { settingsFormOpts, settingsFormServerSchema } from "./shared";
 
 export type SettingsActionState = {

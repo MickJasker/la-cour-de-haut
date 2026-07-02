@@ -4,7 +4,7 @@ import {
   settingsRegistry,
   type SettingKey,
   type ClientShape,
-} from "@/lib/settings-registry";
+} from "@/lib/settings/registry";
 
 // Cast is safe: Object.fromEntries loses per-key types but ClientShape
 // captures them. The runtime shape is identical to the static assertion.

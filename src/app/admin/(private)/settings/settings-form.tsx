@@ -29,8 +29,8 @@ import {
   sectionMeta,
   type FieldMeta,
   type SettingKey,
-} from "@/lib/settings-registry";
-import type { Settings } from "@/lib/settings";
+} from "@/lib/settings/registry";
+import type { Settings } from "@/lib/settings/settings";
 
 /**
  * Group registry entries by section.

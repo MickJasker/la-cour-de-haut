@@ -8,7 +8,7 @@ import {
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
-vi.mock("@/lib/settings", () => ({
+vi.mock("@/lib/settings/settings", () => ({
   getSettings: vi.fn(),
   hasBankDetails: vi.fn(),
 }));
@@ -18,7 +18,7 @@ vi.mock("./bank-transfer-email", () => ({
 vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
 
 import { getDb } from "@/db";
-import { getSettings, hasBankDetails } from "@/lib/settings";
+import { getSettings, hasBankDetails } from "@/lib/settings/settings";
 import { sendBankTransferEmail } from "./bank-transfer-email";
 import { isRangeAvailable } from "./availability";
 import { applyTransition } from "./lifecycle";

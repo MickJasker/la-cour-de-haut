@@ -238,7 +238,7 @@ export async function getBookedDatesAction(): Promise<string[]> {
 }
 
 export async function getPricePerNightAction(): Promise<number> {
-  const settings = await import("@/lib/settings");
+  const settings = await import("@/lib/settings/settings");
   const { price_per_night } = await settings.getSettings();
   return price_per_night ?? 0;
 }

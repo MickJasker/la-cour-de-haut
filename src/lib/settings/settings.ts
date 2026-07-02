@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getDb } from "@/db";
 import { setting } from "@/db/schema";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
-import { settingsRegistry, type ServerShape } from "./settings-registry";
+import { settingsRegistry, type ServerShape } from "./registry";
 
 // Cast is safe: Object.fromEntries loses per-key types but ServerShape
 // captures them. The runtime shape is identical to the static assertion.
