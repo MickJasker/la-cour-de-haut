@@ -7,6 +7,7 @@ import { getTranslations } from "@/i18n/server";
 import { formatDistance } from "date-fns";
 import { getDateFnsLocale } from "@/i18n/dictionaries";
 import { resolveReviewBody, reviewTranslatedFrom } from "@/lib/review-i18n";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const SOURCE_LABELS: Record<string, string> = {
   airbnb: "AirBnB",
@@ -40,7 +41,7 @@ function Stars({ rating }: { rating: number }) {
 export async function ReviewsSection({ locale }: { locale: Locale }) {
   "use cache";
   cacheLife("max");
-  cacheTag("reviews");
+  cacheTag(CACHE_TAGS.reviews);
 
   const [t, published] = await Promise.all([
     getTranslations({ locale, namespace: "sections.reviews" }),

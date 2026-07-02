@@ -16,6 +16,7 @@ import {
   type ReviewBody,
   type ReviewBodySource,
 } from "@/lib/review-i18n";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { reviewFormOpts, reviewFormServerSchema } from "./shared";
 
 export type ReviewActionState = {
@@ -37,7 +38,7 @@ const serverValidate = createServerValidate({
 
 function invalidate() {
   revalidatePath("/admin/reviews");
-  updateTag("reviews");
+  updateTag(CACHE_TAGS.reviews);
 }
 
 const DISPLAY_LOCALES = ["nl", "en", "fr", "de"] as const;

@@ -2,6 +2,7 @@ import { getDb } from "@/db";
 import { poi } from "@/db/schema";
 import { and, asc, eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 /**
  * A single published POI by slug, or null. Cached and tagged `poi` so it stays
@@ -12,7 +13,7 @@ import { cacheLife, cacheTag } from "next/cache";
 export async function getPublishedPoiBySlug(slug: string) {
   "use cache";
   cacheLife("max");
-  cacheTag("poi");
+  cacheTag(CACHE_TAGS.poi);
 
   const [row] = await getDb()
     .select()
@@ -26,7 +27,7 @@ export async function getPublishedPoiBySlug(slug: string) {
 export async function getPublishedPoiSlugs(): Promise<string[]> {
   "use cache";
   cacheLife("max");
-  cacheTag("poi");
+  cacheTag(CACHE_TAGS.poi);
 
   const rows = await getDb()
     .select({ slug: poi.slug })

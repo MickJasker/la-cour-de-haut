@@ -12,11 +12,12 @@ import { cacheLife, cacheTag } from "next/cache";
 import { RichTextRenderer } from "../rich-text-renderer";
 import { hasEditorText } from "@/lib/lexical/empty-state";
 import { pickLocalized } from "@/lib/localized-field";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export async function Hero({ locale }: { locale: Locale }) {
   "use cache";
   cacheLife("max");
-  cacheTag("content");
+  cacheTag(CACHE_TAGS.content);
 
   const t = await getTranslations({ locale, namespace: "sections.hero" });
 
