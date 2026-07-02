@@ -2,7 +2,7 @@
 
 import type { SerializedEditorState } from "lexical";
 import { revalidatePath, updateTag } from "next/cache";
-import { del } from "@vercel/blob";
+import { deleteBlobBestEffort } from "@/lib/blob-delete";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -135,10 +135,13 @@ export async function uploadHeroImageAction(
       set: { value: heroValue, valueSource: null, updatedAt: new Date() },
     });
 
+  // Best-effort: a failed delete of the OLD image must not block saving
+  // the new one (see deleteBlobBestEffort's doc comment). The new value is
+  // already committed above.
   const existingUrl =
     existing?.value?.type === "imageUrl" ? existing.value.url : null;
-  if (existingUrl?.includes("blob.vercel-storage.com")) {
-    await del(existingUrl);
+  if (existingUrl) {
+    await deleteBlobBestEffort(existingUrl);
   }
 
   invalidate();
