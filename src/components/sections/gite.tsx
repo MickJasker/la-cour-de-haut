@@ -8,6 +8,7 @@ import { GiteDialog } from "./gite-dialog";
 import { cacheLife, cacheTag } from "next/cache";
 import { RichTextRenderer } from "../rich-text-renderer";
 import { hasEditorText } from "@/lib/lexical/empty-state";
+import { pickLocalized } from "@/lib/localized-field";
 
 export async function GiteSection({ locale }: { locale: Locale }) {
   "use cache";
@@ -25,7 +26,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
     .then((r) => r[0] ?? null);
   const descriptionState =
     descRow?.value?.type === "localizedEditorState"
-      ? (descRow.value[locale] ?? descRow.value.nl)
+      ? pickLocalized(descRow.value, locale)
       : null;
   const description =
     descriptionState !== null && hasEditorText(descriptionState)
@@ -74,7 +75,9 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative max-md:hidden aspect-3/2 md:col-start-2 md:col-end-9 lg:col-start-2 lg:col-end-7">
               <Image
                 src={image3.imageUrl}
-                alt={image3.altText?.[locale] ?? image3.altText?.nl ?? ""}
+                alt={
+                  image3.altText ? pickLocalized(image3.altText, locale) : ""
+                }
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -86,7 +89,9 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative aspect-3/2 md:col-span-full">
               <Image
                 src={image2.imageUrl}
-                alt={image2.altText?.[locale] ?? image2.altText?.nl ?? ""}
+                alt={
+                  image2.altText ? pickLocalized(image2.altText, locale) : ""
+                }
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -100,7 +105,9 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="relative aspect-3/2 md:col-span-full">
               <Image
                 src={image1.imageUrl}
-                alt={image1.altText?.[locale] ?? image1.altText?.nl ?? ""}
+                alt={
+                  image1.altText ? pickLocalized(image1.altText, locale) : ""
+                }
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"
@@ -112,7 +119,9 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             <div className="max-md:hidden relative aspect-3/2 md:col-start-1 md:col-end-9 lg:col-start-1 lg:col-end-6">
               <Image
                 src={image4.imageUrl}
-                alt={image4.altText?.[locale] ?? image4.altText?.nl ?? ""}
+                alt={
+                  image4.altText ? pickLocalized(image4.altText, locale) : ""
+                }
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 50vw, 25vw"

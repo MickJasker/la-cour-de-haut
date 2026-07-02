@@ -5,6 +5,7 @@ import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
 } from "@/lib/poi-queries";
+import { pickLocalized } from "@/lib/localized-field";
 import { PoiModalClient } from "./poi-modal-client";
 
 // Same as the standalone route: enumerate slugs (with a placeholder fallback
@@ -25,7 +26,7 @@ export default async function PoiModalPage({
   if (!item) notFound();
 
   return (
-    <PoiModalClient title={item.title[loc] ?? item.title.nl}>
+    <PoiModalClient title={pickLocalized(item.title, loc)}>
       <PoiDetail item={item} locale={loc} />
     </PoiModalClient>
   );

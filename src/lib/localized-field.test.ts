@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  pickLocalized,
   resolveAuthoredField,
   resolveLocalizedText,
   type TargetLocale,
@@ -309,5 +310,42 @@ describe("resolveLocalizedText", () => {
         process.env.E2E_TESTING = prev;
       }
     }
+  });
+});
+
+describe("pickLocalized", () => {
+  it("returns the active locale's slot when present", () => {
+    const field = { nl: "Hallo", en: "Hello", fr: "Bonjour", de: "Hallo DE" };
+    expect(pickLocalized(field, "en")).toBe("Hello");
+    expect(pickLocalized(field, "fr")).toBe("Bonjour");
+  });
+
+  it("falls back to nl when the active locale is missing", () => {
+    // fr/de not yet translated (e.g. right after a save).
+    const field = { nl: "Hallo", en: "Hello" };
+    expect(pickLocalized(field, "fr")).toBe("Hallo");
+    expect(pickLocalized(field, "de")).toBe("Hallo");
+  });
+
+  it("returns nl itself when the active locale IS nl", () => {
+    const field = { nl: "Hallo", en: "Hello" };
+    expect(pickLocalized(field, "nl")).toBe("Hallo");
+  });
+
+  // Matches current call-site behavior: an empty-string translation is a
+  // present (falsy but defined) value, not "missing" — `??` only falls back
+  // on null/undefined, so an empty string is returned as-is rather than
+  // triggering the nl fallback.
+  it("returns an empty-string locale slot as-is, not the nl fallback", () => {
+    const field = { nl: "Hallo", en: "" };
+    expect(pickLocalized(field, "en")).toBe("");
+  });
+
+  // Matches current call-site behavior when nl itself is empty (source was
+  // saved blank): an empty nl is still a defined value, so it is returned
+  // rather than producing `undefined`.
+  it("returns an empty-string nl as the fallback when the locale is missing", () => {
+    const field = { nl: "" };
+    expect(pickLocalized(field, "en")).toBe("");
   });
 });

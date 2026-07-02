@@ -6,6 +6,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
+import { pickLocalized } from "@/lib/localized-field";
 
 export async function PoiSection({ locale }: { locale: Locale }) {
   "use cache";
@@ -43,7 +44,7 @@ export async function PoiSection({ locale }: { locale: Locale }) {
                 <div className="relative aspect-3/2 rounded-md overflow-hidden">
                   <Image
                     src={item.imageUrl}
-                    alt={item.title[locale] ?? item.title.nl}
+                    alt={pickLocalized(item.title, locale)}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-105"
                     sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 17vw"
@@ -60,10 +61,10 @@ export async function PoiSection({ locale }: { locale: Locale }) {
                   )}
                 </div>
                 <h3 className="text-style-display-small font-bold! group-hover:underline">
-                  {item.title[locale] ?? item.title.nl}
+                  {pickLocalized(item.title, locale)}
                 </h3>
                 <p className="text-style-body-medium">
-                  {item.body[locale] ?? item.body.nl}
+                  {pickLocalized(item.body, locale)}
                 </p>
               </Link>
             </article>

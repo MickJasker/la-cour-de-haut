@@ -9,6 +9,7 @@ import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
 } from "@/lib/poi-queries";
+import { pickLocalized } from "@/lib/localized-field";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -27,8 +28,8 @@ export async function generateMetadata({
   if (!item) return {};
 
   const loc = locale as Locale;
-  const title = item.title[loc] ?? item.title.nl;
-  const description = item.body[loc] ?? item.body.nl;
+  const title = pickLocalized(item.title, loc);
+  const description = pickLocalized(item.body, loc);
 
   return {
     title,
