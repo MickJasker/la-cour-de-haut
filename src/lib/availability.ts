@@ -1,24 +1,98 @@
 import "server-only";
-import { getDb } from "@/db";
-import { icalSource } from "@/db/schema";
-import { bookingRequest, type BusyInterval } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { z } from "zod";
 import { connection } from "next/server";
-import { refreshSourceIfStale } from "./ical-cache";
+import type { BusyInterval } from "@/db/schema";
+import { fetchIcalFeed, type IcalFetchResult } from "./ical-fetch";
 import {
   expandInterval,
   hasConflict,
   isActiveDirectBooking,
 } from "./availability-utils";
 import { toUtcDayString } from "./calendar-day";
+import {
+  productionAvailabilityStore,
+  type AvailabilityStore,
+  type IcalSourceRow,
+} from "./availability-store";
 
 export type { BusyInterval };
+
+// Matches the lazy-refresh threshold documented in CONTEXT.md and ADR-0005
+// (DB-materialized lazy refresh) — a source is re-fetched on read once it's
+// older than 5 minutes.
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+const busyIntervalSchema = z.array(
+  z.object({ start: z.string(), end: z.string() }),
+);
+
+export type FetchFeed = (url: string, now: Date) => Promise<IcalFetchResult>;
+export type Clock = () => Date;
+
+/**
+ * The module's three injected seams (see the module doc comment below):
+ * the DB store, the feed fetch, and the clock.
+ */
+export type AvailabilityDeps = {
+  store: AvailabilityStore;
+  fetchFeed: FetchFeed;
+  clock: Clock;
+};
+
+/**
+ * Production wiring for `AvailabilityDeps`. Every exported function below
+ * defaults to this, so existing callers (booking form, submit-time re-check,
+ * confirm-time re-check, export feed) need no changes. Tests pass their own
+ * `AvailabilityDeps` instead — an in-memory store, a scripted fetch, and a
+ * fixed clock — rather than mocking `@/db`, `drizzle-orm`, or sibling
+ * modules.
+ */
+const defaultDeps: AvailabilityDeps = {
+  store: productionAvailabilityStore,
+  fetchFeed: (url, now) => fetchIcalFeed(url, fetch, now),
+  clock: () => new Date(),
+};
+
+/**
+ * Checks whether the source's cache is stale (older than 5 minutes, or never
+ * synced). If stale, fetches fresh data and writes it back through the store.
+ * Returns the current intervals: fresh on success, last-known-good on
+ * failure, and empty for a never-synced source that fails (fail-open,
+ * ADR-0005).
+ */
+async function refreshSourceIfStale(
+  source: IcalSourceRow,
+  { store, fetchFeed, clock }: AvailabilityDeps,
+): Promise<BusyInterval[]> {
+  const now = clock();
+
+  const isStale =
+    !source.lastSyncedAt ||
+    now.getTime() - source.lastSyncedAt.getTime() > REFRESH_INTERVAL_MS;
+
+  if (!isStale) {
+    const parsed = busyIntervalSchema.safeParse(source.cachedIntervals);
+    return parsed.success ? parsed.data : [];
+  }
+
+  const result = await fetchFeed(source.url, now);
+
+  if (result.ok) {
+    await store.recordIcalSyncSuccess(source.id, result.intervals, now);
+    return result.intervals;
+  }
+
+  await store.recordIcalSyncError(source.id, result.error, now);
+  // Retain last-known-good intervals
+  const parsed = busyIntervalSchema.safeParse(source.cachedIntervals);
+  return parsed.success ? parsed.data : [];
+}
 
 /**
  * Returns all on_hold (non-expired) and confirmed direct bookings.
  * This is the single canonical filter for which bookings count as busy.
  *
- * Fetches both statuses from the DB, then filters with the shared
+ * Fetches both statuses from the store, then filters with the shared
  * `isActiveDirectBooking` predicate (ADR-0004) instead of re-encoding the
  * expiry comparison in SQL — keeps this in lockstep with display status and
  * dashboard categorisation, which apply the same predicate.
@@ -28,44 +102,38 @@ export type { BusyInterval };
  * only needs "is this range free" / "which days are booked" should use
  * `isRangeAvailable` / `getBookedDays` below instead.
  */
-export async function getDirectBookings(): Promise<
-  { id: string; startDate: string; endDate: string }[]
-> {
+export async function getDirectBookings(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<{ id: string; startDate: string; endDate: string }[]> {
   await connection();
-  const db = getDb();
-  const rows = await db
-    .select({
-      id: bookingRequest.id,
-      startDate: bookingRequest.startDate,
-      endDate: bookingRequest.endDate,
-      status: bookingRequest.status,
-      paymentDeadline: bookingRequest.paymentDeadline,
-    })
-    .from(bookingRequest)
-    .where(inArray(bookingRequest.status, ["on_hold", "confirmed"]));
+  const rows = await deps.store.listDirectBookings();
 
-  const today = toUtcDayString();
+  const today = toUtcDayString(deps.clock());
   return rows
     .filter((row) => isActiveDirectBooking(row, today))
     .map(({ id, startDate, endDate }) => ({ id, startDate, endDate }));
 }
 
 /**
- * Returns the merged busy intervals from all enabled iCal sources plus live DB holds.
- * Stale sources (>~1 hour) are lazily re-fetched; failures retain last-known-good
- * intervals (ADR-0005). A never-synced source that fails contributes no intervals
- * (fail-open).
+ * Returns the merged busy intervals from all enabled iCal sources plus live
+ * DB holds. Stale sources (>5 minutes) are lazily re-fetched; failures retain
+ * last-known-good intervals (ADR-0005). A never-synced source that fails
+ * contributes no intervals (fail-open).
  *
- * Internal implementation detail of this module — callers outside should use
+ * Part of the module's public interface alongside `isRangeAvailable` /
+ * `getBookedDays` — exported primarily so the lazy-refresh glue (staleness,
+ * write-back, fail-open) can be unit-tested directly through it via injected
+ * `AvailabilityDeps`, without recomputing the merge through the higher-level
+ * functions. Callers outside this module should still prefer
  * `isRangeAvailable` / `getBookedDays`, the two operations the rest of the
- * app actually needs instead of recombining busy intervals themselves.
+ * app actually needs.
  */
-async function getBusyIntervals(): Promise<BusyInterval[]> {
-  const db = getDb();
-
+export async function getBusyIntervals(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<BusyInterval[]> {
   const [sources, holds] = await Promise.all([
-    db.select().from(icalSource).where(eq(icalSource.enabled, true)),
-    getDirectBookings(),
+    deps.store.listEnabledIcalSources(),
+    getDirectBookings(deps),
   ]);
 
   const intervals: BusyInterval[] = holds.map((h) => ({
@@ -74,7 +142,7 @@ async function getBusyIntervals(): Promise<BusyInterval[]> {
   }));
 
   const sourceIntervals = await Promise.all(
-    sources.map((source) => refreshSourceIfStale(source)),
+    sources.map((source) => refreshSourceIfStale(source, deps)),
   );
 
   for (const si of sourceIntervals) {
@@ -93,8 +161,9 @@ async function getBusyIntervals(): Promise<BusyInterval[]> {
 export async function isRangeAvailable(
   start: string,
   end: string,
+  deps: AvailabilityDeps = defaultDeps,
 ): Promise<boolean> {
-  const busyIntervals = await getBusyIntervals();
+  const busyIntervals = await getBusyIntervals(deps);
   return !hasConflict(busyIntervals, start, end);
 }
 
@@ -103,7 +172,9 @@ export async function isRangeAvailable(
  * expands the merged busy intervals into a deduplicated list of date strings
  * for the booking calendar's disabled-dates.
  */
-export async function getBookedDays(): Promise<string[]> {
-  const busyIntervals = await getBusyIntervals();
+export async function getBookedDays(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<string[]> {
+  const busyIntervals = await getBusyIntervals(deps);
   return [...new Set(busyIntervals.flatMap(expandInterval))];
 }
