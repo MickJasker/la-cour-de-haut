@@ -8,9 +8,13 @@ import {
   type DbBookingStatus,
 } from "./booking-machine";
 import { getSettings, hasBankDetails } from "./settings";
-import { sendBankTransferEmail } from "./bank-transfer-email";
+import { sendBankTransferEmail, type BankDetails } from "./bank-transfer-email";
 import { isRangeAvailable } from "./availability";
 import { toUtcDayString } from "./calendar-day";
+import {
+  calculatePriceBreakdown,
+  calculateTotalNights,
+} from "@/app/[locale]/book/shared";
 
 export type ApplyTransitionOpts = {
   paymentDeadline?: string;
@@ -33,7 +37,10 @@ export async function applyTransition(
 ): Promise<void> {
   const booking = await fetchBooking(bookingId);
 
-  let settings: Awaited<ReturnType<typeof getSettings>> | undefined;
+  // Only "confirm" ever needs bank details (for the bank-transfer email);
+  // captured here, narrowed by hasBankDetails, so the email call below never
+  // has to fall back to a non-null assertion.
+  let bankDetails: BankDetails | undefined;
 
   if (action === "confirm") {
     const { paymentDeadline } = opts;
@@ -45,8 +52,16 @@ export async function applyTransition(
     ) {
       throw new Error("Payment deadline must be today or in the future");
     }
-    let available: boolean;
-    [settings, available] = await Promise.all([
+    // Upper bound: a hold with a deadline after check-in makes no sense —
+    // the guest would still be "paying" for a stay that has already started.
+    // The confirm dialog clamps this client-side for UX, but that clamp is
+    // not a guard against a crafted action call, so it's enforced here too.
+    if (paymentDeadline > booking.startDate) {
+      throw new Error(
+        "Payment deadline must be on or before the check-in date",
+      );
+    }
+    const [settings, available] = await Promise.all([
       getSettings(),
       isRangeAvailable(booking.startDate, booking.endDate),
     ]);
@@ -55,6 +70,11 @@ export async function applyTransition(
         "Bank details must be configured before confirming a booking",
       );
     }
+    bankDetails = {
+      iban: settings.iban,
+      bankName: settings.bank_name,
+      accountHolder: settings.account_holder,
+    };
     if (!available) {
       throw new Error(
         "These dates conflict with an existing booking or platform hold. Check the availability calendar before confirming.",
@@ -82,7 +102,23 @@ export async function applyTransition(
   // external calendar) would go here.
 
   if (result.sideEffects.sendBankTransferEmail) {
-    settings ??= await getSettings();
+    if (!bankDetails) {
+      // sendBankTransferEmail is only a side effect of "confirm", which
+      // always populates bankDetails above before reaching this point.
+      throw new Error(
+        "Bank details not resolved for bank-transfer email — this indicates a lifecycle bug, not a user error",
+      );
+    }
+    // Price snapshot: render the amount frozen on the booking request at
+    // submit time (shownPriceAtBooking), not live settings — matches what
+    // the admin inbox already shows, so guest and owner never disagree on
+    // the total even if the nightly price changed after the request.
+    const nights = calculateTotalNights(booking.startDate, booking.endDate);
+    const { discount, totalPrice } = calculatePriceBreakdown(
+      Number(booking.shownPriceAtBooking),
+      nights,
+      booking.guestCount,
+    );
     try {
       await sendBankTransferEmail({
         guest: { name: booking.name, email: booking.email },
@@ -91,11 +127,15 @@ export async function applyTransition(
         guestCount: booking.guestCount,
         paymentDeadline: opts.paymentDeadline!,
         locale: booking.locale,
-        settings,
+        price: { nights, discount, totalPrice },
+        bankDetails,
       });
     } catch (err) {
       // Compensate: restore original status so the transition looks un-applied
-      // from the admin's perspective and can be retried.
+      // from the admin's perspective and can be retried. This is also the
+      // rollback path for an unconfigured email transport (see
+      // bank-transfer-email.ts) — a confirm must never report success
+      // without the instructions actually being sent.
       await db
         .update(bookingRequest)
         .set({

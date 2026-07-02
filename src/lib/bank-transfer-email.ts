@@ -1,10 +1,5 @@
 import "server-only";
 import { Resend } from "resend";
-import type { Settings } from "./settings";
-import {
-  calculatePriceBreakdown,
-  calculateTotalNights,
-} from "@/app/[locale]/book/shared";
 
 const esc = (s: string) =>
   s
@@ -14,6 +9,29 @@ const esc = (s: string) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
+/**
+ * IBAN etc. — the only piece of the email that legitimately comes from live
+ * settings; unlike the price, bank details have no "as of submit time"
+ * snapshot on the booking request.
+ */
+export type BankDetails = {
+  iban: string;
+  bankName: string;
+  accountHolder: string;
+};
+
+/**
+ * The price, frozen as of the booking request's `shownPriceAtBooking`
+ * (submit-time settings), not live settings. Computed once by the caller
+ * (`applyTransition`) so this module never reads settings for the amount —
+ * it only renders numbers it's handed.
+ */
+export type PriceSnapshot = {
+  nights: number;
+  discount: number;
+  totalPrice: number;
+};
+
 type EmailParams = {
   guest: { name: string; email: string };
   startDate: string;
@@ -21,7 +39,8 @@ type EmailParams = {
   guestCount: number;
   paymentDeadline: string;
   locale: string;
-  settings: Settings;
+  price: PriceSnapshot;
+  bankDetails: BankDetails;
 };
 
 const templates: Record<
@@ -33,12 +52,7 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
-    const nights = calculateTotalNights(p.startDate, p.endDate);
-    const { discount, totalPrice } = calculatePriceBreakdown(
-      Number(p.settings.price_per_night),
-      nights,
-      p.guestCount,
-    );
+    const { nights, discount, totalPrice } = p.price;
 
     return {
       subject: `Uw reservering bij La Cour de Haut`,
@@ -55,9 +69,9 @@ const templates: Record<
       </table>
       <p>Om uw reservering definitief te maken, verzoeken wij u het verschuldigde bedrag vóór <strong>${esc(p.paymentDeadline)}</strong> over te maken naar:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Rekeninghouder</th><td>${esc(p.settings.account_holder ?? "")}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.settings.iban ?? "")}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.settings.bank_name ?? "")}</td></tr>
+        <tr><th align="left">Rekeninghouder</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
+        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
+        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
         <tr><th align="left">Betalingskenmerk</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Als wij uw betaling niet ontvangen vóór de betalingstermijn, vervalt de reservering automatisch.</p>
@@ -70,12 +84,7 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
-    const nights = calculateTotalNights(p.startDate, p.endDate);
-    const { discount, totalPrice } = calculatePriceBreakdown(
-      Number(p.settings.price_per_night),
-      nights,
-      p.guestCount,
-    );
+    const { nights, discount, totalPrice } = p.price;
 
     return {
       subject: `Your reservation at La Cour de Haut`,
@@ -92,9 +101,9 @@ const templates: Record<
       </table>
       <p>To confirm your reservation, please transfer the agreed amount before <strong>${esc(p.paymentDeadline)}</strong> to:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Account holder</th><td>${esc(p.settings.account_holder ?? "")}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.settings.iban ?? "")}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.settings.bank_name ?? "")}</td></tr>
+        <tr><th align="left">Account holder</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
+        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
+        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
         <tr><th align="left">Reference</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>If payment is not received before the deadline, your reservation will be released.</p>
@@ -107,12 +116,7 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
-    const nights = calculateTotalNights(p.startDate, p.endDate);
-    const { discount, totalPrice } = calculatePriceBreakdown(
-      Number(p.settings.price_per_night),
-      nights,
-      p.guestCount,
-    );
+    const { discount, totalPrice } = p.price;
 
     return {
       subject: `Votre réservation à La Cour de Haut`,
@@ -128,9 +132,9 @@ const templates: Record<
       </table>
       <p>Pour confirmer votre réservation, veuillez virer le montant convenu avant le <strong>${esc(p.paymentDeadline)}</strong> à :</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Titulaire du compte</th><td>${esc(p.settings.account_holder ?? "")}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.settings.iban ?? "")}</td></tr>
-        <tr><th align="left">Banque</th><td>${esc(p.settings.bank_name ?? "")}</td></tr>
+        <tr><th align="left">Titulaire du compte</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
+        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
+        <tr><th align="left">Banque</th><td>${esc(p.bankDetails.bankName)}</td></tr>
         <tr><th align="left">Référence</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Si le paiement n'est pas reçu avant la date limite, la réservation sera automatiquement annulée.</p>
@@ -143,12 +147,7 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
-    const nights = calculateTotalNights(p.startDate, p.endDate);
-    const { discount, totalPrice } = calculatePriceBreakdown(
-      Number(p.settings.price_per_night),
-      nights,
-      p.guestCount,
-    );
+    const { nights, discount, totalPrice } = p.price;
 
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,
@@ -165,9 +164,9 @@ const templates: Record<
       </table>
       <p>Um Ihre Reservierung zu bestätigen, bitten wir Sie, den vereinbarten Betrag bis zum <strong>${esc(p.paymentDeadline)}</strong> zu überweisen an:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Kontoinhaber</th><td>${esc(p.settings.account_holder ?? "")}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.settings.iban ?? "")}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.settings.bank_name ?? "")}</td></tr>
+        <tr><th align="left">Kontoinhaber</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
+        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
+        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
         <tr><th align="left">Verwendungszweck</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Wenn die Zahlung nicht vor Ablauf der Frist eingeht, wird die Reservierung automatisch storniert.</p>
@@ -176,10 +175,31 @@ const templates: Record<
   },
 };
 
-export async function sendBankTransferEmail(params: EmailParams) {
+/**
+ * Sends the bank-transfer instructions email. `applyTransition` is the only
+ * caller and treats any rejection as a compensating-rollback trigger, so
+ * this function must never resolve successfully without actually sending —
+ * an unconfigured transport is a loud failure, not a silent no-op.
+ *
+ * `E2E_TESTING` selects a deterministic stub explicitly (same switch as
+ * `translate.ts`), so the Playwright suite — which runs without a real
+ * Resend key — gets predictable "email sent" behavior on purpose, not by
+ * falling through an unconfigured-transport branch.
+ */
+export async function sendBankTransferEmail(
+  params: EmailParams,
+): Promise<void> {
+  if (process.env.E2E_TESTING) {
+    return;
+  }
+
   const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "RESEND_API_KEY is not configured; cannot send the bank-transfer email",
+    );
+  }
   const from = process.env.RESEND_FROM ?? "noreply@lacourdehaut.fr";
-  if (!apiKey) return;
 
   const tmpl = templates[params.locale] ?? templates.en!;
   const { subject, html } = tmpl(params);
