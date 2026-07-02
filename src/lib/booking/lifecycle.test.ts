@@ -8,7 +8,7 @@ import {
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
-vi.mock("./settings", () => ({
+vi.mock("@/lib/settings", () => ({
   getSettings: vi.fn(),
   hasBankDetails: vi.fn(),
 }));
@@ -18,10 +18,10 @@ vi.mock("./bank-transfer-email", () => ({
 vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
 
 import { getDb } from "@/db";
-import { getSettings, hasBankDetails } from "./settings";
+import { getSettings, hasBankDetails } from "@/lib/settings";
 import { sendBankTransferEmail } from "./bank-transfer-email";
 import { isRangeAvailable } from "./availability";
-import { applyTransition } from "./booking-lifecycle";
+import { applyTransition } from "./lifecycle";
 
 // Booking runs 2027-09-01 → 2027-09-07 (6 nights). Deadlines below are
 // chosen relative to that window: VALID_DEADLINE sits strictly inside

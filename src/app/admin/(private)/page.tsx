@@ -7,8 +7,8 @@ import {
   type BookingRow,
   type IcalSourceRow,
   type UpcomingEntry,
-} from "@/lib/dashboard";
-import { toUtcDayString } from "@/lib/calendar-day";
+} from "@/lib/booking/dashboard";
+import { toUtcDayString } from "@/lib/booking/calendar-day";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   TriangleAlert,

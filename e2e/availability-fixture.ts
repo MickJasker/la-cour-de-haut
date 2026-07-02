@@ -1,4 +1,4 @@
-import { expandInterval } from "../src/lib/availability-utils";
+import { expandInterval } from "../src/lib/booking/availability-utils";
 
 function toDateString(d: Date): string {
   const year = d.getFullYear();

@@ -7,7 +7,7 @@ import {
   cancelBookingAction,
 } from "./actions";
 import { ConfirmDialog } from "./confirm-dialog";
-import type { DisplayStatus } from "@/lib/booking-machine";
+import type { DisplayStatus } from "@/lib/booking/machine";
 
 type Props = {
   bookingId: string;

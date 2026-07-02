@@ -11,7 +11,7 @@ import {
   toDisplayStatus,
   type DisplayStatus,
   type DbBookingStatus,
-} from "@/lib/booking-machine";
+} from "@/lib/booking/machine";
 import { BookingActions } from "./booking-actions";
 import { NotesEditor } from "./notes-editor";
 import Link from "next/link";

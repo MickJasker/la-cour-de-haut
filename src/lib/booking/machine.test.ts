@@ -6,7 +6,7 @@ import {
   toDisplayStatus,
   isExpiredHold,
   type DbBookingStatus,
-} from "./booking-machine";
+} from "./machine";
 
 describe("transition — valid paths", () => {
   it("requested → on_hold on confirm, with blockInFeed + sendBankTransferEmail", () => {

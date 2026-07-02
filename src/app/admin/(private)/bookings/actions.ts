@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { verifySession } from "@/lib/dal";
-import { applyTransition } from "@/lib/booking-lifecycle";
+import { applyTransition } from "@/lib/booking/lifecycle";
 
 export async function confirmBookingAction(
   id: string,

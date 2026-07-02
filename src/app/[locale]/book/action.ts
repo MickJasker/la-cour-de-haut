@@ -14,7 +14,7 @@ import {
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
-import { isRangeAvailable, getBookedDays } from "@/lib/availability";
+import { isRangeAvailable, getBookedDays } from "@/lib/booking/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
 import { getCountryName } from "@/lib/countries";
 
