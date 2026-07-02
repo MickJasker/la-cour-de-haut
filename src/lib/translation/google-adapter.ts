@@ -1,9 +1,9 @@
-import type { TranslateAdapter } from "./translate-adapter";
+import type { TranslateAdapter } from "./adapter";
 import {
   DISPLAY_LOCALES,
   type ReviewTranslationResult,
   type TranslateTextOptions,
-} from "./translate-types";
+} from "./types";
 
 function isFulfilled<V>(
   result: PromiseSettledResult<V>,

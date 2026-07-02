@@ -1,8 +1,5 @@
-import type { TranslateAdapter } from "./translate-adapter";
-import {
-  DISPLAY_LOCALES,
-  type ReviewTranslationResult,
-} from "./translate-types";
+import type { TranslateAdapter } from "./adapter";
+import { DISPLAY_LOCALES, type ReviewTranslationResult } from "./types";
 
 /**
  * Deterministic stand-in for Google Cloud Translation, used under

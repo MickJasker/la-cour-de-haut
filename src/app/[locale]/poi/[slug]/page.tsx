@@ -9,7 +9,7 @@ import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
 } from "@/lib/poi-queries";
-import { pickLocalized } from "@/lib/localized-field";
+import { pickLocalized } from "@/lib/translation/localized-field";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 

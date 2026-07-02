@@ -5,9 +5,9 @@ import {
   type Localized,
   type LocalizedSource,
   type TargetLocale,
-} from "@/lib/localized-field";
+} from "@/lib/translation/localized-field";
 import { editorStateToHtml, htmlToEditorState } from "@/lib/lexical/bridge";
-import { translateText } from "@/lib/translate";
+import { translateText } from "@/lib/translation/translate";
 import { hasEditorText } from "@/lib/lexical/empty-state";
 
 /**

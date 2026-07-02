@@ -2,7 +2,7 @@ import Image from "next/image";
 import type { Locale } from "@/i18n/routing";
 import type { poi } from "@/db/schema";
 import { RichTextRenderer } from "@/components/rich-text-renderer";
-import { pickLocalized } from "@/lib/localized-field";
+import { pickLocalized } from "@/lib/translation/localized-field";
 
 type Poi = typeof poi.$inferSelect;
 

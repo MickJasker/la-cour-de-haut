@@ -25,7 +25,7 @@ import {
   type AuthoredTextFieldInput,
   type AuthoredDetailFieldInput,
 } from "./authored-save";
-import type { Localized } from "./localized-field";
+import type { Localized } from "@/lib/translation/localized-field";
 
 function textField(
   source: string,

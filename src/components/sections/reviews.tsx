@@ -6,7 +6,10 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
 import { formatDistance } from "date-fns";
 import { getDateFnsLocale } from "@/i18n/dictionaries";
-import { resolveReviewBody, reviewTranslatedFrom } from "@/lib/review-i18n";
+import {
+  resolveReviewBody,
+  reviewTranslatedFrom,
+} from "@/lib/translation/review-i18n";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const SOURCE_LABELS: Record<string, string> = {

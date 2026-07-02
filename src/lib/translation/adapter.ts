@@ -1,9 +1,6 @@
-import { googleTranslateAdapter } from "./translate-google-adapter";
-import { stubTranslateAdapter } from "./translate-stub-adapter";
-import type {
-  ReviewTranslationResult,
-  TranslateTextOptions,
-} from "./translate-types";
+import { googleTranslateAdapter } from "./google-adapter";
+import { stubTranslateAdapter } from "./stub-adapter";
+import type { ReviewTranslationResult, TranslateTextOptions } from "./types";
 
 /**
  * The seam between "content needs translating" (translateReviewBody /
