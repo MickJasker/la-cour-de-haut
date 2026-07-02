@@ -50,7 +50,6 @@ export default async function BookPage({
   return (
     <>
       <Header
-        localeSwitchFullReload
         action={
           <Button
             asChild
