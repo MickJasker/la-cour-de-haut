@@ -7,8 +7,9 @@ import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
-import { resolveLocalizedDetail } from "@/lib/localized-detail";
+import { saveAuthoredContent } from "@/lib/authored-save";
 import { parseDetailField } from "@/lib/lexical/parse-detail-field";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export type ContentActionState = {
   success: boolean;
@@ -18,7 +19,7 @@ export type ContentActionState = {
 
 function invalidate() {
   revalidatePath("/admin/content");
-  updateTag("content");
+  updateTag(CACHE_TAGS.content);
 }
 
 async function upsertRichText(
@@ -27,43 +28,51 @@ async function upsertRichText(
 ): Promise<{ failures: string[] }> {
   const db = getDb();
 
-  // Load existing row to enable dirty-check and gap-fill (ADR-0016).
-  const existing = await db
-    .select({ value: contentBlock.value })
-    .from(contentBlock)
-    .where(eq(contentBlock.key, key))
-    .limit(1)
-    .then((r) => r[0] ?? null);
+  return saveAuthoredContent({
+    tag: CACHE_TAGS.content,
+    revalidatePaths: ["/admin/content"],
+    load: async () => {
+      const existing = await db
+        .select({ value: contentBlock.value })
+        .from(contentBlock)
+        .where(eq(contentBlock.key, key))
+        .limit(1)
+        .then((r) => r[0] ?? null);
 
-  const stored =
-    existing?.value?.type === "localizedEditorState"
-      ? {
-          nl: existing.value.nl,
-          en: existing.value.en,
-          fr: existing.value.fr,
-          de: existing.value.de,
-        }
-      : undefined;
+      return existing?.value?.type === "localizedEditorState"
+        ? {
+            nl: existing.value.nl,
+            en: existing.value.en,
+            fr: existing.value.fr,
+            de: existing.value.de,
+          }
+        : undefined;
+    },
+    fields: (stored) => ({
+      detail: { kind: "detail", source: nl, stored },
+    }),
+    persist: async (resolved) => {
+      // `nl` is always populated here (the caller only calls `upsertRichText`
+      // once `parseDetailField` returned non-null), so the "detail" field
+      // always resolves — it's only `null` when `source` itself is `null`.
+      const detail = resolved.detail!;
+      const value = {
+        type: "localizedEditorState" as const,
+        nl: detail.value.nl,
+        ...(detail.value.en ? { en: detail.value.en } : {}),
+        ...(detail.value.fr ? { fr: detail.value.fr } : {}),
+        ...(detail.value.de ? { de: detail.value.de } : {}),
+      };
 
-  const result = await resolveLocalizedDetail(nl, stored);
-
-  const value = {
-    type: "localizedEditorState" as const,
-    nl: result.value.nl,
-    ...(result.value.en ? { en: result.value.en } : {}),
-    ...(result.value.fr ? { fr: result.value.fr } : {}),
-    ...(result.value.de ? { de: result.value.de } : {}),
-  };
-
-  await db
-    .insert(contentBlock)
-    .values({ key, value, valueSource: result.source })
-    .onConflictDoUpdate({
-      target: contentBlock.key,
-      set: { value, valueSource: result.source, updatedAt: new Date() },
-    });
-
-  return { failures: result.failures };
+      await db
+        .insert(contentBlock)
+        .values({ key, value, valueSource: detail.source })
+        .onConflictDoUpdate({
+          target: contentBlock.key,
+          set: { value, valueSource: detail.source, updatedAt: new Date() },
+        });
+    },
+  });
 }
 
 export async function updateDescriptionAction(
@@ -76,7 +85,6 @@ export async function updateDescriptionAction(
     return { success: false, error: "Vereist" };
   }
   const { failures } = await upsertRichText("description", detail.nl);
-  invalidate();
   return {
     success: true,
     error: null,
@@ -94,7 +102,6 @@ export async function updateHeroDescriptionAction(
     return { success: false, error: "Vereist" };
   }
   const { failures } = await upsertRichText("hero_description", detail.nl);
-  invalidate();
   return {
     success: true,
     error: null,

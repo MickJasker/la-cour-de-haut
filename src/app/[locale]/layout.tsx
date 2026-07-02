@@ -14,6 +14,7 @@ import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/sections/footer";
 import { ModalSlot } from "./modal-slot";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -27,7 +28,7 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 async function getHeroImageUrl(): Promise<string | undefined> {
   "use cache";
   cacheLife("max");
-  cacheTag("content");
+  cacheTag(CACHE_TAGS.content);
 
   const db = getDb();
   const row = await db

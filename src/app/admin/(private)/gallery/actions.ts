@@ -6,7 +6,13 @@ import { galleryImage } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { deleteImage, nextSortOrder } from "@/lib/gallery";
-import { resolveLocalizedText } from "@/lib/localized-field";
+import { saveAuthoredContent } from "@/lib/authored-save";
+import { CACHE_TAGS } from "@/lib/cache-tags";
+
+function invalidate() {
+  revalidatePath("/admin/gallery");
+  updateTag(CACHE_TAGS.gallery);
+}
 
 // Receives only the resulting Blob URL — the file itself was already
 // streamed from the browser straight to Vercel Blob (see #98, upload-image.ts).
@@ -36,8 +42,7 @@ export async function uploadGalleryImageAction(
     height: dimensions?.height ?? null,
   });
 
-  revalidatePath("/admin/gallery");
-  updateTag("gallery");
+  invalidate();
 }
 
 export async function togglePublishedAction(id: string, published: boolean) {
@@ -47,15 +52,13 @@ export async function togglePublishedAction(id: string, published: boolean) {
     .update(galleryImage)
     .set({ published })
     .where(eq(galleryImage.id, id));
-  revalidatePath("/admin/gallery");
-  updateTag("gallery");
+  invalidate();
 }
 
 export async function deleteGalleryImageAction(id: string) {
   await verifySession();
   await deleteImage(id);
-  revalidatePath("/admin/gallery");
-  updateTag("gallery");
+  invalidate();
 }
 
 export type SaveAltTextActionState = {
@@ -69,29 +72,33 @@ export async function saveAltTextAction(
   await verifySession();
   const db = getDb();
 
-  // Load existing alt-text to enable dirty-check and gap-fill (ADR-0016).
-  const existing = await db
-    .select({ altText: galleryImage.altText })
-    .from(galleryImage)
-    .where(eq(galleryImage.id, id))
-    .limit(1)
-    .then((r) => r[0] ?? null);
+  const { failures } = await saveAuthoredContent({
+    tag: CACHE_TAGS.gallery,
+    revalidatePaths: ["/admin/gallery"],
+    load: async () => {
+      const existing = await db
+        .select({ altText: galleryImage.altText })
+        .from(galleryImage)
+        .where(eq(galleryImage.id, id))
+        .limit(1)
+        .then((r) => r[0] ?? null);
+      return existing?.altText ?? undefined;
+    },
+    fields: (stored) => ({
+      altText: { kind: "text", source: nl, stored },
+    }),
+    persist: async (resolved) => {
+      await db
+        .update(galleryImage)
+        .set({
+          altText: resolved.altText.value,
+          altTextSource: resolved.altText.source,
+        })
+        .where(eq(galleryImage.id, id));
+    },
+  });
 
-  const stored = existing?.altText ?? undefined;
-  const result = await resolveLocalizedText(nl, stored);
-
-  await db
-    .update(galleryImage)
-    .set({
-      altText: result.value,
-      altTextSource: result.source,
-    })
-    .where(eq(galleryImage.id, id));
-
-  revalidatePath("/admin/gallery");
-  updateTag("gallery");
-
-  return { failures: result.failures.length ? result.failures : undefined };
+  return { failures: failures.length ? failures : undefined };
 }
 
 export async function reorderGalleryImagesAction(ids: string[]) {
@@ -105,6 +112,5 @@ export async function reorderGalleryImagesAction(ids: string[]) {
         .where(eq(galleryImage.id, id)),
     ),
   );
-  revalidatePath("/admin/gallery");
-  updateTag("gallery");
+  invalidate();
 }

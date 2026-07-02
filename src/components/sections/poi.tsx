@@ -7,11 +7,12 @@ import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
 import { pickLocalized } from "@/lib/localized-field";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export async function PoiSection({ locale }: { locale: Locale }) {
   "use cache";
   cacheLife("max");
-  cacheTag("poi");
+  cacheTag(CACHE_TAGS.poi);
 
   const [t, published] = await Promise.all([
     getTranslations({ locale, namespace: "sections.poi" }),
