@@ -48,7 +48,9 @@ export async function saveSettings(data: Record<string, string>) {
   updateTag("settings");
 }
 
-export function hasBankDetails(s: Settings): boolean {
+export function hasBankDetails(
+  s: Settings,
+): s is Settings & { iban: string; bank_name: string; account_holder: string } {
   return Boolean(s.iban && s.bank_name && s.account_holder);
 }
 
