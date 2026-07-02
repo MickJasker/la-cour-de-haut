@@ -6,7 +6,7 @@ import { deleteBlobBestEffort } from "@/lib/media/blob-delete";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { saveAuthoredContent } from "@/lib/content/authored-save";
 import { parseDetailField } from "@/lib/content/lexical/parse-detail-field";
 import { CACHE_TAGS } from "@/lib/cache-tags";

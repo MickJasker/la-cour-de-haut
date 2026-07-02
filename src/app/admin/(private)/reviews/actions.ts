@@ -9,7 +9,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getDb } from "@/db";
 import { review } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { translateReviewBody } from "@/lib/translation/translate";
 import {
   buildReviewBody,

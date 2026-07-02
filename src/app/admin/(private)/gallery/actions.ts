@@ -4,7 +4,7 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { deleteImage, nextSortOrder } from "@/lib/media/gallery";
 import { saveAuthoredContent } from "@/lib/content/authored-save";
 import { CACHE_TAGS } from "@/lib/cache-tags";

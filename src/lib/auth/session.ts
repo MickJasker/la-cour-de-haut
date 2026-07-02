@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAuth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth/auth";
 
 export const verifySession = cache(async () => {
   // Access request data (headers) BEFORE constructing auth. Under Cache

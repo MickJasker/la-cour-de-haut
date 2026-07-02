@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { icalExportToken } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { z } from "zod";
 
 const nameSchema = z

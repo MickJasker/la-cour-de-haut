@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { bookingRequest, icalSource } from "@/db/schema";
 import { notInArray, eq } from "drizzle-orm";

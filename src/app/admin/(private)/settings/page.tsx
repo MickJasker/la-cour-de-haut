@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getSettings } from "@/lib/settings/settings";
 import { SettingsForm } from "./settings-form";
 
