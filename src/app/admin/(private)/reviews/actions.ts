@@ -9,13 +9,13 @@ import { revalidatePath, updateTag } from "next/cache";
 import { getDb } from "@/db";
 import { review } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
-import { translateReviewBody } from "@/lib/translate";
+import { verifySession } from "@/lib/auth/session";
+import { translateReviewBody } from "@/lib/translation/translate";
 import {
   buildReviewBody,
   type ReviewBody,
   type ReviewBodySource,
-} from "@/lib/review-i18n";
+} from "@/lib/translation/review-i18n";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { reviewFormOpts, reviewFormServerSchema } from "./shared";
 

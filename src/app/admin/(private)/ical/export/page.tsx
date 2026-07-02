@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { icalExportToken } from "@/db/schema";
 import { TokenList } from "./token-list";

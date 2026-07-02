@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { inArray } from "drizzle-orm";

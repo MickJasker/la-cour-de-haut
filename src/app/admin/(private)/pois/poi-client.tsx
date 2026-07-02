@@ -49,7 +49,7 @@ import {
 import { poiFormOpts, poiFormClientSchema } from "./shared";
 import { LocaleStatus } from "@/components/locale-status";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
+import { EMPTY_EDITOR_STATE } from "@/lib/content/lexical/empty-state";
 import type { poi, LocalizedEditorState } from "@/db/schema";
 
 type Poi = typeof poi.$inferSelect;

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { confirmBookingAction } from "./actions";
-import { toUtcDayString } from "@/lib/calendar-day";
+import { toUtcDayString } from "@/lib/booking/calendar-day";
 
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T12:00:00Z");

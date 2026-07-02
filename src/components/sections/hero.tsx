@@ -10,8 +10,8 @@ import { contentBlock } from "@/db/schema";
 import { inArray } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { RichTextRenderer } from "../rich-text-renderer";
-import { hasEditorText } from "@/lib/lexical/empty-state";
-import { pickLocalized } from "@/lib/localized-field";
+import { hasEditorText } from "@/lib/content/lexical/empty-state";
+import { pickLocalized } from "@/lib/translation/localized-field";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export async function Hero({ locale }: { locale: Locale }) {

@@ -1,5 +1,5 @@
 import type { BusyInterval } from "@/db/schema";
-import { isExpiredHold } from "./booking-machine";
+import { isExpiredHold } from "./machine";
 import { toUtcDayString } from "./calendar-day";
 
 /**

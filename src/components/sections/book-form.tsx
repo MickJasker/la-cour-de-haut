@@ -25,7 +25,7 @@ import { useLocale, useTranslations } from "@/i18n/provider";
 import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { FORWARD_HORIZON_MONTHS } from "@/lib/calendar-day";
+import { FORWARD_HORIZON_MONTHS } from "@/lib/booking/calendar-day";
 
 const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";

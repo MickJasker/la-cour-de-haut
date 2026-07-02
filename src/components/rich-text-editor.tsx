@@ -32,8 +32,8 @@ import {
   BASIC_EDITOR_NODES,
   EDITOR_NODES,
   EDITOR_THEME,
-} from "@/lib/lexical/nodes";
-import type { AllowedHeading } from "@/lib/lexical/nodes";
+} from "@/lib/content/lexical/nodes";
+import type { AllowedHeading } from "@/lib/content/lexical/nodes";
 import { isSafeHref } from "@/lib/safe-url";
 import {
   Bold,

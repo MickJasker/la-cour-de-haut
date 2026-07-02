@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getBlobUploadAdapter } from "./adapter";
 
 // Token endpoint for client-side direct-to-Blob uploads (see issue #98). The

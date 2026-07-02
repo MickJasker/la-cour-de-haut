@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { getDb } from "@/db";
 import { icalSource } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { sourceFormOpts, sourceFormServerSchema } from "./shared";
 
 export type SourceActionState = {

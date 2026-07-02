@@ -1,4 +1,4 @@
-import { isExpiredHold } from "./booking-machine";
+import { isExpiredHold } from "./machine";
 
 export type BookingRow = {
   id: string;

@@ -5,8 +5,8 @@ import {
   type Localized,
   type LocalizedSource,
   type TargetLocale,
-} from "@/lib/localized-field";
-import { resolveLocalizedDetail } from "@/lib/localized-detail";
+} from "@/lib/translation/localized-field";
+import { resolveLocalizedDetail } from "@/lib/translation/localized-detail";
 import type { CacheTag } from "@/lib/cache-tags";
 
 /**

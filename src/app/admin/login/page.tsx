@@ -1,6 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { getAuth } from "@/lib/auth";
+import { getAuth } from "@/lib/auth/auth";
 import { LoginForm } from "./login-form";
 
 export default async function LoginPage() {

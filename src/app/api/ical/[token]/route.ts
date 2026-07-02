@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { icalExportToken } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getDirectBookings } from "@/lib/availability";
+import { getDirectBookings } from "@/lib/booking/availability";
 
 export async function GET(
   _req: Request,

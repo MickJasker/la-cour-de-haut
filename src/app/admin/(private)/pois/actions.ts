@@ -6,14 +6,17 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { deleteBlobAndRecord, deleteBlobBestEffort } from "@/lib/blob-delete";
+import {
+  deleteBlobAndRecord,
+  deleteBlobBestEffort,
+} from "@/lib/media/blob-delete";
 import { getDb } from "@/db";
 import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { verifySession } from "@/lib/dal";
-import { slugify } from "@/lib/slug";
-import { saveAuthoredContent } from "@/lib/authored-save";
-import { parseDetailField } from "@/lib/lexical/parse-detail-field";
+import { verifySession } from "@/lib/auth/session";
+import { slugify } from "@/lib/content/slug";
+import { saveAuthoredContent } from "@/lib/content/authored-save";
+import { parseDetailField } from "@/lib/content/lexical/parse-detail-field";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
   poiFormOpts,

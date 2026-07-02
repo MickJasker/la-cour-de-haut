@@ -20,7 +20,7 @@ if (!email || !password) {
 }
 
 // Dynamic import so env is populated before auth.ts module-level validation runs
-const { getAuth } = await import("../src/lib/auth.js");
+const { getAuth } = await import("../src/lib/auth/auth.js");
 
 try {
   //check if user already exists

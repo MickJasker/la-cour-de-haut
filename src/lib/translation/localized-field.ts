@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/routing";
-import { translateText } from "@/lib/translate";
+import { translateText } from "@/lib/translation/translate";
 
 export const TARGET_LOCALES = ["en", "fr", "de"] as const;
 export type TargetLocale = (typeof TARGET_LOCALES)[number];

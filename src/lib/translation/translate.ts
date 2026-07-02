@@ -1,8 +1,5 @@
-import { getTranslateAdapter } from "./translate-adapter";
-import type {
-  ReviewTranslationResult,
-  TranslateTextOptions,
-} from "./translate-types";
+import { getTranslateAdapter } from "./adapter";
+import type { ReviewTranslationResult, TranslateTextOptions } from "./types";
 
 export type { ReviewTranslationResult };
 

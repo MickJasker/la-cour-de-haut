@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { galleryImage } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { deleteBlobAndRecord } from "@/lib/blob-delete";
+import { deleteBlobAndRecord } from "@/lib/media/blob-delete";
 
 /**
  * Returns the next sort-order value for a new gallery image.

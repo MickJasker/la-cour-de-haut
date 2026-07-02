@@ -4,8 +4,8 @@ import { PoiDetail } from "@/components/poi-detail";
 import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
-} from "@/lib/poi-queries";
-import { pickLocalized } from "@/lib/localized-field";
+} from "@/lib/content/poi-queries";
+import { pickLocalized } from "@/lib/translation/localized-field";
 import { PoiModalClient } from "./poi-modal-client";
 
 // Same as the standalone route: enumerate slugs (with a placeholder fallback

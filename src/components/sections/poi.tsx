@@ -6,7 +6,7 @@ import { cacheLife, cacheTag } from "next/cache";
 import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
-import { pickLocalized } from "@/lib/localized-field";
+import { pickLocalized } from "@/lib/translation/localized-field";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export async function PoiSection({ locale }: { locale: Locale }) {

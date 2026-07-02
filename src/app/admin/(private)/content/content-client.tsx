@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Field, FieldGroup, FieldSet } from "@/components/ui/field";
 import { LocaleStatus } from "@/components/locale-status";
 import { RichTextEditor } from "@/components/rich-text-editor";
-import { EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
+import { EMPTY_EDITOR_STATE } from "@/lib/content/lexical/empty-state";
 import { ImageDropzone } from "../image-dropzone";
 import { uploadAdminImage } from "../upload-image";
 import {

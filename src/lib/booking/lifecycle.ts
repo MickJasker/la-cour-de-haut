@@ -6,8 +6,8 @@ import {
   transition,
   type BookingAction,
   type DbBookingStatus,
-} from "./booking-machine";
-import { getSettings, hasBankDetails } from "./settings";
+} from "./machine";
+import { getSettings, hasBankDetails } from "@/lib/settings/settings";
 import { sendBankTransferEmail, type BankDetails } from "./bank-transfer-email";
 import { isRangeAvailable } from "./availability";
 import { toUtcDayString } from "./calendar-day";

@@ -14,7 +14,7 @@ import {
 import { formOpts } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
-import { isRangeAvailable, getBookedDays } from "@/lib/availability";
+import { isRangeAvailable, getBookedDays } from "@/lib/booking/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
 import { getCountryName } from "@/lib/countries";
 
@@ -238,7 +238,7 @@ export async function getBookedDatesAction(): Promise<string[]> {
 }
 
 export async function getPricePerNightAction(): Promise<number> {
-  const settings = await import("@/lib/settings");
+  const settings = await import("@/lib/settings/settings");
   const { price_per_night } = await settings.getSettings();
   return price_per_night ?? 0;
 }

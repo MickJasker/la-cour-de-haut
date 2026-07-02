@@ -1,4 +1,4 @@
-import { verifySession } from "@/lib/dal";
+import { verifySession } from "@/lib/auth/session";
 import { getDb } from "@/db";
 import { bookingRequest, icalSource } from "@/db/schema";
 import { notInArray, eq } from "drizzle-orm";
@@ -7,8 +7,8 @@ import {
   type BookingRow,
   type IcalSourceRow,
   type UpcomingEntry,
-} from "@/lib/dashboard";
-import { toUtcDayString } from "@/lib/calendar-day";
+} from "@/lib/booking/dashboard";
+import { toUtcDayString } from "@/lib/booking/calendar-day";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   TriangleAlert,
