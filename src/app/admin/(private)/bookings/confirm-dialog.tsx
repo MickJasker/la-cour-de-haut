@@ -11,11 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { confirmBookingAction } from "./actions";
+import { toUtcDayString } from "@/lib/calendar-day";
 
 function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T12:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
+  return toUtcDayString(d);
 }
 
 type Props = {
@@ -32,7 +33,7 @@ export function ConfirmDialog({
   checkInDate,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toUtcDayString();
   const defaultDeadline = addDays(today, defaultDeadlineDays);
   const [deadline, setDeadline] = useState(
     defaultDeadline <= checkInDate ? defaultDeadline : checkInDate,

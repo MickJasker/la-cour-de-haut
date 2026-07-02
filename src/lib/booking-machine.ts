@@ -1,3 +1,5 @@
+import { toUtcDayString } from "./calendar-day";
+
 export type DbBookingStatus =
   | "requested"
   | "on_hold"
@@ -84,7 +86,7 @@ export function canTransition(
  */
 export function isExpiredHold(
   booking: { status: string; paymentDeadline: string | null },
-  today: string = new Date().toISOString().slice(0, 10),
+  today: string = toUtcDayString(),
 ): boolean {
   return (
     booking.status === "on_hold" &&

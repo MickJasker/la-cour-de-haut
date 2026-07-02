@@ -25,6 +25,7 @@ import { useLocale, useTranslations } from "@/i18n/provider";
 import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { FORWARD_HORIZON_MONTHS } from "@/lib/calendar-day";
 
 const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
@@ -333,7 +334,7 @@ export function BookForm({
                     mode="range"
                     excludeDisabled
                     startMonth={addDays(new Date(), 1)}
-                    endMonth={addMonths(new Date(), 12)}
+                    endMonth={addMonths(new Date(), FORWARD_HORIZON_MONTHS)}
                     disabled={[
                       booked.map((date) => new Date(date + "T00:00:00")),
                       ...Array.from({ length: 31 }, (_, i) =>
