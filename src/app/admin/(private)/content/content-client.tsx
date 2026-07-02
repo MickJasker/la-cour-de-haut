@@ -1,7 +1,6 @@
 "use client";
 
 import { useActionState, useState, startTransition } from "react";
-import type { SerializedEditorState } from "lexical";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Field, FieldGroup, FieldSet } from "@/components/ui/field";
@@ -22,7 +21,9 @@ import type { LocalizedEditorState, LocalizedSource } from "@/db/schema";
 /** "Basic prose" (bold/italic/paragraphs/links) editor form for a single
  * content_block row (ADR-0017). No TanStack form — the rich value is opaque
  * EditorState JSON, kept as component state and attached to FormData on
- * submit, like POI detail's editor (ADR-0015). */
+ * submit, like POI detail's editor (ADR-0015). The wire format is the
+ * localized `{ nl, en?, fr?, de? }` shape shared with the POI form — see
+ * `parseDetailField` (`@/lib/lexical/parse-detail-field`). */
 function RichTextBlockForm({
   id,
   label,
@@ -41,8 +42,8 @@ function RichTextBlockForm({
     FormData
   >(action, { success: false, error: null });
 
-  const [value, setValue] = useState<SerializedEditorState>(
-    initialValue?.nl ?? EMPTY_EDITOR_STATE,
+  const [detail, setDetail] = useState<LocalizedEditorState>(
+    initialValue ?? { nl: EMPTY_EDITOR_STATE },
   );
 
   return (
@@ -52,7 +53,7 @@ function RichTextBlockForm({
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData();
-        fd.set("detail", JSON.stringify(value));
+        fd.set("detail", JSON.stringify(detail));
         startTransition(() => formAction(fd));
       }}
     >
@@ -61,8 +62,8 @@ function RichTextBlockForm({
           <Field>
             <Label>{label}</Label>
             <RichTextEditor
-              initialValue={value}
-              onChange={setValue}
+              initialValue={detail.nl}
+              onChange={(nl) => setDetail((d) => ({ ...d, nl }))}
               ariaLabel={label}
               variant="basic"
             />

@@ -8,7 +8,7 @@ import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { resolveLocalizedDetail } from "@/lib/localized-detail";
-import { hasEditorText } from "@/lib/lexical/empty-state";
+import { parseDetailField } from "@/lib/lexical/parse-detail-field";
 
 export type ContentActionState = {
   success: boolean;
@@ -19,21 +19,6 @@ export type ContentActionState = {
 function invalidate() {
   revalidatePath("/admin/content");
   updateTag("content");
-}
-
-/**
- * Parses the JSON-encoded "detail" FormData field the way poi actions.ts's
- * parseDetailField does. Returns null on a missing/malformed field, which the
- * caller treats as "no content" (same as an editor-serialized empty paragraph).
- */
-function parseDetailField(formData: FormData): SerializedEditorState | null {
-  const raw = formData.get("detail");
-  if (typeof raw !== "string") return null;
-  try {
-    return JSON.parse(raw) as SerializedEditorState;
-  } catch {
-    return null;
-  }
 }
 
 async function upsertRichText(
@@ -87,10 +72,10 @@ export async function updateDescriptionAction(
 ): Promise<ContentActionState> {
   await verifySession();
   const detail = parseDetailField(formData);
-  if (!detail || !hasEditorText(detail)) {
+  if (!detail) {
     return { success: false, error: "Vereist" };
   }
-  const { failures } = await upsertRichText("description", detail);
+  const { failures } = await upsertRichText("description", detail.nl);
   invalidate();
   return {
     success: true,
@@ -105,10 +90,10 @@ export async function updateHeroDescriptionAction(
 ): Promise<ContentActionState> {
   await verifySession();
   const detail = parseDetailField(formData);
-  if (!detail || !hasEditorText(detail)) {
+  if (!detail) {
     return { success: false, error: "Vereist" };
   }
-  const { failures } = await upsertRichText("hero_description", detail);
+  const { failures } = await upsertRichText("hero_description", detail.nl);
   invalidate();
   return {
     success: true,

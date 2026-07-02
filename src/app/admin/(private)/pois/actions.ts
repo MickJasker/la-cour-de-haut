@@ -8,18 +8,17 @@ import {
 import { revalidatePath, updateTag } from "next/cache";
 import { del } from "@vercel/blob";
 import { getDb } from "@/db";
-import { poi, type LocalizedEditorState } from "@/db/schema";
+import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { slugify } from "@/lib/slug";
-import { hasEditorText } from "@/lib/lexical/empty-state";
 import { resolveLocalizedText } from "@/lib/localized-field";
 import { resolveLocalizedDetail } from "@/lib/localized-detail";
+import { parseDetailField } from "@/lib/lexical/parse-detail-field";
 import {
   poiFormOpts,
   poiFormServerSchema,
   localizedStringSchema,
-  localizedEditorStateSchema,
 } from "./shared";
 
 export type PoiActionState = {
@@ -53,26 +52,6 @@ function parseLocalizedField(formData: FormData, key: string) {
         })()
       : raw;
   return localizedStringSchema.parse(parsed);
-}
-
-/**
- * Parses the JSON-encoded detail field from FormData. Returns null when the
- * field is absent, malformed, or has no real text content (the editor always
- * serializes at least one empty paragraph), so empty detail is stored as NULL.
- */
-function parseDetailField(formData: FormData): LocalizedEditorState | null {
-  const raw = formData.get("detail");
-  if (typeof raw !== "string") return null;
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    return null;
-  }
-  const result = localizedEditorStateSchema.safeParse(parsed);
-  if (!result.success) return null;
-  const detail = result.data;
-  return hasEditorText(detail.nl) ? detail : null;
 }
 
 function parseDistanceKm(raw: string | undefined): number | null {
