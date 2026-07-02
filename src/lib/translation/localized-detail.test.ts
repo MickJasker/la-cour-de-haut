@@ -7,8 +7,11 @@
  * no real Google Translate API call is made.
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { hasEditorText, EMPTY_EDITOR_STATE } from "@/lib/lexical/empty-state";
-import { htmlToEditorState } from "@/lib/lexical/bridge";
+import {
+  hasEditorText,
+  EMPTY_EDITOR_STATE,
+} from "@/lib/content/lexical/empty-state";
+import { htmlToEditorState } from "@/lib/content/lexical/bridge";
 import { resolveLocalizedDetail } from "@/lib/translation/localized-detail";
 
 /**

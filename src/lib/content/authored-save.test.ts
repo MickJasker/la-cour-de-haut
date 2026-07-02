@@ -19,7 +19,7 @@
  * module internals are mocked.
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { htmlToEditorState } from "@/lib/lexical/bridge";
+import { htmlToEditorState } from "@/lib/content/lexical/bridge";
 import {
   resolveAuthoredFields,
   type AuthoredTextFieldInput,

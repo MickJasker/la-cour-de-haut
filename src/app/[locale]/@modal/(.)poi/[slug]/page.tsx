@@ -4,7 +4,7 @@ import { PoiDetail } from "@/components/poi-detail";
 import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
-} from "@/lib/poi-queries";
+} from "@/lib/content/poi-queries";
 import { pickLocalized } from "@/lib/translation/localized-field";
 import { PoiModalClient } from "./poi-modal-client";
 

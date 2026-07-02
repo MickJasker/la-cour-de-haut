@@ -8,7 +8,7 @@ import { PoiDetailLoader } from "@/components/poi-detail-loader";
 import {
   getPublishedPoiBySlug,
   poiDetailStaticParams,
-} from "@/lib/poi-queries";
+} from "@/lib/content/poi-queries";
 import { pickLocalized } from "@/lib/translation/localized-field";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";

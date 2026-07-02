@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/routing";
-import { getPublishedPoiSlugs } from "@/lib/poi-queries";
+import { getPublishedPoiSlugs } from "@/lib/content/poi-queries";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 

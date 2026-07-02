@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import type { Locale } from "@/i18n/routing";
-import { getPublishedPoiBySlug } from "@/lib/poi-queries";
+import { getPublishedPoiBySlug } from "@/lib/content/poi-queries";
 import { PoiDetail } from "@/components/poi-detail";
 
 /**

@@ -6,7 +6,7 @@ import { galleryImage } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { verifySession } from "@/lib/dal";
 import { deleteImage, nextSortOrder } from "@/lib/gallery";
-import { saveAuthoredContent } from "@/lib/authored-save";
+import { saveAuthoredContent } from "@/lib/content/authored-save";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 function invalidate() {
