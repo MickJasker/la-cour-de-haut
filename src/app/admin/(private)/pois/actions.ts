@@ -6,7 +6,7 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { del } from "@vercel/blob";
+import { deleteBlobAndRecord, deleteBlobBestEffort } from "@/lib/blob-delete";
 import { getDb } from "@/db";
 import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -182,8 +182,10 @@ export async function updatePoiAction(
     let imageUrl: string | undefined;
     const newImageUrl = formData.get("imageUrl");
     if (typeof newImageUrl === "string" && newImageUrl.trim() !== "") {
-      if (existingPoi?.imageUrl.includes("blob.vercel-storage.com")) {
-        await del(existingPoi.imageUrl);
+      // Best-effort: a failed delete of the OLD image must not block saving
+      // the new one (see deleteBlobBestEffort's doc comment).
+      if (existingPoi?.imageUrl) {
+        await deleteBlobBestEffort(existingPoi.imageUrl);
       }
       imageUrl = newImageUrl;
     }
@@ -259,10 +261,13 @@ export async function deletePoiAction(id: string) {
 
   if (!row) return;
 
-  if (row.imageUrl.includes("blob.vercel-storage.com")) {
-    await del(row.imageUrl);
-  }
-  await db.delete(poi).where(eq(poi.id, id));
+  await deleteBlobAndRecord(
+    row.imageUrl,
+    async () => {
+      await db.delete(poi).where(eq(poi.id, id));
+    },
+    { entityLabel: "POI image", id },
+  );
 
   revalidatePath("/admin/pois");
   updateTag("poi");
