@@ -1,6 +1,5 @@
 import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
-import type { SerializedEditorState } from "lexical";
 
 export const poiFormOpts = formOptions({
   defaultValues: {
@@ -16,21 +15,6 @@ export const localizedStringSchema = z.object({
   en: z.string().optional(),
   fr: z.string().optional(),
   de: z.string().optional(),
-});
-
-// An EditorState is opaque machine-structured JSON; validate that it is an
-// object with a `root` but pass it through verbatim (a strict object schema
-// would strip the node tree's internal keys and corrupt the document).
-const editorStateSchema = z.custom<SerializedEditorState>(
-  (v) => typeof v === "object" && v !== null && "root" in v,
-  { message: "Ongeldige editorinhoud" },
-);
-
-export const localizedEditorStateSchema = z.object({
-  nl: editorStateSchema,
-  en: editorStateSchema.optional(),
-  fr: editorStateSchema.optional(),
-  de: editorStateSchema.optional(),
 });
 
 export const poiFormClientSchema = z.object({
