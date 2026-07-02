@@ -2,7 +2,7 @@
 
 import type { SerializedEditorState } from "lexical";
 import { revalidatePath, updateTag } from "next/cache";
-import { deleteBlobBestEffort } from "@/lib/blob-delete";
+import { deleteBlobBestEffort } from "@/lib/media/blob-delete";
 import { getDb } from "@/db";
 import { contentBlock } from "@/db/schema";
 import { eq } from "drizzle-orm";

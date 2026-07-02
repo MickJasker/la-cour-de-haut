@@ -6,7 +6,10 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { revalidatePath, updateTag } from "next/cache";
-import { deleteBlobAndRecord, deleteBlobBestEffort } from "@/lib/blob-delete";
+import {
+  deleteBlobAndRecord,
+  deleteBlobBestEffort,
+} from "@/lib/media/blob-delete";
 import { getDb } from "@/db";
 import { poi } from "@/db/schema";
 import { eq } from "drizzle-orm";
