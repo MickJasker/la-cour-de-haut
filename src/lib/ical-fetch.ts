@@ -2,6 +2,7 @@ import "server-only";
 import { addMonths } from "date-fns";
 import ical, { type VEvent } from "node-ical";
 import type { BusyInterval } from "@/db/schema";
+import { FORWARD_HORIZON_MONTHS, toUtcDayString } from "./calendar-day";
 
 export type IcalFetchResult =
   | { ok: true; intervals: BusyInterval[] }
@@ -10,14 +11,15 @@ export type IcalFetchResult =
 /**
  * How far forward to expand recurring (RRULE) events. RRULEs can be unbounded
  * (no COUNT/UNTIL), so expansion must be capped at a sync-time window rather than
- * materialized to infinity. Mirrors the booking calendar's own forward horizon
- * (`endMonth={addMonths(new Date(), 12)}` in src/components/sections/book-form.tsx)
- * — the app never offers or blocks dates beyond 12 months out, so expanding a
- * recurring source further would be wasted work with no behavioral benefit.
+ * materialized to infinity. Shares `FORWARD_HORIZON_MONTHS` with the booking
+ * calendar's own forward horizon (`endMonth` in
+ * src/components/sections/book-form.tsx) — the app never offers or blocks
+ * dates beyond that horizon, so expanding a recurring source further would be
+ * wasted work with no behavioral benefit.
  * (Concrete one-off VEVENTs — the only kind ADR-0005 originally anticipated — are
  * unaffected by this window; they're taken as-is regardless of date, same as before.)
  */
-const RECURRING_EXPANSION_WINDOW_MONTHS = 12;
+const RECURRING_EXPANSION_WINDOW_MONTHS = FORWARD_HORIZON_MONTHS;
 
 /**
  * Fetches and parses an iCal feed from the given URL.
@@ -57,9 +59,6 @@ export async function fetchIcalFeed(
     };
   }
 
-  const toDateString = (d: Date): string =>
-    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
-
   try {
     const data = ical.sync.parseICS(text);
     const intervals: BusyInterval[] = [];
@@ -89,8 +88,8 @@ export async function fetchIcalFeed(
           if (instance.event.status === "CANCELLED") continue;
 
           intervals.push({
-            start: toDateString(instance.start),
-            end: toDateString(instance.end),
+            start: toUtcDayString(instance.start),
+            end: toUtcDayString(instance.end),
           });
         }
         continue;
@@ -100,9 +99,9 @@ export async function fetchIcalFeed(
       if (!event.start || !event.end) continue;
 
       intervals.push({
-        start: toDateString(event.start),
+        start: toUtcDayString(event.start),
         // DTEND is exclusive per RFC 5545; stored as-is (callers expand [start, end))
-        end: toDateString(event.end),
+        end: toUtcDayString(event.end),
       });
     }
 

@@ -10,6 +10,7 @@ import {
   hasConflict,
   isActiveDirectBooking,
 } from "./availability-utils";
+import { toUtcDayString } from "./calendar-day";
 
 export type { BusyInterval };
 
@@ -43,7 +44,7 @@ export async function getDirectBookings(): Promise<
     .from(bookingRequest)
     .where(inArray(bookingRequest.status, ["on_hold", "confirmed"]));
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toUtcDayString();
   return rows
     .filter((row) => isActiveDirectBooking(row, today))
     .map(({ id, startDate, endDate }) => ({ id, startDate, endDate }));

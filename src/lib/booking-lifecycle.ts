@@ -10,6 +10,7 @@ import {
 import { getSettings, hasBankDetails } from "./settings";
 import { sendBankTransferEmail } from "./bank-transfer-email";
 import { isRangeAvailable } from "./availability";
+import { toUtcDayString } from "./calendar-day";
 
 export type ApplyTransitionOpts = {
   paymentDeadline?: string;
@@ -36,7 +37,7 @@ export async function applyTransition(
 
   if (action === "confirm") {
     const { paymentDeadline } = opts;
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toUtcDayString();
     if (
       !paymentDeadline ||
       !/^\d{4}-\d{2}-\d{2}$/.test(paymentDeadline) ||

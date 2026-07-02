@@ -1,5 +1,6 @@
 import type { BusyInterval } from "@/db/schema";
 import { isExpiredHold } from "./booking-machine";
+import { toUtcDayString } from "./calendar-day";
 
 /**
  * A direct booking blocks dates while it's confirmed, or on_hold and not yet
@@ -37,9 +38,7 @@ export function expandInterval({ start, end }: BusyInterval): string[] {
     d < new Date(end + "T00:00:00Z");
     d.setUTCDate(d.getUTCDate() + 1)
   ) {
-    dates.push(
-      `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`,
-    );
+    dates.push(toUtcDayString(d));
   }
   return dates;
 }

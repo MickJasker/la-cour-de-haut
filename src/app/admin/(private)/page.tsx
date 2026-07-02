@@ -8,6 +8,7 @@ import {
   type IcalSourceRow,
   type UpcomingEntry,
 } from "@/lib/dashboard";
+import { toUtcDayString } from "@/lib/calendar-day";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   TriangleAlert,
@@ -155,7 +156,7 @@ function UpcomingEntryRow({
 export default async function AdminPage() {
   await verifySession();
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toUtcDayString();
   const db = getDb();
 
   // Deliberately broader than "active" (on_hold-non-expired or confirmed,
