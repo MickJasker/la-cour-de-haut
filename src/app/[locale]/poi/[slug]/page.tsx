@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { locales, type Locale } from "@/i18n/routing";
 import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
-import { Header } from "@/components/sections/header";
+import { SiteHeader } from "@/components/sections/site-header";
 import { Button } from "@/components/ui/button";
 import { PoiDetailLoader } from "@/components/poi-detail-loader";
 import {
@@ -61,7 +61,7 @@ export default async function PoiPage({
 
   return (
     <>
-      <Header
+      <SiteHeader
         action={
           <Button
             asChild

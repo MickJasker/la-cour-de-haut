@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js/min";
 
 export interface FieldMeta {
   label: string;
@@ -24,6 +25,33 @@ export interface FieldMeta {
  * type information.
  */
 export const settingsRegistry = {
+  property_telephone: {
+    label: "Telefoonnummer",
+    section: "contact",
+    inputType: "text",
+    placeholder: "+33 6 73 10 00 89",
+    hint: "Internationaal formaat met landcode (bijv. +33…). Getoond in de header en in de zoekmachine-data.",
+    // Same rule as the booking form (ADR-0013): required, then format-checked
+    // as a composed E.164 number. Stored as E.164; formatted for display at
+    // render time (see formatPhoneDisplay).
+    clientValidation: z
+      .string()
+      .min(1, "Vereist")
+      .refine(isValidPhoneNumber, "Ongeldig telefoonnummer"),
+    serverType: z.string(),
+  },
+  property_email: {
+    label: "E-mailadres",
+    section: "contact",
+    inputType: "text",
+    placeholder: "info@lacourdehaut.fr",
+    hint: "Getoond in de header en in de zoekmachine-data.",
+    clientValidation: z
+      .string()
+      .min(1, "Vereist")
+      .refine((v) => z.email().safeParse(v).success, "Ongeldig e-mailadres"),
+    serverType: z.string(),
+  },
   account_holder: {
     label: "Rekeninghouder",
     section: "bank",
@@ -86,6 +114,11 @@ export const sectionMeta: Record<
   string,
   { label: string; description?: string }
 > = {
+  contact: {
+    label: "Contactgegevens",
+    description:
+      "Telefoon en e-mail zoals getoond in de header van de website en in de gestructureerde SEO-data.",
+  },
   bank: {
     label: "Bankgegevens",
     description:

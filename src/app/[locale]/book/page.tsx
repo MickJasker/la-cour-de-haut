@@ -5,7 +5,7 @@ import { locales, type Locale } from "@/i18n/routing";
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 import { BookForm } from "@/components/sections/book-form";
 import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
-import { Header } from "@/components/sections/header";
+import { SiteHeader } from "@/components/sections/site-header";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getBookedDatesAction, getPricePerNightAction } from "./action";
@@ -49,7 +49,7 @@ export default async function BookPage({
 
   return (
     <>
-      <Header
+      <SiteHeader
         action={
           <Button
             asChild
