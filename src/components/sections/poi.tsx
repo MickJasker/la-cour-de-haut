@@ -90,7 +90,11 @@ export async function PoiSection({ locale }: { locale: Locale }) {
         <h2 className="text-style-display-large md:col-span-12 md:col-start-2">
           {t("title")}
         </h2>
-        <div className="md:col-span-12 md:col-start-2 flex flex-col gap-4 lg:gap-6">
+        {/* Below lg the row wrappers are `display: contents`, so all cards flow
+            into this one flat 2-/3-col grid exactly like before. At lg the outer
+            becomes a flex column and each row wrapper becomes its own grid, which
+            is where the per-count row layout kicks in. */}
+        <div className="md:col-span-12 md:col-start-2 grid grid-cols-2 md:grid-cols-3 lg:flex lg:flex-col gap-4 lg:gap-6">
           {poiRows(published).map((row, r) => {
             // Widen the lg image hint to match this row's card width (100/cols),
             // so wider top-row cards still request a sharp enough image.
@@ -98,10 +102,7 @@ export async function PoiSection({ locale }: { locale: Locale }) {
             return (
               <div
                 key={r}
-                className={cn(
-                  "grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6",
-                  LG_COLS[row.length],
-                )}
+                className={cn("contents lg:grid lg:gap-6", LG_COLS[row.length])}
               >
                 {row.map((item) => (
                   <article
