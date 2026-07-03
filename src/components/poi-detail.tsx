@@ -24,7 +24,7 @@ export function PoiDetail({ item, locale }: { item: Poi; locale: Locale }) {
           src={item.imageUrl}
           alt={title}
           fill
-          className="object-cover"
+          className="object-cover bg-cream-200"
           sizes="(max-width: 768px) 100vw, 640px"
           priority
         />
