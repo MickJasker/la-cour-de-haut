@@ -23,7 +23,7 @@ export function PoiModalShell({ children }: { children: React.ReactNode }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent
-        className="max-w-2xl max-h-[90vh] overflow-y-auto"
+        className="max-w-2xl overflow-y-auto"
         onAnimationEnd={(e) => {
           if (!open && e.target === e.currentTarget) router.back();
         }}
