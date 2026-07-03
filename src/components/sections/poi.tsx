@@ -110,7 +110,11 @@ export async function PoiSection({ locale }: { locale: Locale }) {
                     data-testid="poi-card"
                     className="flex flex-col gap-2"
                   >
-                    <Link href={`/poi/${item.slug}`} className="contents group">
+                    <Link
+                      href={`/poi/${item.slug}`}
+                      prefetch
+                      className="contents group"
+                    >
                       <div className="relative aspect-3/2 rounded-md overflow-hidden">
                         <Image
                           src={item.imageUrl}

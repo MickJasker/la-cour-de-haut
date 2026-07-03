@@ -1,29 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useState } from "react";
 
 /**
- * Client Dialog wrapper for the intercepted POI route. Starts open; closing
- * (overlay/Esc/X) plays the dialog's exit animation, then pops the
- * intercepted URL via router.back() once it finishes, mirroring the booking
- * modal. The server-rendered detail is passed as `children` so this client
- * boundary doesn't need to fetch or render server components itself.
+ * Client Dialog shell for the intercepted POI route. Lives in `layout.tsx` so
+ * the Dialog stays mounted across the Suspense swap from `loading.tsx`'s
+ * skeleton to `page.tsx`'s real content — the dialog opens once and its body
+ * morphs in place (no re-animation flash). Starts open; closing (overlay/Esc/X)
+ * plays the exit animation, then pops the intercepted URL via router.back()
+ * once it finishes, mirroring the booking modal.
+ *
+ * The accessible `DialogTitle`/`DialogDescription` are supplied by the children
+ * (page or loading fallback), not here, so the title can reflect the POI while
+ * this shell fetches nothing and renders instantly.
  */
-export function PoiModalClient({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+export function PoiModalShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [open, setOpen] = useState(true);
 
@@ -35,10 +28,6 @@ export function PoiModalClient({
           if (!open && e.target === e.currentTarget) router.back();
         }}
       >
-        <DialogHeader>
-          <DialogTitle className="sr-only">{title}</DialogTitle>
-          <DialogDescription className="sr-only">{title}</DialogDescription>
-        </DialogHeader>
         {children}
       </DialogContent>
     </Dialog>
