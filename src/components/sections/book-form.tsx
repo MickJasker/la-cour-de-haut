@@ -367,7 +367,7 @@ export function BookForm({
           <Separator />
 
           <div>
-            <p className="text-sm">
+            <p className="text-md">
               {t.rich("form.pricePerNight", {
                 price: currency.format(pricePerNight),
               })}
@@ -389,50 +389,41 @@ export function BookForm({
 
                 return (
                   <>
-                    {discount > 0 ? (
-                      <div
-                        className={cn(
-                          "text-sm space-y-0.5",
-                          !totalNights && "invisible",
-                        )}
-                      >
-                        <p>
-                          {t.rich("form.rentalSubtotalLine", {
-                            pricePerNight: currency.format(pricePerNight),
-                            totalNights,
-                            rentalSubtotal: currency.format(rentalSubtotal),
-                            strong: renderStrong,
-                          })}
-                        </p>
+                    <div
+                      className={cn(
+                        "text-md space-y-0.5",
+                        !totalNights && "invisible",
+                      )}
+                    >
+                      <p>
+                        {t.rich("form.rentalSubtotalLine", {
+                          pricePerNight: currency.format(pricePerNight),
+                          totalNights,
+                          rentalSubtotal: currency.format(rentalSubtotal),
+                          strong: renderStrong,
+                        })}
+                      </p>
+                      {discount > 0 && (
                         <p className="text-positive">
                           {t.rich("form.longStayDiscount", {
                             discount: currency.format(discount),
                             strong: renderStrong,
                           })}
                         </p>
-                        <p>
-                          {t.rich("form.tourismTaxLine", {
-                            tourismTax: currency.format(tourismTax),
-                            strong: renderStrong,
-                          })}
-                        </p>
-                        <p className="font-medium">
-                          {t.rich("form.totalLine", {
-                            totalPrice: currency.format(totalPrice),
-                            strong: renderStrong,
-                          })}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className={cn("text-sm", !totalNights && "invisible")}>
-                        {t.rich("form.totalPrice", {
-                          pricePerNight: currency.format(pricePerNight),
-                          totalNights,
-                          totalPrice: currency.format(totalPrice),
+                      )}
+                      <p>
+                        {t.rich("form.tourismTaxLine", {
                           tourismTax: currency.format(tourismTax),
+                          strong: renderStrong,
                         })}
                       </p>
-                    )}
+                      <p className="font-medium">
+                        {t.rich("form.totalLine", {
+                          totalPrice: currency.format(totalPrice),
+                          strong: renderStrong,
+                        })}
+                      </p>
+                    </div>
                   </>
                 );
               }}

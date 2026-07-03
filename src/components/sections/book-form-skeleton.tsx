@@ -109,9 +109,11 @@ export function BookFormSkeleton() {
             line is `invisible` in the real form but still holds its row) = 60px,
             no gap between them. */}
         <div>
-          <TextLine lineClass="text-sm" width="w-48" />
-          <TextLine lineClass="text-sm" width="w-40" />
-          <TextLine lineClass="text-sm" width="w-56" />
+          <TextLine lineClass="text-md" width="w-48" />
+          <TextLine lineClass="text-md" width="w-40" />
+          <TextLine lineClass="text-md" width="w-56" />
+          <TextLine lineClass="text-md" width="w-48" />
+          <TextLine lineClass="text-md" width="w-64" />
         </div>
 
         {/* Submit block: the invisible Turnstile reserves ~24px above the
