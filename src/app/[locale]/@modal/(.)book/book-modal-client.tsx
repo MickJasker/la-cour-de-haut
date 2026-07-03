@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { BookForm } from "@/components/sections/book-form";
+import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
 import { useTranslations } from "@/i18n/provider";
 import { Suspense, useState } from "react";
-import { LoaderCircle } from "lucide-react";
 
 export function BookModalClient({
   bookedDates,
@@ -39,13 +39,7 @@ export function BookModalClient({
             {t("bookDescription")}
           </DialogDescription>
         </DialogHeader>
-        <Suspense
-          fallback={
-            <div className="h-96 grid place-content-center">
-              <LoaderCircle className="animate-spin size-30 stroke-1 text-accent-foreground" />
-            </div>
-          }
-        >
+        <Suspense fallback={<BookFormSkeleton />}>
           <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
         </Suspense>
       </DialogContent>

@@ -4,12 +4,12 @@ import { locales, type Locale } from "@/i18n/routing";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 import { BookForm } from "@/components/sections/book-form";
+import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
 import { Header } from "@/components/sections/header";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getBookedDatesAction, getPricePerNightAction } from "./action";
 import { Suspense } from "react";
-import { LoaderCircle } from "lucide-react";
 
 export async function generateMetadata({
   params,
@@ -61,13 +61,7 @@ export default async function BookPage({
         }
       />
       <main className="flex flex-col flex-1 items-center justify-center p-6">
-        <Suspense
-          fallback={
-            <div className="h-96 grid place-content-center">
-              <LoaderCircle className="animate-spin size-30 stroke-1 text-accent-foreground" />
-            </div>
-          }
-        >
+        <Suspense fallback={<BookFormSkeleton />}>
           <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
         </Suspense>
         <div className="h-22" />
