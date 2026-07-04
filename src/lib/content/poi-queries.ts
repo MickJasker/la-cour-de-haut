@@ -23,19 +23,25 @@ export async function getPublishedPoiBySlug(slug: string) {
   return row ?? null;
 }
 
-/** Slugs of all published POIs (for the sitemap), ordered like the section. */
-export async function getPublishedPoiSlugs(): Promise<string[]> {
+/**
+ * Published POIs as sitemap entries: slug + `lastModified`. POI has no
+ * `updatedAt` column, so `createdAt` is the best-available freshness signal —
+ * a valid `lastmod` that at least dates the page for crawl scheduling.
+ */
+export async function getPublishedPoiSitemapEntries(): Promise<
+  { slug: string; lastModified: Date }[]
+> {
   "use cache";
   cacheLife("max");
   cacheTag(CACHE_TAGS.poi);
 
   const rows = await getDb()
-    .select({ slug: poi.slug })
+    .select({ slug: poi.slug, createdAt: poi.createdAt })
     .from(poi)
     .where(eq(poi.published, true))
     .orderBy(asc(poi.sortOrder));
 
-  return rows.map((r) => r.slug);
+  return rows.map((r) => ({ slug: r.slug, lastModified: r.createdAt }));
 }
 
 // Cache Components requires generateStaticParams to return at least one entry,
@@ -46,8 +52,8 @@ export async function getPublishedPoiSlugs(): Promise<string[]> {
 const NO_POI_PLACEHOLDER = "__no-published-pois__";
 
 export async function poiDetailStaticParams(): Promise<{ slug: string }[]> {
-  const slugs = await getPublishedPoiSlugs();
-  return slugs.length > 0
-    ? slugs.map((slug) => ({ slug }))
+  const entries = await getPublishedPoiSitemapEntries();
+  return entries.length > 0
+    ? entries.map(({ slug }) => ({ slug }))
     : [{ slug: NO_POI_PLACEHOLDER }];
 }

@@ -64,6 +64,36 @@ export function parsePhone(
 }
 
 /**
+ * Format a stored E.164 phone number (e.g. "+33673100889") for display
+ * (e.g. "+33 6 73 10 00 89"). The `property_telephone` setting stores the
+ * canonical E.164 form — used verbatim for `tel:` links and JSON-LD
+ * `telephone` — and this derives the spaced, human-readable version at render
+ * time, so there's one stored value with no display/machine copy to keep in
+ * sync. Falls back to the raw input if it can't be parsed.
+ */
+export function formatPhoneDisplay(e164: string): string {
+  try {
+    return parsePhoneNumber(e164).formatInternational();
+  } catch {
+    return e164;
+  }
+}
+
+/**
+ * Normalize any accepted phone string (E.164, or a spaced/paren'd variant the
+ * owner typed into settings) to canonical E.164 with no separators — the form
+ * required by `tel:` links and schema.org `telephone`. Falls back to the raw
+ * input if it can't be parsed.
+ */
+export function toE164(input: string): string {
+  try {
+    return parsePhoneNumber(input).number;
+  } catch {
+    return input;
+  }
+}
+
+/**
  * All countries that have a phone calling code, as `{ code, name, dialCode }`.
  * Names are localized + sorted by `getCountryOptions`; dial codes are derived
  * from libphonenumber-js (the single source of truth), so a country with no

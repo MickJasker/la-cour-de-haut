@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/routing";
-import { getPublishedPoiSlugs } from "@/lib/content/poi-queries";
+import { getPublishedPoiSitemapEntries } from "@/lib/content/poi-queries";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -53,13 +53,14 @@ function entriesForPath(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // getPublishedPoiSlugs is "use cache"/cacheTag("poi"), so this route stays a
-  // cached metadata route and refreshes on updateTag("poi").
-  const slugs = await getPublishedPoiSlugs();
+  // getPublishedPoiSitemapEntries is "use cache"/cacheTag("poi"), so this route
+  // stays a cached metadata route and refreshes on updateTag("poi").
+  const pois = await getPublishedPoiSitemapEntries();
   return [
     ...PUBLIC_PATHS.flatMap((p) => entriesForPath(p.path, p.options)),
-    ...slugs.flatMap((slug) =>
+    ...pois.flatMap(({ slug, lastModified }) =>
       entriesForPath(`/poi/${slug}`, {
+        lastModified,
         changeFrequency: "weekly",
         priority: 0.8,
       }),

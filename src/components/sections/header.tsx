@@ -20,7 +20,19 @@ const LOCALE_LABEL: Record<string, string> = {
   de: "Deutsch",
 };
 
-export function Header({ action }: { action: ReactNode }) {
+export function Header({
+  action,
+  telephone,
+  telephoneDisplay,
+  email,
+}: {
+  action: ReactNode;
+  /** E.164 phone for the `tel:` link; empty string renders no phone. */
+  telephone: string;
+  /** Formatted phone for display. */
+  telephoneDisplay: string;
+  email: string;
+}) {
   const { locale } = useParams<{ locale: string }>();
   const pathname = usePathname();
   const mainEl = useSyncExternalStore(
@@ -53,16 +65,16 @@ export function Header({ action }: { action: ReactNode }) {
     <>
       <header className="fixed bottom-0 left-0 w-full bg-olive-900 text-olive-50 z-10 p-6 md:px-0 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:items-center">
         <a
-          href="tel:+33673100089"
+          href={`tel:${telephone}`}
           className="max-lg:hidden md:col-start-2 col-span-3"
         >
-          +33 6 731 00 89
+          {telephoneDisplay}
         </a>
         <a
-          href="mailto:info@lacourdehaut.fr"
+          href={`mailto:${email}`}
           className="max-lg:hidden md:col-start-5 col-span-3"
         >
-          info@lacourdehaut.fr
+          {email}
         </a>
         <nav
           aria-label="Language"

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Header } from "@/components/sections/header";
+import { SiteHeader } from "@/components/sections/site-header";
 import { Hero } from "@/components/sections/hero";
 import { GiteSection } from "@/components/sections/gite";
 import { ReviewsSection } from "@/components/sections/reviews";
@@ -8,6 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
 import { locales, type Locale } from "@/i18n/routing";
+import { getSettings } from "@/lib/settings/settings";
+import { toE164 } from "@/lib/phone";
+import {
+  buildLodgingJsonLd,
+  getReviewAggregate,
+} from "@/lib/seo/lodging-jsonld";
 import HeroImage from "@/components/sections/hero.jpg";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
@@ -26,9 +32,10 @@ export async function generateMetadata({
         ["x-default", `${BASE_URL}/nl`],
       ]),
     },
+    // og:image comes from the opengraph-image route file; only the canonical
+    // per-locale URL is set here.
     openGraph: {
       url: `${BASE_URL}/${locale}`,
-      images: [{ url: HeroImage.src }],
     },
   };
 }
@@ -39,14 +46,43 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({
-    locale: locale as Locale,
-    namespace: "sections.header",
+  const [t, meta, settings, aggregate] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "sections.header" }),
+    getTranslations({ locale: locale as Locale, namespace: "metadata.home" }),
+    getSettings(),
+    getReviewAggregate(),
+  ]);
+
+  const jsonLd = buildLodgingJsonLd({
+    locale,
+    name: "La Cour de Haut",
+    description: meta("description"),
+    url: `${BASE_URL}/${locale}`,
+    image: new URL(HeroImage.src, BASE_URL).toString(),
+    pricePerNight: settings.price_per_night,
+    telephone: settings.property_telephone
+      ? toE164(settings.property_telephone)
+      : undefined,
+    email: settings.property_email,
+    latitude: settings.property_latitude,
+    longitude: settings.property_longitude,
+    checkinTime: settings.property_checkin_time,
+    checkoutTime: settings.property_checkout_time,
+    bedrooms: settings.property_bedrooms,
+    aggregate,
   });
 
   return (
     <>
-      <Header
+      {/* Scrub `<` to its unicode escape to prevent `</script>`-style XSS
+          injection via any DB-sourced string (Next JSON-LD guide). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
+      <SiteHeader
         action={
           <Button
             asChild

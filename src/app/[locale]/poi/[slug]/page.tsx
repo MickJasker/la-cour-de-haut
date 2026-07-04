@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { locales, type Locale } from "@/i18n/routing";
 import { getTranslations } from "@/i18n/server";
 import { Link } from "@/i18n/navigation";
-import { Header } from "@/components/sections/header";
+import { SiteHeader } from "@/components/sections/site-header";
 import { Button } from "@/components/ui/button";
 import { PoiDetailLoader } from "@/components/poi-detail-loader";
 import {
@@ -10,6 +10,8 @@ import {
   poiDetailStaticParams,
 } from "@/lib/content/poi-queries";
 import { pickLocalized } from "@/lib/translation/localized-field";
+import { truncateForMeta } from "@/lib/seo/meta-text";
+import { buildPoiJsonLd } from "@/lib/seo/poi-jsonld";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -29,7 +31,7 @@ export async function generateMetadata({
 
   const loc = locale as Locale;
   const title = pickLocalized(item.title, loc);
-  const description = pickLocalized(item.body, loc);
+  const description = truncateForMeta(pickLocalized(item.body, loc));
 
   return {
     title,
@@ -41,9 +43,11 @@ export async function generateMetadata({
         ["x-default", `${BASE_URL}/nl/poi/${slug}`],
       ]),
     },
+    // og:image comes from the poi opengraph-image route file.
     openGraph: {
       url: `${BASE_URL}/${locale}/poi/${slug}`,
-      images: [{ url: item.imageUrl }],
+      title,
+      description,
     },
   };
 }
@@ -59,9 +63,33 @@ export default async function PoiPage({
     namespace: "booking",
   });
 
+  // Cached read (dedupes with generateMetadata); null for the placeholder slug
+  // or an unpublished POI, in which case PoiDetailLoader renders notFound().
+  const item = await getPublishedPoiBySlug(slug);
+  const loc = locale as Locale;
+  const jsonLd = item
+    ? buildPoiJsonLd({
+        locale,
+        name: pickLocalized(item.title, loc),
+        description: truncateForMeta(pickLocalized(item.body, loc)),
+        image: item.imageUrl,
+        url: `${BASE_URL}/${locale}/poi/${slug}`,
+        homeUrl: `${BASE_URL}/${locale}`,
+        homeLabel: "La Cour de Haut",
+      })
+    : null;
+
   return (
     <>
-      <Header
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
+        />
+      )}
+      <SiteHeader
         action={
           <Button
             asChild
