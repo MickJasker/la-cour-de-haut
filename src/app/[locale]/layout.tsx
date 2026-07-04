@@ -1,20 +1,15 @@
 import { Suspense, type ReactNode } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
 import { notFound } from "next/navigation";
 import { I18nProvider } from "@/i18n/provider";
 import { getDictionary } from "@/i18n/dictionaries";
 import { getTranslations } from "@/i18n/server";
 import { hasLocale, locales } from "@/i18n/routing";
-import { getDb } from "@/db";
-import { contentBlock } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { cacheLife, cacheTag } from "next/cache";
 import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/sections/footer";
 import { ModalSlot } from "./modal-slot";
-import { CACHE_TAGS } from "@/lib/cache-tags";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -24,21 +19,6 @@ const OG_LOCALE: Record<string, string> = {
 };
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
-
-async function getHeroImageUrl(): Promise<string | undefined> {
-  "use cache";
-  cacheLife("max");
-  cacheTag(CACHE_TAGS.content);
-
-  const db = getDb();
-  const row = await db
-    .select({ value: contentBlock.value })
-    .from(contentBlock)
-    .where(eq(contentBlock.key, "hero_image_url"))
-    .limit(1)
-    .then((rows) => rows[0]);
-  return row?.value?.type === "imageUrl" ? row.value.url : undefined;
-}
 
 const mulish = Mulish({
   variable: "--font-mulish",
@@ -56,6 +36,11 @@ export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
+// Brand forest — tints the mobile browser chrome to match the header/hero.
+export const viewport: Viewport = {
+  themeColor: "#4b5a23",
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -65,8 +50,6 @@ export async function generateMetadata({
   if (!hasLocale(locale)) notFound();
   const t = await getTranslations({ locale, namespace: "metadata.home" });
 
-  const heroImageUrl = await getHeroImageUrl();
-
   return {
     metadataBase: new URL(BASE_URL),
     title: {
@@ -74,10 +57,14 @@ export async function generateMetadata({
       template: `%s · La Cour de Haut`,
     },
     description: t("description"),
+    // og:image / twitter:image come from the opengraph-image / twitter-image
+    // route files under [locale]; only the card type is set here.
     openGraph: {
       type: "website",
       locale: OG_LOCALE[locale],
-      ...(heroImageUrl && { images: [heroImageUrl] }),
+    },
+    twitter: {
+      card: "summary_large_image",
     },
   };
 }

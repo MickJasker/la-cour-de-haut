@@ -79,6 +79,14 @@ export interface LodgingJsonLdInput {
   telephone?: string;
   /** Contact email, if set — omitted from the markup when empty. */
   email?: string;
+  /** Coordinates — a `geo` block is emitted only when BOTH are present. */
+  latitude?: number;
+  longitude?: number;
+  /** Check-in/out clock times ("16:00"), emitted when set. */
+  checkinTime?: string;
+  checkoutTime?: string;
+  /** Bedroom count → schema `numberOfRooms`, emitted when set. */
+  bedrooms?: number;
   aggregate: ReviewAggregate | null;
 }
 
@@ -95,8 +103,18 @@ export function buildLodgingJsonLd({
   pricePerNight,
   telephone,
   email,
+  latitude,
+  longitude,
+  checkinTime,
+  checkoutTime,
+  bedrooms,
   aggregate,
 }: LodgingJsonLdInput) {
+  const hasGeo =
+    latitude !== undefined &&
+    longitude !== undefined &&
+    Number.isFinite(latitude) &&
+    Number.isFinite(longitude);
   return {
     "@context": "https://schema.org",
     "@type": "LodgingBusiness",
@@ -115,6 +133,16 @@ export function buildLodgingJsonLd({
     },
     ...(telephone && { telephone }),
     ...(email && { email }),
+    ...(hasGeo && {
+      geo: {
+        "@type": "GeoCoordinates",
+        latitude,
+        longitude,
+      },
+    }),
+    ...(checkinTime && { checkinTime }),
+    ...(checkoutTime && { checkoutTime }),
+    ...(bedrooms !== undefined && { numberOfRooms: bedrooms }),
     ...(pricePerNight !== undefined && {
       priceRange: `€${pricePerNight}`,
     }),

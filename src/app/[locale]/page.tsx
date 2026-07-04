@@ -9,6 +9,7 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
 import { locales, type Locale } from "@/i18n/routing";
 import { getSettings } from "@/lib/settings/settings";
+import { toE164 } from "@/lib/phone";
 import {
   buildLodgingJsonLd,
   getReviewAggregate,
@@ -31,9 +32,10 @@ export async function generateMetadata({
         ["x-default", `${BASE_URL}/nl`],
       ]),
     },
+    // og:image comes from the opengraph-image route file; only the canonical
+    // per-locale URL is set here.
     openGraph: {
       url: `${BASE_URL}/${locale}`,
-      images: [{ url: HeroImage.src }],
     },
   };
 }
@@ -58,8 +60,15 @@ export default async function HomePage({
     url: `${BASE_URL}/${locale}`,
     image: new URL(HeroImage.src, BASE_URL).toString(),
     pricePerNight: settings.price_per_night,
-    telephone: settings.property_telephone,
+    telephone: settings.property_telephone
+      ? toE164(settings.property_telephone)
+      : undefined,
     email: settings.property_email,
+    latitude: settings.property_latitude,
+    longitude: settings.property_longitude,
+    checkinTime: settings.property_checkin_time,
+    checkoutTime: settings.property_checkout_time,
+    bedrooms: settings.property_bedrooms,
     aggregate,
   });
 

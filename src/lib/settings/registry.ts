@@ -17,6 +17,26 @@ export interface FieldMeta {
 }
 
 /**
+ * Server-side type for an OPTIONAL numeric setting. A blank (or absent) value
+ * parses to `undefined`, never `0` — critical for the SEO enrichment fields,
+ * where a spurious `0` would emit e.g. `geo: 0,0` (the Gulf of Guinea) instead
+ * of omitting the field.
+ */
+const optionalNumber = z.preprocess(
+  (v) => (v === "" || v == null ? undefined : v),
+  z.coerce.number().optional(),
+);
+
+/** Client-side validator for an optional number, with an inclusive range. */
+const optionalNumberInRange = (min: number, max: number) =>
+  z
+    .string()
+    .refine(
+      (v) => v === "" || (Number.isFinite(Number(v)) && +v >= min && +v <= max),
+      `Getal tussen ${min} en ${max}`,
+    );
+
+/**
  * Single source of truth for all settings.
  *
  * Use `satisfies` so TypeScript retains the narrow type of each entry
@@ -50,6 +70,60 @@ export const settingsRegistry = {
       .string()
       .min(1, "Vereist")
       .refine((v) => z.email().safeParse(v).success, "Ongeldig e-mailadres"),
+    serverType: z.string(),
+  },
+  property_latitude: {
+    label: "Breedtegraad (latitude)",
+    section: "gite_details",
+    inputType: "text",
+    placeholder: "48.6123",
+    hint: "Optioneel. In Google Maps: rechtermuisklik op de locatie → coördinaten. Vul beide velden in voor de kaartvermelding.",
+    clientValidation: optionalNumberInRange(-90, 90),
+    serverType: optionalNumber,
+  },
+  property_longitude: {
+    label: "Lengtegraad (longitude)",
+    section: "gite_details",
+    inputType: "text",
+    placeholder: "-1.0456",
+    clientValidation: optionalNumberInRange(-180, 180),
+    serverType: optionalNumber,
+  },
+  property_bedrooms: {
+    label: "Aantal slaapkamers",
+    section: "gite_details",
+    inputType: "number",
+    min: 1,
+    placeholder: "3",
+    hint: "Optioneel. Getoond in de gestructureerde SEO-data.",
+    clientValidation: optionalNumberInRange(1, 50),
+    serverType: optionalNumber,
+  },
+  property_checkin_time: {
+    label: "Inchecktijd",
+    section: "gite_details",
+    inputType: "text",
+    placeholder: "16:00",
+    hint: "Optioneel, formaat uu:mm.",
+    clientValidation: z
+      .string()
+      .refine(
+        (v) => v === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(v),
+        "Gebruik formaat uu:mm",
+      ),
+    serverType: z.string(),
+  },
+  property_checkout_time: {
+    label: "Uitchecktijd",
+    section: "gite_details",
+    inputType: "text",
+    placeholder: "10:00",
+    clientValidation: z
+      .string()
+      .refine(
+        (v) => v === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(v),
+        "Gebruik formaat uu:mm",
+      ),
     serverType: z.string(),
   },
   account_holder: {
@@ -118,6 +192,11 @@ export const sectionMeta: Record<
     label: "Contactgegevens",
     description:
       "Telefoon en e-mail zoals getoond in de header van de website en in de gestructureerde SEO-data.",
+  },
+  gite_details: {
+    label: "Gîte-details (SEO)",
+    description:
+      "Optionele gegevens die de vindbaarheid verbeteren via gestructureerde data. Leeg laten mag — lege velden worden weggelaten.",
   },
   bank: {
     label: "Bankgegevens",

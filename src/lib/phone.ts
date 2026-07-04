@@ -80,6 +80,20 @@ export function formatPhoneDisplay(e164: string): string {
 }
 
 /**
+ * Normalize any accepted phone string (E.164, or a spaced/paren'd variant the
+ * owner typed into settings) to canonical E.164 with no separators — the form
+ * required by `tel:` links and schema.org `telephone`. Falls back to the raw
+ * input if it can't be parsed.
+ */
+export function toE164(input: string): string {
+  try {
+    return parsePhoneNumber(input).number;
+  } catch {
+    return input;
+  }
+}
+
+/**
  * All countries that have a phone calling code, as `{ code, name, dialCode }`.
  * Names are localized + sorted by `getCountryOptions`; dial codes are derived
  * from libphonenumber-js (the single source of truth), so a country with no
