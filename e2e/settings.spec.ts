@@ -34,6 +34,10 @@ test.describe("settings: admin", () => {
 
   test("owner can save valid settings", async ({ page }) => {
     await page.goto("/admin/settings");
+    // Contact (required): global-setup truncates `setting`, so these load blank
+    // and must be filled or the whole form fails validation on submit.
+    await page.getByLabel(/telefoonnummer/i).fill("+33612345678");
+    await page.getByLabel(/e-mailadres/i).fill("info@example.com");
     await page.getByLabel(/rekeninghouder/i).fill("La Cour de Haut");
     await page.getByLabel(/iban/i).fill("NL91ABNA0417164300");
     await page.getByLabel(/banknaam/i).fill("ABN AMRO");
