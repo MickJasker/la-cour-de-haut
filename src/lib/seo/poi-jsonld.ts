@@ -1,4 +1,5 @@
 import { PROPERTY } from "@/lib/property";
+import { regionForLocale } from "@/lib/seo/region";
 
 /**
  * Structured data for a POI ("point of interest") detail page.
@@ -12,13 +13,6 @@ import { PROPERTY } from "@/lib/property";
  * Pure/synchronous, mirroring `buildLodgingJsonLd`; the caller resolves the
  * localized text and stamps the result into a scrubbed `<script>`.
  */
-
-const REGION_BY_LOCALE: Record<string, string> = {
-  nl: "Normandië",
-  fr: "Normandie",
-  en: "Normandy",
-  de: "Normandie",
-};
 
 export interface PoiJsonLdInput {
   locale: string;
@@ -54,7 +48,7 @@ export function buildPoiJsonLd({
         url,
         address: {
           "@type": "PostalAddress",
-          addressRegion: REGION_BY_LOCALE[locale] ?? "Normandie",
+          addressRegion: regionForLocale(locale),
           addressCountry: PROPERTY.address.addressCountry,
         },
       },

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import { PROPERTY } from "@/lib/property";
+import { regionForLocale } from "@/lib/seo/region";
 
 /**
  * Structured data (schema.org JSON-LD) for the home page.
@@ -56,14 +57,6 @@ export async function getReviewAggregate(): Promise<ReviewAggregate | null> {
     reviewCount: rows.length,
   };
 }
-
-/** Localized region endonym, aligned with the page's `og:locale`. */
-const REGION_BY_LOCALE: Record<string, string> = {
-  nl: "Normandië",
-  fr: "Normandie",
-  en: "Normandy",
-  de: "Normandie",
-};
 
 export interface LodgingJsonLdInput {
   locale: string;
@@ -128,7 +121,7 @@ export function buildLodgingJsonLd({
       streetAddress: PROPERTY.address.streetAddress,
       postalCode: PROPERTY.address.postalCode,
       addressLocality: PROPERTY.address.addressLocality,
-      addressRegion: REGION_BY_LOCALE[locale] ?? "Normandie",
+      addressRegion: regionForLocale(locale),
       addressCountry: PROPERTY.address.addressCountry,
     },
     ...(telephone && { telephone }),
@@ -142,7 +135,8 @@ export function buildLodgingJsonLd({
     }),
     ...(checkinTime && { checkinTime }),
     ...(checkoutTime && { checkoutTime }),
-    ...(bedrooms !== undefined && { numberOfRooms: bedrooms }),
+    ...(bedrooms !== undefined &&
+      Number.isFinite(bedrooms) && { numberOfRooms: bedrooms }),
     ...(pricePerNight !== undefined && {
       priceRange: `€${pricePerNight}`,
     }),

@@ -9,8 +9,9 @@ import { ImageResponse } from "next/og";
  * subtitle). No custom font is loaded — next/og's built-in sans keeps the
  * route dependency-free and statically optimizable.
  *
- * `backgroundSrc` accepts a data URI (home hero, read from disk) or a remote
- * URL (POI photo) — next/og fetches remote `<img>` sources at build time.
+ * `backgroundSrc` accepts a data URI (the home hero, read from disk) or an
+ * empty string for a photo-free solid-forest card (the POI route, whose
+ * owner-uploaded photos can overrun next/og's rasterizer).
  */
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";

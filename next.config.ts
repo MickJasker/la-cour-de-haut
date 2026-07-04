@@ -2,6 +2,15 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // The OG/apple-icon routes read source assets at generation time via
+  // `process.cwd()` + a literal path. `@vercel/nft` usually traces literal
+  // reads, but declaring them guarantees the files ship in the function bundle
+  // even if a route is ever served dynamically (avoids a runtime ENOENT → 500).
+  outputFileTracingIncludes: {
+    "/[locale]/opengraph-image": ["./src/components/sections/hero.jpg"],
+    "/[locale]/twitter-image": ["./src/components/sections/hero.jpg"],
+    "/apple-icon": ["./src/app/icon.svg"],
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "20mb",

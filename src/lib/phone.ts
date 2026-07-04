@@ -64,7 +64,7 @@ export function parsePhone(
 }
 
 /**
- * Format a stored E.164 phone number (e.g. "+33673100089") for display
+ * Format a stored E.164 phone number (e.g. "+33673100889") for display
  * (e.g. "+33 6 73 10 00 89"). The `property_telephone` setting stores the
  * canonical E.164 form — used verbatim for `tel:` links and JSON-LD
  * `telephone` — and this derives the spaced, human-readable version at render
