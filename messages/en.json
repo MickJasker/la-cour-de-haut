@@ -28,6 +28,9 @@
       "translatedFrom": "Translated from {language}",
       "translatedFromAuto": "Auto-translated"
     },
+    "aboutUs": {
+      "title": "About René and Yvonne"
+    },
     "hero": {
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
       "callToAction": "Book your stay now"

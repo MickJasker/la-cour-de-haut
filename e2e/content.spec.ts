@@ -191,6 +191,58 @@ test.describe("content: hero image — public", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Public: About Us section
+// ---------------------------------------------------------------------------
+
+test.describe("content: about us — public", () => {
+  test.beforeEach(clearContentBlocks);
+  test.afterEach(clearContentBlocks);
+
+  test("about-us section renders with description and title when a row exists", async ({
+    page,
+  }) => {
+    await seedRichText({
+      key: "about_us_description",
+      value: { nl: "René en Yvonne verwelkomen u." },
+    });
+    await gotoFresh(page, "/nl");
+    const section = page.locator("[data-testid='about-us-section']");
+    await expect(section).toBeVisible();
+    // Title comes from the sections.aboutUs translation namespace, not the DB.
+    await expect(
+      section.getByRole("heading", { name: "Over René en Yvonne" }),
+    ).toBeVisible();
+    await expect(
+      section.getByText("René en Yvonne verwelkomen u."),
+    ).toBeVisible();
+  });
+
+  test("about-us section is absent when no description row exists", async ({
+    page,
+  }) => {
+    // The component returns null without content — the section must not render
+    // at all (an empty section would be a visible regression on the homepage).
+    await gotoFresh(page, "/nl");
+    await expect(page.locator("[data-testid='about-us-section']")).toHaveCount(
+      0,
+    );
+  });
+
+  test("about-us description falls back to Dutch when locale key is absent", async ({
+    page,
+  }) => {
+    await seedRichText({
+      key: "about_us_description",
+      value: { nl: "Alleen Nederlandse tekst." },
+      // no 'fr' key
+    });
+    await gotoFresh(page, "/fr");
+    const section = page.locator("[data-testid='about-us-section']");
+    await expect(section.getByText("Alleen Nederlandse tekst.")).toBeVisible();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Admin
 // ---------------------------------------------------------------------------
 
@@ -312,5 +364,45 @@ test.describe("content: admin", () => {
     await gotoFresh(page, "/nl");
     const hero = page.locator("[data-testid='hero-section']");
     await expect(hero.locator(`img[src*='${seed}']`)).toBeVisible();
+  });
+
+  test("about-us description is pre-filled from DB", async ({ page }) => {
+    await seedRichText({
+      key: "about_us_description",
+      value: { nl: "Vooraf ingevulde over-ons tekst." },
+    });
+    await page.goto("/admin/content");
+    const aboutSection = page.locator("[data-testid='admin-about-us-section']");
+    await expect(aboutSection.getByLabel("Beschrijving (NL)")).toContainText(
+      "Vooraf ingevulde over-ons tekst.",
+    );
+  });
+
+  test("saving about-us description updates the public section", async ({
+    page,
+  }) => {
+    // Guards the cache wiring: AboutUsSection and the save action share
+    // CACHE_TAGS.content, so saving must refresh the public page on its own.
+    // We do NOT revalidate here — the save action's own updateTag is what
+    // must make the public page fresh.
+    await page.goto("/admin/content");
+    const aboutSection = page.locator("[data-testid='admin-about-us-section']");
+    await aboutSection
+      .getByLabel("Beschrijving (NL)")
+      .fill("Opgeslagen over-ons tekst.");
+    await aboutSection.getByRole("button", { name: /opslaan/i }).click();
+    await page.waitForLoadState("networkidle", { timeout: 10000 });
+    await page.goto("/nl");
+    const section = page.locator("[data-testid='about-us-section']");
+    await expect(section.getByText("Opgeslagen over-ons tekst.")).toBeVisible();
+  });
+
+  test("empty about-us description shows a validation error", async ({
+    page,
+  }) => {
+    await page.goto("/admin/content");
+    const aboutSection = page.locator("[data-testid='admin-about-us-section']");
+    await aboutSection.getByRole("button", { name: /opslaan/i }).click();
+    await expect(aboutSection.getByText(/vereist/i)).toBeVisible();
   });
 });

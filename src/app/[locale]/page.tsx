@@ -15,6 +15,7 @@ import {
   getReviewAggregate,
 } from "@/lib/seo/lodging-jsonld";
 import HeroImage from "@/components/sections/hero.jpg";
+import { AboutUsSection } from "@/components/sections/about-us";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -98,6 +99,7 @@ export default async function HomePage({
         <GiteSection locale={locale as Locale} />
         <ReviewsSection locale={locale as Locale} />
         <PoiSection locale={locale as Locale} />
+        <AboutUsSection locale={locale as Locale} />
       </main>
     </>
   );

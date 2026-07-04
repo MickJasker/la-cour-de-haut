@@ -154,3 +154,20 @@ export async function uploadHeroImageAction(
   invalidate();
   return { error: null, success: true };
 }
+
+export async function updateAboutUsDescriptionAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ContentActionState> {
+  await verifySession();
+  const detail = parseDetailField(formData);
+  if (!detail) {
+    return { success: false, error: "Vereist" };
+  }
+  const { failures } = await upsertRichText("about_us_description", detail.nl);
+  return {
+    success: true,
+    error: null,
+    failures: failures.length ? failures : undefined,
+  };
+}

@@ -10,6 +10,7 @@ import { EMPTY_EDITOR_STATE } from "@/lib/content/lexical/empty-state";
 import { ImageDropzone } from "../image-dropzone";
 import { uploadAdminImage } from "../upload-image";
 import {
+  updateAboutUsDescriptionAction,
   updateDescriptionAction,
   updateHeroDescriptionAction,
   uploadHeroImageAction,
@@ -95,12 +96,16 @@ export function ContentClient({
   heroDescription,
   heroDescriptionValueSource,
   heroImageUrl,
+  aboutUsDescription,
+  aboutUsDescriptionValueSource,
 }: {
   description: LocalizedEditorState | null;
   descriptionValueSource: LocalizedSource | null;
   heroDescription: LocalizedEditorState | null;
   heroDescriptionValueSource: LocalizedSource | null;
   heroImageUrl: string | null;
+  aboutUsDescription: LocalizedEditorState | null;
+  aboutUsDescriptionValueSource: LocalizedSource | null;
 }) {
   const [heroFile, setHeroFile] = useState<File | null>(null);
   // Tracks the direct-to-Blob upload (browser -> Vercel Blob), which happens
@@ -188,6 +193,18 @@ export function ContentClient({
           initialValue={description}
           initialValueSource={descriptionValueSource}
           action={updateDescriptionAction}
+        />
+      </section>
+
+      {/* Over René en Yvonne */}
+      <section data-testid="admin-about-us-section" className="space-y-6">
+        <h2 className="text-lg font-semibold">Over René en Yvonne</h2>
+        <RichTextBlockForm
+          id="about-us-desc"
+          label="Beschrijving (NL)"
+          initialValue={aboutUsDescription}
+          initialValueSource={aboutUsDescriptionValueSource}
+          action={updateAboutUsDescriptionAction}
         />
       </section>
     </div>
