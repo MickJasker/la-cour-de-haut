@@ -3,6 +3,9 @@
 import { useParams, usePathname } from "next/navigation";
 import { ReactNode, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { Button } from "../ui/button";
+import { Globe } from "lucide-react";
 
 const LOCALES = ["fr", "en", "nl", "de"] as const;
 
@@ -44,6 +47,8 @@ export function Header({ action }: { action: ReactNode }) {
     }, PILL_SLIDE_MS);
   };
 
+  const [isLocaleSwitcherOpen, setIsLocaleSwitcherOpen] = useState(false);
+
   return (
     <>
       <header className="fixed bottom-0 left-0 w-full bg-olive-900 text-olive-50 z-10 p-6 md:px-0 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:items-center">
@@ -83,7 +88,38 @@ export function Header({ action }: { action: ReactNode }) {
             ))}
           </div>
         </nav>
-        {action}
+        <div className="md:contents flex gap-2">
+          {action}
+          <Popover
+            open={isLocaleSwitcherOpen}
+            onOpenChange={setIsLocaleSwitcherOpen}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                className="md:hidden p-0 aspect-square"
+                size="lg"
+                aria-label="Switch language"
+              >
+                <Globe className="size-8" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-30 p-2">
+              <div className="flex flex-col">
+                {LOCALES.map((loc) => (
+                  <LanguageLink
+                    key={loc}
+                    locale={loc}
+                    isActive={loc === locale}
+                    currentPathname={pathname}
+                    localeLabel={LOCALE_LABEL[loc]}
+                    onSwitch={switchLocale}
+                  />
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </header>
       {mainEl && createPortal(<div className="h-22" />, mainEl)}
     </>
@@ -94,11 +130,13 @@ function LanguageLink({
   locale,
   isActive,
   currentPathname,
+  localeLabel,
   onSwitch,
 }: {
   locale: string;
   isActive: boolean;
   currentPathname: string | null;
+  localeLabel?: string;
   onSwitch: (locale: string, href: string) => void;
 }) {
   // Strip the leading /<currentLocale> segment so we can swap in the new locale
@@ -140,7 +178,7 @@ function LanguageLink({
       aria-label={`Switch to ${LOCALE_LABEL[locale]}`}
       aria-current={isActive ? "page" : undefined}
     >
-      {locale.toUpperCase()}
+      {localeLabel ?? locale.toUpperCase()}
     </a>
   );
 }
