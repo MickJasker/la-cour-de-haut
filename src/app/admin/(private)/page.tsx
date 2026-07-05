@@ -147,7 +147,13 @@ function UpcomingEntryRow({
         <p className="text-xs text-stone-500">{subtitle}</p>
       </div>
       <span className="text-xs text-stone-400 shrink-0">
-        {days === 0 ? "Vandaag" : days === 1 ? "Morgen" : `over ${days} dagen`}
+        {days < 0
+          ? "Nu te gast"
+          : days === 0
+            ? "Vandaag"
+            : days === 1
+              ? "Morgen"
+              : `over ${days} dagen`}
       </span>
     </div>
   );

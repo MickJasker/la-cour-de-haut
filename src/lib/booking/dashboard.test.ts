@@ -64,7 +64,7 @@ describe("computeDashboard — upcoming confirmed stays", () => {
     expect(asBooking(result.upcoming[0]).name).toBe("Test Guest");
   });
 
-  it("does not include a confirmed booking that started in the past", () => {
+  it("does not include a confirmed booking that already ended", () => {
     const result = computeDashboard(
       [
         booking({
@@ -77,6 +77,22 @@ describe("computeDashboard — upcoming confirmed stays", () => {
       TODAY,
     );
     expect(result.upcoming).toHaveLength(0);
+  });
+
+  it("includes a confirmed booking that is currently in progress", () => {
+    const result = computeDashboard(
+      [
+        booking({
+          status: "confirmed",
+          startDate: "2026-06-24",
+          endDate: "2026-07-01",
+        }),
+      ],
+      [],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(1);
+    expect(asBooking(result.upcoming[0]).name).toBe("Test Guest");
   });
 
   it("sorts upcoming stays by startDate ascending across both types", () => {
