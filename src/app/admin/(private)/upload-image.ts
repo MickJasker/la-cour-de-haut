@@ -19,3 +19,10 @@ export async function uploadAdminImage(
 ): Promise<string> {
   return getClientUploadAdapter().upload(file, folder);
 }
+
+// Guest documents feature: same upload seam as uploadAdminImage, fixed to
+// the "documents" folder, which real-adapter.ts (server) allowlists for
+// application/pdf instead of image/*.
+export async function uploadAdminDocument(file: File): Promise<string> {
+  return getClientUploadAdapter().upload(file, "documents");
+}

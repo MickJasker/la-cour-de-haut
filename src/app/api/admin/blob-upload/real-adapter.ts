@@ -1,10 +1,21 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import type { BlobUploadAdapter } from "./adapter";
 
-// Images only; size capped well above any real gîte photo. Bump
-// MAX_SIZE_BYTES if the owner ever needs to upload larger originals.
-const ALLOWED_CONTENT_TYPES = ["image/*"];
+// Images only, except the documents/ folder (guest documents feature),
+// which is PDF-only. Size capped well above any real gîte photo or guest
+// PDF. Bump MAX_SIZE_BYTES if the owner ever needs to upload larger
+// originals.
 const MAX_SIZE_BYTES = 20 * 1024 * 1024; // 20mb — matches the prior proxy/action ceiling (b962e8f)
+
+/**
+ * Pure mapping from the blob pathname (as chosen client-side, e.g.
+ * `${folder}/${crypto.randomUUID()}-${file.name}`) to the content types
+ * allowed for that upload. Every folder is images-only except documents/,
+ * which is PDF-only.
+ */
+export function allowedContentTypesFor(pathname: string): string[] {
+  return pathname.startsWith("documents/") ? ["application/pdf"] : ["image/*"];
+}
 
 async function handleUploadRequest(request: Request): Promise<Response> {
   const body = (await request.json()) as HandleUploadBody;
@@ -13,8 +24,8 @@ async function handleUploadRequest(request: Request): Promise<Response> {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async () => ({
-        allowedContentTypes: ALLOWED_CONTENT_TYPES,
+      onBeforeGenerateToken: async (pathname) => ({
+        allowedContentTypes: allowedContentTypesFor(pathname),
         maximumSizeInBytes: MAX_SIZE_BYTES,
       }),
       // No onUploadCompleted: the client passes the resulting blob.url

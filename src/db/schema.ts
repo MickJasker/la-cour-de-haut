@@ -282,6 +282,18 @@ export const contentBlock = pgTable("content_block", {
     .notNull(),
 });
 
+export const document = pgTable("document", {
+  id: text("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  fileUrl: text("file_url").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
 export type ReviewSource = "airbnb" | "natuurhuisje" | "direct" | "google";
 
 export const review = pgTable("review", {

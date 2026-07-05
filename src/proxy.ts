@@ -64,8 +64,9 @@ export const config = {
     // Match all pathnames except static files, internals, API routes, and root
     // metadata files — otherwise those get locale-prefixed (e.g.
     // "/sitemap.xml" -> "/nl/sitemap.xml" -> 404). Extension-based exclusions
-    // cover sitemap.xml / robots.txt / icon.svg; `manifest.webmanifest` and the
-    // extensionless `apple-icon` route need naming explicitly.
-    "/((?!api|_next/static|_next/image|favicon.ico|manifest\\.webmanifest|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|txt)$).*)",
+    // cover sitemap.xml / robots.txt / icon.svg / documents/{slug}.pdf;
+    // `manifest.webmanifest` and the extensionless `apple-icon` route need
+    // naming explicitly.
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest\\.webmanifest|apple-icon|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|xml|txt|pdf)$).*)",
   ],
 };

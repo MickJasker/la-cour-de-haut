@@ -1,7 +1,7 @@
 import { realClientUploadAdapter } from "./upload-image-real-adapter";
 import { stubClientUploadAdapter } from "./upload-image-stub-adapter";
 
-export type AdminImageFolder = "pois" | "gallery" | "content";
+export type AdminImageFolder = "pois" | "gallery" | "content" | "documents";
 
 /**
  * The seam between "upload this file" (uploadAdminImage in
