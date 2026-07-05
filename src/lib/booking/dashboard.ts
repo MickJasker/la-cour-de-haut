@@ -62,7 +62,7 @@ export function computeDashboard(
     brokenFeeds: icalSources.filter((f) => f.lastError !== null),
     upcoming: [
       ...bookings
-        .filter((b) => b.status === "confirmed" && b.startDate >= today)
+        .filter((b) => b.status === "confirmed" && b.endDate >= today)
         .map(
           (b): UpcomingEntry => ({
             type: "booking",
