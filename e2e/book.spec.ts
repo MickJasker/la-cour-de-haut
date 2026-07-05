@@ -20,7 +20,11 @@ test.describe("booking dialog — intercepting route", () => {
   });
 
   test("clicking 'Book now' in the hero opens the dialog", async ({ page }) => {
-    await page.getByRole("main").getByRole("link", { name: /boek/i }).click();
+    // Exact name: /boek/i substring-matches POI cards containing "bezoek"
+    await page
+      .getByRole("main")
+      .getByRole("link", { name: "Boek je verblijf nu" })
+      .click();
 
     await expect(page).toHaveURL(/\/nl\/book/);
     await expect(page.getByRole("dialog")).toBeVisible();

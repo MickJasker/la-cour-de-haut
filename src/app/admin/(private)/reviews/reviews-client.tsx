@@ -69,48 +69,50 @@ function ReviewRow({
       >
         ⠿
       </button>
-      <div className="flex-1 min-w-0 grid grid-cols-[1fr_auto_auto_auto] gap-x-4 items-center">
-        <div>
-          <p className="font-medium text-sm">{r.authorName}</p>
-          <p className="text-xs text-stone-500">
+      <div className="flex-1 min-w-0 flex flex-col gap-2 md:grid md:grid-cols-[1fr_auto_auto_auto] md:gap-x-4 md:items-center">
+        <div className="min-w-0">
+          <p className="font-medium text-sm truncate">{r.authorName}</p>
+          <p className="text-xs text-stone-500 truncate">
             {"★".repeat(r.rating)}
             {"☆".repeat(5 - r.rating)} · {r.reviewDate} ·{" "}
             {SOURCE_LABELS[r.source] ?? r.source}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Checkbox
-            id={`pub-${r.id}`}
-            checked={published}
+        <div className="flex flex-wrap items-center gap-2 md:contents">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Checkbox
+              id={`pub-${r.id}`}
+              checked={published}
+              disabled={isPending}
+              onCheckedChange={(checked) => {
+                const next = checked === true;
+                setPublished(next);
+                startTransition(() => {
+                  void toggleReviewPublishedAction(r.id, next);
+                });
+              }}
+            />
+            <Label htmlFor={`pub-${r.id}`} className="text-xs">
+              Gepubliceerd
+            </Label>
+          </div>
+          <Button variant="secondary" size="sm" asChild>
+            <Link href={`/admin/reviews/${r.id}/edit`}>Bewerken</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             disabled={isPending}
-            onCheckedChange={(checked) => {
-              const next = checked === true;
-              setPublished(next);
+            onClick={() => {
+              onDelete(r.id);
               startTransition(() => {
-                void toggleReviewPublishedAction(r.id, next);
+                void deleteReviewAction(r.id);
               });
             }}
-          />
-          <Label htmlFor={`pub-${r.id}`} className="text-xs">
-            Gepubliceerd
-          </Label>
+          >
+            Verwijderen
+          </Button>
         </div>
-        <Button variant="secondary" size="sm" asChild>
-          <Link href={`/admin/reviews/${r.id}/edit`}>Bewerken</Link>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          disabled={isPending}
-          onClick={() => {
-            onDelete(r.id);
-            startTransition(() => {
-              void deleteReviewAction(r.id);
-            });
-          }}
-        >
-          Verwijderen
-        </Button>
       </div>
     </li>
   );
