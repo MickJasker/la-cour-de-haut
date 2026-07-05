@@ -1,8 +1,8 @@
 import { upload } from "@vercel/blob/client";
 import type {
-  AdminImageFolder,
+  AdminUploadFolder,
   ClientUploadAdapter,
-} from "./upload-image-adapter";
+} from "./upload-file-adapter";
 
 /**
  * Real adapter: uploads a file directly from the browser to Vercel Blob via
@@ -12,7 +12,7 @@ import type {
  */
 async function uploadReal(
   file: File,
-  folder: AdminImageFolder,
+  folder: AdminUploadFolder,
 ): Promise<string> {
   const blob = await upload(
     `${folder}/${crypto.randomUUID()}-${file.name}`,

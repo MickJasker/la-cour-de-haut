@@ -4,7 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { uploadAdminDocument } from "../upload-image";
+import { uploadAdminDocument } from "../upload-file";
 import {
   createDocumentAction,
   renameDocumentAction,

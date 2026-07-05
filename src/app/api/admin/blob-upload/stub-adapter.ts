@@ -7,7 +7,7 @@ import type { BlobUploadAdapter } from "./adapter";
  * real BLOB_READ_WRITE_TOKEN-backed network access from the test browser
  * and would leave orphaned blobs behind on every run (the e2e specs
  * truncate tables directly, bypassing del()). Instead, the client helper
- * (upload-image-stub-adapter.ts) skips @vercel/blob/client entirely in this
+ * (upload-file-stub-adapter.ts) skips @vercel/blob/client entirely in this
  * mode and POSTs the file here as multipart/form-data; we hand back a
  * fixed, already next/image-allowlisted picsum.photos URL — same
  * deterministic-stub pattern as src/lib/translate-stub-adapter.ts.

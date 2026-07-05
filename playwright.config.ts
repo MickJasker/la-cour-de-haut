@@ -23,7 +23,7 @@ export default defineConfig({
     // Matches the CI environment so `pnpm test:e2e` passes locally without
     // needing the var set in the shell.
     // NEXT_PUBLIC_E2E_TESTING is the client-visible counterpart, read by
-    // upload-image.ts to skip @vercel/blob/client's upload() in favor of a
+    // upload-file.ts to skip @vercel/blob/client's upload() in favor of a
     // same-origin stub (see src/app/api/admin/blob-upload/route.ts) — it must
     // be set at build time (`pnpm build`, run by this command on CI) to be
     // inlined into the client bundle.

@@ -15,7 +15,7 @@ export interface BlobUploadAdapter {
 /**
  * The single E2E_TESTING resolution point for the blob-upload seam — the
  * only place this route checks the env var. See the matching client-side
- * resolution point in src/app/admin/(private)/upload-image-adapter.ts,
+ * resolution point in src/app/admin/(private)/upload-file-adapter.ts,
  * which uses NEXT_PUBLIC_E2E_TESTING to reach the same decision in the
  * browser.
  */
