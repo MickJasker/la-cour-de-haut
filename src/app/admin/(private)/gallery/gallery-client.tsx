@@ -153,7 +153,7 @@ function GalleryRow({
       ref={setNodeRef}
       style={style}
       data-testid={`gallery-row-${image.id}`}
-      className="flex flex-wrap items-center gap-4 rounded-md border border-stone-200 bg-cream-50 p-3 sm:flex-nowrap"
+      className="flex flex-wrap items-center gap-4 rounded-md border border-stone-200 bg-cream-50 p-3 md:flex-nowrap"
     >
       <button
         {...attributes}
@@ -178,7 +178,7 @@ function GalleryRow({
           {image.imageUrl}
         </p>
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-3 sm:shrink-0 sm:flex-nowrap">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 md:shrink-0 md:flex-nowrap">
         <div className="flex items-center gap-1.5">
           <Checkbox
             id={`pub-${image.id}`}

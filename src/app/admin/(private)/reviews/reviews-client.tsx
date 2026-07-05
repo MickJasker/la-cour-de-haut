@@ -69,7 +69,7 @@ function ReviewRow({
       >
         ⠿
       </button>
-      <div className="flex-1 min-w-0 flex flex-col gap-2 sm:grid sm:grid-cols-[1fr_auto_auto_auto] sm:gap-x-4 sm:items-center">
+      <div className="flex-1 min-w-0 flex flex-col gap-2 md:grid md:grid-cols-[1fr_auto_auto_auto] md:gap-x-4 md:items-center">
         <div className="min-w-0">
           <p className="font-medium text-sm truncate">{r.authorName}</p>
           <p className="text-xs text-stone-500 truncate">
@@ -78,7 +78,7 @@ function ReviewRow({
             {SOURCE_LABELS[r.source] ?? r.source}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:contents">
+        <div className="flex flex-wrap items-center gap-2 md:contents">
           <div className="flex items-center gap-1.5 shrink-0">
             <Checkbox
               id={`pub-${r.id}`}
