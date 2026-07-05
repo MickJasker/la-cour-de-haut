@@ -316,9 +316,9 @@ function SidebarInset({
   ref,
   className,
   ...props
-}: React.ComponentProps<"main">) {
+}: React.ComponentProps<"div">) {
   return (
-    <main
+    <div
       ref={ref}
       className={cn(
         "relative flex w-full flex-1 flex-col bg-background",

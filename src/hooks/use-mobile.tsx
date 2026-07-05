@@ -1,23 +1,20 @@
 import * as React from "react";
 
 const MOBILE_BREAKPOINT = 768;
+const MOBILE_QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`;
+
+function subscribe(onChange: () => void) {
+  const mql = window.matchMedia(MOBILE_QUERY);
+  mql.addEventListener("change", onChange);
+  return () => mql.removeEventListener("change", onChange);
+}
 
 export function useIsMobile() {
-  const getIsMobile = () =>
-    typeof window !== "undefined"
-      ? window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`).matches
-      : false;
-
-  const [isMobile, setIsMobile] = React.useState<boolean>(getIsMobile);
-
-  React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
-    const onChange = () => {
-      setIsMobile(mql.matches);
-    };
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
-  return isMobile;
+  // The server snapshot must be a constant so SSR and the hydration render
+  // agree; React re-reads the client snapshot right after hydration.
+  return React.useSyncExternalStore(
+    subscribe,
+    () => window.matchMedia(MOBILE_QUERY).matches,
+    () => false,
+  );
 }

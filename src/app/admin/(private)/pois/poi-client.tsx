@@ -342,7 +342,7 @@ function PoiRow({
       ref={setNodeRef}
       style={style}
       data-testid={`poi-row-${item.id}`}
-      className="flex items-center gap-4 rounded-md border border-stone-200 bg-white p-3"
+      className="flex flex-wrap items-center gap-4 rounded-md border border-stone-200 bg-white p-3 sm:flex-nowrap"
     >
       <button
         {...attributes}
@@ -371,7 +371,7 @@ function PoiRow({
           <p className="text-xs text-stone-400">{item.distanceKm} km</p>
         )}
       </div>
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 sm:shrink-0 sm:flex-nowrap">
         <div className="flex items-center gap-1.5">
           <Checkbox
             id={`pub-poi-${item.id}`}

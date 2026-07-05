@@ -65,7 +65,7 @@ function SourceRow({ source }: { source: Source }) {
   return (
     <li className="rounded-md border border-stone-200 bg-cream-50 p-4 space-y-2 overflow-hidden">
       <div className="flex flex-col items-start justify-between gap-4">
-        <div className="space-y-1 min-w-0">
+        <div className="w-full min-w-0 space-y-1">
           <p className="font-medium text-sm truncate">{source.name}</p>
           <p className="text-xs text-stone-500 font-mono truncate">
             {source.url}
@@ -73,7 +73,7 @@ function SourceRow({ source }: { source: Source }) {
           <SyncHealth source={source} />
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 sm:shrink-0 sm:flex-nowrap">
           <div className="flex items-center gap-1.5">
             <Checkbox
               id={`enabled-${source.id}`}

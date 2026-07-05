@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarSeparator,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { authClient } from "@/lib/auth/auth-client";
 import {
@@ -34,8 +35,10 @@ import { useTransition } from "react";
 export function AppSidebar() {
   const router = useRouter();
   const [isLoggingOut, startLogoutTransition] = useTransition();
+  const { setOpenMobile } = useSidebar();
 
   const currentPath = usePathname();
+  const closeMobileSidebar = () => setOpenMobile(false);
 
   return (
     <Sidebar>
@@ -52,7 +55,7 @@ export function AppSidebar() {
                   variant={currentPath === "/admin" ? "outline" : "default"}
                   asChild
                 >
-                  <Link href="/admin">
+                  <Link href="/admin" onClick={closeMobileSidebar}>
                     <Form />
                     Dashboard
                   </Link>
@@ -65,7 +68,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/content">
+                  <Link href="/admin/content" onClick={closeMobileSidebar}>
                     <SquareDashedText />
                     Inhoud
                   </Link>
@@ -78,7 +81,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/reviews">
+                  <Link href="/admin/reviews" onClick={closeMobileSidebar}>
                     <Star />
                     Beoordelingen
                   </Link>
@@ -91,7 +94,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/gallery">
+                  <Link href="/admin/gallery" onClick={closeMobileSidebar}>
                     <ImageIcon />
                     Galerij
                   </Link>
@@ -104,7 +107,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/pois">
+                  <Link href="/admin/pois" onClick={closeMobileSidebar}>
                     <MapPin />
                     POI&apos;s
                   </Link>
@@ -117,7 +120,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/bookings">
+                  <Link href="/admin/bookings" onClick={closeMobileSidebar}>
                     <CalendarFold />
                     Boekingen
                   </Link>
@@ -130,7 +133,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/settings">
+                  <Link href="/admin/settings" onClick={closeMobileSidebar}>
                     <Settings />
                     Instellingen
                   </Link>
@@ -152,7 +155,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/ical/import">
+                  <Link href="/admin/ical/import" onClick={closeMobileSidebar}>
                     <ArrowDownToLine />
                     Importeren
                   </Link>
@@ -165,7 +168,7 @@ export function AppSidebar() {
                   }
                   asChild
                 >
-                  <Link href="/admin/ical/export">
+                  <Link href="/admin/ical/export" onClick={closeMobileSidebar}>
                     <ArrowUpToLine />
                     Exporteren
                   </Link>
