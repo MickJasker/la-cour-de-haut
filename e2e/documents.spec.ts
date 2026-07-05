@@ -59,9 +59,11 @@ test.describe("documents: admin", () => {
     await page.getByRole("button", { name: /^uploaden$/i }).click();
 
     const list = page.locator("[data-testid='document-list']");
-    await expect(list.getByText("Huisregels")).toBeVisible({ timeout: 15000 });
+    await expect(list.getByText("Huisregels", { exact: true })).toBeVisible({
+      timeout: 15000,
+    });
 
-    const row = list.locator("li", { has: page.getByText("Huisregels") });
+    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
     await expect(row.getByText(/\/documents\/huisregels\.pdf/)).toBeVisible();
     publicLink = (
       await row.getByText(/\/documents\/huisregels\.pdf/).innerText()
@@ -86,7 +88,7 @@ test.describe("documents: admin", () => {
   }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li", { has: page.getByText("Huisregels") });
+    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
 
     // The replace input fires on `change` with no separate submit button
     // (see documents-client.tsx), so setting files is the whole action —
@@ -123,17 +125,19 @@ test.describe("documents: admin", () => {
   test("renaming the title keeps the slug (link) stable", async ({ page }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li", { has: page.getByText("Huisregels") });
+    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
 
     await row.getByRole("button", { name: /^hernoemen$/i }).click();
     await row.getByLabel("Titel").fill("Huisregels (bijgewerkt)");
     await row.getByRole("button", { name: /^opslaan$/i }).click();
 
-    await expect(list.getByText("Huisregels (bijgewerkt)")).toBeVisible({
+    await expect(
+      list.getByText("Huisregels (bijgewerkt)", { exact: true }),
+    ).toBeVisible({
       timeout: 15000,
     });
-    const renamedRow = list.locator("li", {
-      has: page.getByText("Huisregels (bijgewerkt)"),
+    const renamedRow = list.locator("li").filter({
+      hasText: /^Huisregels \(bijgewerkt\)$/,
     });
     const linkAfterRename = (
       await renamedRow.getByText(/\/documents\/huisregels\.pdf/).innerText()
@@ -147,14 +151,16 @@ test.describe("documents: admin", () => {
   }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li", {
-      has: page.getByText("Huisregels (bijgewerkt)"),
+    const row = list.locator("li").filter({
+      hasText: /^Huisregels \(bijgewerkt\)$/,
     });
 
     page.once("dialog", (dialog) => void dialog.accept());
     await row.getByRole("button", { name: /^verwijderen$/i }).click();
 
-    await expect(list.getByText("Huisregels (bijgewerkt)")).not.toBeVisible();
+    await expect(
+      list.getByText("Huisregels (bijgewerkt)", { exact: true }),
+    ).not.toBeVisible();
 
     const res = await request.get(publicLink);
     expect(res.status()).toBe(404);
