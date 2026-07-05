@@ -98,32 +98,10 @@ export function BookForm({
 
   return (
     <div className="relative">
-      <div
-        className={cn(
-          "flex flex-col gap-4 items-center justify-center w-full h-full absolute inset-0",
-          { hidden: !isSuccessful },
-        )}
-      >
-        <CircleCheckBig className="text-positive size-30 stroke-1" />
-        <p className="text-style-body-large text-positive text-center">
-          {t("form.successMessage")}
-        </p>
-        <p className="text-sm text-pretty text-center">
-          {t("form.disclaimer")}
-        </p>
-        <Button
-          variant="secondary"
-          onClick={() => window.location.assign(`/${locale}/book`)}
-        >
-          {t("form.makeAnotherBooking")}
-        </Button>
-      </div>
       <form
         action={formAction}
         noValidate
-        className={cn("w-full max-w-2xl space-y-6", {
-          invisible: isSuccessful,
-        })}
+        className="w-full max-w-2xl space-y-6"
         onSubmit={() => {
           void form.handleSubmit();
         }}
@@ -470,27 +448,42 @@ export function BookForm({
               <p className="text-sm text-destructive">{state.formError}</p>
             )}
 
-            <Button type="submit" disabled={isPending} size="lg">
-              {isPending ? t("form.submitting") : t("form.submit")}
-            </Button>
-
-            <p className="text-xs text-muted-foreground">
-              {t.rich("privacyNotice", {
-                link: (chunks: ReactNode) => (
-                  <Link
-                    href="/privacy"
-                    className="underline underline-offset-2 hover:text-foreground transition-colors"
-                  >
-                    {chunks}
-                  </Link>
-                ),
-              })}
-            </p>
+            <div className="relative flex flex-col items-center">
+              {isSuccessful ? (
+                <div className="flex items-center justify-center h-10 bg-positive w-full rounded-md text-olive-50">
+                  <p className="text-style-body-large font-semibold!">
+                    {t("form.successMessage")}
+                  </p>
+                </div>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={isPending}
+                  className="w-full"
+                  size="lg"
+                >
+                  {isPending ? t("form.submitting") : t("form.submit")}
+                </Button>
+              )}
+            </div>
           </FieldSet>
         </FieldGroup>
 
         <FieldSet>
           <p className="text-xs text-pretty">{t("form.disclaimer")}</p>
+
+          <p className="text-xs text-muted-foreground">
+            {t.rich("privacyNotice", {
+              link: (chunks: ReactNode) => (
+                <Link
+                  href="/privacy"
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
+                >
+                  {chunks}
+                </Link>
+              ),
+            })}
+          </p>
         </FieldSet>
       </form>
     </div>
