@@ -63,26 +63,22 @@ export function computeDashboard(
     upcoming: [
       ...bookings
         .filter((b) => b.status === "confirmed" && b.endDate >= today)
-        .map(
-          (b): UpcomingEntry => ({
-            type: "booking",
-            startDate: b.startDate,
-            endDate: b.endDate,
-            name: b.name,
-            guestCount: b.guestCount,
-          }),
-        ),
+        .map((b): UpcomingEntry => ({
+          type: "booking",
+          startDate: b.startDate,
+          endDate: b.endDate,
+          name: b.name,
+          guestCount: b.guestCount,
+        })),
       ...icalSources.flatMap((source) =>
         (source.cachedIntervals ?? [])
           .filter((interval) => interval.end >= today)
-          .map(
-            (interval): UpcomingEntry => ({
-              type: "ical",
-              startDate: interval.start,
-              endDate: interval.end,
-              sourceName: source.name,
-            }),
-          ),
+          .map((interval): UpcomingEntry => ({
+            type: "ical",
+            startDate: interval.start,
+            endDate: interval.end,
+            sourceName: source.name,
+          })),
       ),
     ].sort((a, b) => a.startDate.localeCompare(b.startDate)),
   };
