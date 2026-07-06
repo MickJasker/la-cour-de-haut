@@ -25,7 +25,7 @@ A new first-class **Page** entity, managed in `/admin`, served at top-level `/{l
 - **Privacy migrates in** at its exact URL: seeded from the current 4-locale message-file copy, the hardcoded route and its message-file namespace deleted. One system renders all simple pages; no owner-facing asymmetry.
 - Seeded EN/FR/DE slots are marked **`machine`** even though the current copy is hand-written — preserving the ADR-0016 invariant that no target locale is ever `human`. The first Dutch edit overwrites them with Google output; accepted, because silent locale desync on a legal document is worse.
 - The curated privacy meta description is consciously dropped in favor of the auto-excerpt.
-- **Terms is seeded with placeholder Dutch copy** (auto-translated at seed time); the owner replaces the text in admin. The footer link goes live immediately rather than blocking the feature on client copy.
+- **Terms is seeded with hand-written placeholder copy in all four locales** (targets still marked `machine`, so the first Dutch edit hands them to auto-translate); the owner replaces the text in admin. The seed deliberately calls no translation API — it runs inside `pnpm build`'s migrate chain, which must not depend on Google credentials or the network. The footer link goes live immediately rather than blocking the feature on client copy.
 
 ## Options rejected
 

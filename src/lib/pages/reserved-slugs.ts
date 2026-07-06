@@ -14,6 +14,9 @@ export const RESERVED_SLUGS = [
   "documents",
   "privacy",
   "terms",
+  // Metadata file-convention routes under [locale] occupy URL segments too.
+  "opengraph-image",
+  "twitter-image",
   "nl",
   "en",
   "fr",

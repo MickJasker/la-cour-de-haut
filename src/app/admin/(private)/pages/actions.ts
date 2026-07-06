@@ -14,7 +14,11 @@ import { verifySession } from "@/lib/auth/session";
 import { slugify } from "@/lib/content/slug";
 import { saveAuthoredContent } from "@/lib/content/authored-save";
 import { parseDetailField } from "@/lib/content/lexical/parse-detail-field";
-import { isReservedSlug } from "@/lib/pages/reserved-slugs";
+import { uniquePageSlugFrom } from "@/lib/pages/unique-slug";
+import {
+  assertPageDeletable,
+  assertPagePublishToggleable,
+} from "@/lib/pages/system-guards";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 import {
   pageFormOpts,
@@ -66,28 +70,15 @@ function invalidate() {
   updateTag(CACHE_TAGS.pages);
 }
 
-/**
- * Finds a unique slug from a base, appending `-2`, `-3`, … on collision
- * against both existing page slugs and the reserved-slug blocklist (ADR-0020)
- * — a page can never claim a slug an existing static route or another page
- * already uses. The `page` table is tiny, so fetching every slug once is
- * cheaper than a LIKE query (mirrors `uniquePoiSlug`). Falls back to "pagina"
- * when the base is empty (title had no slug-worthy chars).
- */
+// The `page` table is tiny, so fetching every slug once is cheaper than a
+// LIKE query (mirrors `uniquePoiSlug`); the dedup/reserved-skip logic itself
+// is the pure, unit-tested `uniquePageSlugFrom`.
 async function uniquePageSlug(
   db: ReturnType<typeof getDb>,
   base: string,
 ): Promise<string> {
-  const root = base || "pagina";
   const rows = await db.select({ slug: page.slug }).from(page);
-  const taken = new Set(rows.map((r) => r.slug));
-  const isFree = (candidate: string) =>
-    !taken.has(candidate) && !isReservedSlug(candidate);
-
-  if (isFree(root)) return root;
-  let n = 2;
-  while (!isFree(`${root}-${n}`)) n++;
-  return `${root}-${n}`;
+  return uniquePageSlugFrom(base, new Set(rows.map((r) => r.slug)));
 }
 
 export async function createPageAction(
@@ -233,11 +224,7 @@ export async function togglePagePublishedAction(
     .from(page)
     .where(eq(page.id, id));
   if (!row) return;
-  // System pages are always published (ADR-0020) — the booking form and
-  // footer link to them with no 404 risk.
-  if (row.system) {
-    throw new Error("Systeempagina's zijn altijd gepubliceerd");
-  }
+  assertPagePublishToggleable(row);
 
   await db.update(page).set({ published }).where(eq(page.id, id));
   invalidate();
@@ -251,10 +238,7 @@ export async function deletePageAction(id: string) {
     .from(page)
     .where(eq(page.id, id));
   if (!row) return;
-  // System pages are undeletable (ADR-0020).
-  if (row.system) {
-    throw new Error("Systeempagina's kunnen niet worden verwijderd");
-  }
+  assertPageDeletable(row);
 
   await db.delete(page).where(eq(page.id, id));
   invalidate();

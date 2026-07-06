@@ -20,7 +20,8 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
 // Owner-managed pages (ADR-0020) live at top-level /{locale}/{slug}. Static
 // segments (book, poi, …) take precedence over this dynamic one; the admin
-// create action refuses reserved slugs so a page can never be shadowed.
+// create action dedupes around reserved slugs (a title deriving "poi"
+// becomes "poi-2"), so a page can never be shadowed.
 export const generateStaticParams = pageStaticParams;
 
 export async function generateMetadata({
@@ -62,6 +63,11 @@ export default async function OwnerManagedPage({
 }: {
   params: Promise<{ locale: string; slug: string }>;
 }) {
+  // Page-level "use cache" (unlike poi/[slug], which caches only the query
+  // and keeps notFound() in an uncached loader): the whole render — header
+  // included — is param-derived, and throwing notFound() inside a cached
+  // scope is safe because error results are never cached. Both this shell
+  // and the inner query invalidate on updateTag("pages").
   "use cache";
   cacheLife("max");
   cacheTag(CACHE_TAGS.pages);

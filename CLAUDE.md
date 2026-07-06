@@ -49,7 +49,7 @@ When a feature has design decisions to lock down, run a guided requirements inte
 ## E2E testing patterns
 
 - `clearBookings()` truncates `booking_request` only — `ical_source` is seeded by global-setup; seed test iCal rows with `ON CONFLICT (id) DO UPDATE` and a fixed ID, never truncate the table in tests
-- `page` is seeded by `db:migrate` (system pages `privacy`/`terms`, ADR-0020) — never `TRUNCATE page` in specs; clean up owner-created rows with `DELETE FROM page WHERE system = false`
+- `page` is seeded by `db:migrate` (system pages `privacy`/`terms`, ADR-0020) — never `TRUNCATE page` in specs, and scope cleanup to rows the spec itself created (fixed id or slug prefix); a blanket `DELETE FROM page WHERE system = false` races other page specs in parallel workers
 - `getByText("some heading")` matches substrings — use `getByRole("heading", { name })` for section headings to avoid false positives against body copy containing the same words
 - `booking-lifecycle.spec.ts` has a `beforeAll` that seeds `requested` bookings without `afterAll` cleanup; add `test.describe.configure({ mode: "serial" })` to any spec whose all-clear state can be dirtied by parallel workers
 

@@ -7,8 +7,12 @@ import { neon } from "@neondatabase/serverless";
 
 const sql = neon(process.env.DATABASE_URL!);
 
-async function clearOwnerPages() {
-  await sql`DELETE FROM page WHERE system = false`;
+async function clearOwnPages() {
+  // Scoped to this spec's own rows (slug derives from the title "Huisregels"
+  // via the translate stub; dedup can suffix it): spec files run in parallel
+  // workers, so a blanket `system = false` delete would race pages.spec.ts's
+  // seeded draft row.
+  await sql`DELETE FROM page WHERE slug LIKE 'huisregels%'`;
 }
 
 async function getPageBySlug(slug: string) {
@@ -23,8 +27,8 @@ test.describe("admin: pages", () => {
   test.describe.configure({ mode: "serial" });
   test.use({ storageState: "e2e/.auth/owner.json" });
 
-  test.beforeAll(clearOwnerPages);
-  test.afterAll(clearOwnerPages);
+  test.beforeAll(clearOwnPages);
+  test.afterAll(clearOwnPages);
 
   // The E2E_TESTING translate stub returns "<text> [en]" instead of calling
   // Google Translate, so the Dutch title "Huisregels" produces the English

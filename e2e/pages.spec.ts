@@ -64,9 +64,12 @@ async function seedPage(opts: {
   `;
 }
 
-async function clearOwnerPages() {
-  // System pages must survive: global-setup only reseeds them once per run.
-  await sql`DELETE FROM page WHERE system = false`;
+async function deleteSeededDraft() {
+  // Scoped to this spec's own row: spec files run in parallel workers, so a
+  // blanket `system = false` delete would race admin-pages.spec.ts's live
+  // rows. (System pages must survive regardless: global-setup only reseeds
+  // them once per run.)
+  await sql`DELETE FROM page WHERE id = 'e2e-draft'`;
 }
 
 async function gotoFresh(page: Page, path: string) {
@@ -140,12 +143,12 @@ test.describe("pages: public", () => {
   });
 
   test("unpublished draft page returns 404", async ({ page }) => {
-    await clearOwnerPages();
+    await deleteSeededDraft();
     await seedPage({ id: "e2e-draft", published: false });
 
     const response = await page.goto("/nl/e2e-draft");
     expect(response?.status()).toBe(404);
 
-    await clearOwnerPages();
+    await deleteSeededDraft();
   });
 });
