@@ -116,9 +116,9 @@ async function sendOwnerNotification(data: {
     from,
     to,
     replyTo: data.email,
-    subject: `New booking request from ${data.name.replace(/[\r\n]/g, " ")}`,
+    subject: `Nieuwe boekingsaanvraag van ${data.name.replace(/[\r\n]/g, " ")}`,
     html: `
-      <h2>New booking request</h2>
+      <h2>Nieuwe boekingsaanvraag</h2>
       <table cellpadding="6" style="border-collapse:collapse">
         <tr><th align="left">Naam</th><td>${esc(data.name)}</td></tr>
         <tr><th align="left">Email</th><td><a href="mailto:${encodeURIComponent(data.email)}">${esc(data.email)}</a></td></tr>
@@ -136,7 +136,7 @@ async function sendOwnerNotification(data: {
       </table>
       <p style="margin-top:24px">
         <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/admin">
-          View in admin inbox →
+          Bekijk in beheeromgeving
         </a>
       </p>
     `,
