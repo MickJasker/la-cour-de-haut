@@ -63,7 +63,9 @@ test.describe("documents: admin", () => {
       timeout: 15000,
     });
 
-    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
+    const row = list.locator("li").filter({
+      has: page.getByText("Huisregels", { exact: true }),
+    });
     await expect(row.getByText(/\/documents\/huisregels\.pdf/)).toBeVisible();
     publicLink = (
       await row.getByText(/\/documents\/huisregels\.pdf/).innerText()
@@ -88,7 +90,9 @@ test.describe("documents: admin", () => {
   }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
+    const row = list.locator("li").filter({
+      has: page.getByText("Huisregels", { exact: true }),
+    });
 
     // The replace input fires on `change` with no separate submit button
     // (see documents-client.tsx), so setting files is the whole action —
@@ -125,7 +129,9 @@ test.describe("documents: admin", () => {
   test("renaming the title keeps the slug (link) stable", async ({ page }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li").filter({ hasText: /^Huisregels$/ });
+    const row = list.locator("li").filter({
+      has: page.getByText("Huisregels", { exact: true }),
+    });
 
     await row.getByRole("button", { name: /^hernoemen$/i }).click();
     await row.getByLabel("Titel").fill("Huisregels (bijgewerkt)");
@@ -137,7 +143,7 @@ test.describe("documents: admin", () => {
       timeout: 15000,
     });
     const renamedRow = list.locator("li").filter({
-      hasText: /^Huisregels \(bijgewerkt\)$/,
+      has: page.getByText("Huisregels (bijgewerkt)", { exact: true }),
     });
     const linkAfterRename = (
       await renamedRow.getByText(/\/documents\/huisregels\.pdf/).innerText()
@@ -152,7 +158,7 @@ test.describe("documents: admin", () => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
     const row = list.locator("li").filter({
-      hasText: /^Huisregels \(bijgewerkt\)$/,
+      has: page.getByText("Huisregels (bijgewerkt)", { exact: true }),
     });
 
     page.once("dialog", (dialog) => void dialog.accept());
