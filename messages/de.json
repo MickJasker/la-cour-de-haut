@@ -36,26 +36,6 @@
       "callToAction": "Jetzt Ihren Aufenthalt buchen"
     }
   },
-  "privacy": {
-    "metadata": {
-      "title": "Datenschutzerklärung",
-      "description": "Datenschutzerklärung von La Cour de Haut — wie wir Ihre personenbezogenen Daten verarbeiten."
-    },
-    "title": "Datenschutzerklärung",
-    "intro": "La Cour de Haut verarbeitet personenbezogene Daten im Zusammenhang mit Buchungsanfragen. Diese Erklärung erläutert, welche Daten wir erheben, warum und wie lange wir sie aufbewahren.",
-    "dataCollectedTitle": "Welche Daten erheben wir?",
-    "dataCollectedBody": "Über das Buchungsformular erheben wir: Ihren Vor- und Nachnamen, Ihre E-Mail-Adresse, Telefonnummer, Postanschrift (Straße, Postleitzahl, Stadt und Land) und die gewünschten Aufenthaltsdaten.",
-    "purposeTitle": "Wofür verwenden wir Ihre Daten?",
-    "purposeBody": "Wir verwenden Ihre Daten zur Beantwortung Ihrer Buchungsanfrage, zur Bestätigung der Verfügbarkeit, zur Bereitstellung weiterer Zahlungs- und Aufenthaltsinformationen sowie für unsere Buchführung und den Mietvertrag.",
-    "retentionTitle": "Wie lange bewahren wir Ihre Daten auf?",
-    "retentionBody": "Wir bewahren Ihre Daten so lange auf, wie es für die Bearbeitung Ihrer Buchungsanfrage und die damit verbundene Korrespondenz erforderlich ist. Sie können jederzeit die Löschung beantragen, indem Sie uns kontaktieren.",
-    "rightsTitle": "Ihre Rechte",
-    "rightsBody": "Sie haben das Recht auf Auskunft, Berichtigung und Löschung Ihrer personenbezogenen Daten. Bei Fragen oder Anträgen kontaktieren Sie uns unter: info@lacourdehaut.fr.",
-    "contactTitle": "Kontakt",
-    "contactBody": "La Cour de Haut — info@lacourdehaut.fr",
-    "turnstileTitle": "Spam-Schutz (Cloudflare Turnstile)",
-    "turnstileBody": "Zum Schutz unseres Buchungsformulars vor Spam und Missbrauch verwenden wir Cloudflare Turnstile im unsichtbaren Modus. Turnstile kann technische Informationen (wie IP-Adresse und Browserdaten) erfassen, um zu beurteilen, ob eine Anfrage von einem Menschen stammt. Weitere Informationen finden Sie im <link>Cloudflare Turnstile Datenschutz-Addendum</link>."
-  },
   "booking": {
     "form": {
       "name": "Vor- und Nachname",

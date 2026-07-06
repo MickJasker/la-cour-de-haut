@@ -19,21 +19,24 @@ export const localizedEditorStateSchema = z.object({
 });
 
 /**
- * Parses the JSON-encoded "detail" FormData field submitted by every
- * rich-text admin form — POI detail (ADR-0015) and hero/gîte prose
- * (ADR-0017). The wire format is always the localized `{ nl, en?, fr?, de? }`
- * shape (matching `LocalizedEditorState`/storage), never a bare EditorState,
- * so both save paths share one parser and one empty-detail rule.
+ * Parses a JSON-encoded rich-text FormData field submitted by every
+ * rich-text admin form — POI detail (ADR-0015), hero/gîte prose (ADR-0017),
+ * and page body (ADR-0020, field name "body"). The wire format is always the
+ * localized `{ nl, en?, fr?, de? }` shape (matching
+ * `LocalizedEditorState`/storage), never a bare EditorState, so every save
+ * path shares one parser and one empty-content rule.
  *
  * Returns null when the field is absent, malformed, fails schema validation,
  * or has no real text content in `nl` (the editor always serializes at least
- * one empty paragraph) — so empty detail is uniformly treated as "no
- * content" and stored as NULL.
+ * one empty paragraph) — so empty content is uniformly treated as "no
+ * content"; callers decide whether that means NULL (POI) or a validation
+ * error (page body, which is required).
  */
 export function parseDetailField(
   formData: FormData,
+  field = "detail",
 ): LocalizedEditorState | null {
-  const raw = formData.get("detail");
+  const raw = formData.get(field);
   if (typeof raw !== "string") return null;
   let parsed: unknown;
   try {

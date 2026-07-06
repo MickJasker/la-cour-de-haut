@@ -18,6 +18,7 @@ const KNOWN_TAGS = new Set([
   "settings",
   "poi",
   "content",
+  "pages",
 ]);
 
 export async function POST(
