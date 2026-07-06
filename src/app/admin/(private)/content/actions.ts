@@ -171,3 +171,20 @@ export async function updateAboutUsDescriptionAction(
     failures: failures.length ? failures : undefined,
   };
 }
+
+export async function updateGeneralInfoAction(
+  _prev: unknown,
+  formData: FormData,
+): Promise<ContentActionState> {
+  await verifySession();
+  const detail = parseDetailField(formData);
+  if (!detail) {
+    return { success: false, error: "Vereist" };
+  }
+  const { failures } = await upsertRichText("general_info", detail.nl);
+  return {
+    success: true,
+    error: null,
+    failures: failures.length ? failures : undefined,
+  };
+}

@@ -12,6 +12,7 @@ import { uploadAdminImage } from "../upload-file";
 import {
   updateAboutUsDescriptionAction,
   updateDescriptionAction,
+  updateGeneralInfoAction,
   updateHeroDescriptionAction,
   uploadHeroImageAction,
   type ContentActionState,
@@ -98,6 +99,8 @@ export function ContentClient({
   heroImageUrl,
   aboutUsDescription,
   aboutUsDescriptionValueSource,
+  generalInfo,
+  generalInfoValueSource,
 }: {
   description: LocalizedEditorState | null;
   descriptionValueSource: LocalizedSource | null;
@@ -106,6 +109,8 @@ export function ContentClient({
   heroImageUrl: string | null;
   aboutUsDescription: LocalizedEditorState | null;
   aboutUsDescriptionValueSource: LocalizedSource | null;
+  generalInfo: LocalizedEditorState | null;
+  generalInfoValueSource: LocalizedSource | null;
 }) {
   const [heroFile, setHeroFile] = useState<File | null>(null);
   // Tracks the direct-to-Blob upload (browser -> Vercel Blob), which happens
@@ -205,6 +210,18 @@ export function ContentClient({
           initialValue={aboutUsDescription}
           initialValueSource={aboutUsDescriptionValueSource}
           action={updateAboutUsDescriptionAction}
+        />
+      </section>
+
+      {/* Algemene informatie */}
+      <section data-testid="admin-general-info-section" className="space-y-6">
+        <h2 className="text-lg font-semibold">Algemene informatie</h2>
+        <RichTextBlockForm
+          id="general-info"
+          label="Beschrijving (NL)"
+          initialValue={generalInfo}
+          initialValueSource={generalInfoValueSource}
+          action={updateGeneralInfoAction}
         />
       </section>
     </div>
