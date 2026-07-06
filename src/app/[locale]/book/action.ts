@@ -5,6 +5,7 @@ import {
   initialFormState,
 } from "@tanstack/react-form-nextjs";
 import { getTranslations } from "@/i18n/server";
+import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
 import {
   calculateTotalNights,
@@ -209,20 +210,24 @@ export async function submitBookingAction(
       shownPriceAtBooking: pricePerNight.toString(),
     });
 
-    // 4. Owner notification (fire-and-forget — don't block on email failure)
-    void sendOwnerNotification({
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      postalCode: data.postalCode,
-      city: data.city,
-      country: data.country,
-      guestCount: data.guestCount,
-      startDate: data.stayDates.from,
-      endDate: data.stayDates.to,
-      pricePerNight,
-    }).catch(console.error);
+    // 4. Owner notification — don't block the response on email failure, but
+    // keep the function instance alive until the send completes (a dangling
+    // promise can be dropped when the serverless instance suspends)
+    waitUntil(
+      sendOwnerNotification({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        address: data.address,
+        postalCode: data.postalCode,
+        city: data.city,
+        country: data.country,
+        guestCount: data.guestCount,
+        startDate: data.stayDates.from,
+        endDate: data.stayDates.to,
+        pricePerNight,
+      }).catch(console.error),
+    );
 
     return { ...initialFormState, success: true };
   } catch (e) {
