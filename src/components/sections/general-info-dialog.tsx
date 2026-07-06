@@ -28,7 +28,9 @@ export function GeneralInfoDialog({
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl" aria-describedby={undefined}>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-style-display-medium mb-4">
+            {title}
+          </DialogTitle>
           <div className="overflow-y-auto max-h-[80vh]">
             <RichTextRenderer state={state} className="text-style-body-large" />
           </div>

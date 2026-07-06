@@ -148,7 +148,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
 
           {(allPublished.length > 2 || generalInfo) && (
             <div
-              className={`flex gap-4 justify-self-start md:row-start-3 md:col-start-9 lg:col-start-1 lg:col-end-7 ${
+              className={`flex flex-col md:flex-row gap-4 justify-self-start md:row-start-3 md:col-start-9 lg:col-start-1 lg:col-end-7 ${
                 allPublished.length <= 4 && !generalInfo ? "md:hidden" : ""
               }`}
             >
