@@ -15,7 +15,7 @@ function invalidate() {
 }
 
 // Receives only the resulting Blob URL — the file itself was already
-// streamed from the browser straight to Vercel Blob (see #98, upload-image.ts).
+// streamed from the browser straight to Vercel Blob (see #98, upload-file.ts).
 // `dimensions` are the file's real pixel width/height, read client-side
 // before upload (see gallery-client.tsx's readImageDimensions) — a failed or
 // zero-dimension capture is passed as null/undefined and never blocks the

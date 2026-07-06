@@ -8,7 +8,7 @@ import { LocaleStatus } from "@/components/locale-status";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { EMPTY_EDITOR_STATE } from "@/lib/content/lexical/empty-state";
 import { ImageDropzone } from "../image-dropzone";
-import { uploadAdminImage } from "../upload-image";
+import { uploadAdminImage } from "../upload-file";
 import {
   updateAboutUsDescriptionAction,
   updateDescriptionAction,

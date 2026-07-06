@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { stubClientUploadAdapter } from "./upload-image-stub-adapter";
+import { stubClientUploadAdapter } from "./upload-file-stub-adapter";
 
 describe("stubClientUploadAdapter", () => {
   afterEach(() => {
@@ -39,7 +39,7 @@ describe("stubClientUploadAdapter", () => {
       type: "image/jpeg",
     });
     await expect(stubClientUploadAdapter.upload(file, "pois")).rejects.toThrow(
-      "Afbeelding uploaden mislukt",
+      "Bestand uploaden mislukt",
     );
   });
 });

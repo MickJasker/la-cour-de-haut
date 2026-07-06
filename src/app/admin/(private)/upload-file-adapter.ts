@@ -1,17 +1,17 @@
-import { realClientUploadAdapter } from "./upload-image-real-adapter";
-import { stubClientUploadAdapter } from "./upload-image-stub-adapter";
+import { realClientUploadAdapter } from "./upload-file-real-adapter";
+import { stubClientUploadAdapter } from "./upload-file-stub-adapter";
 
-export type AdminImageFolder = "pois" | "gallery" | "content";
+export type AdminUploadFolder = "pois" | "gallery" | "content" | "documents";
 
 /**
- * The seam between "upload this file" (uploadAdminImage in
- * ./upload-image.ts) and "how the upload actually reaches storage." Both
+ * The seam between "upload this file" (uploadAdminImage / uploadAdminDocument
+ * in ./upload-file.ts) and "how the upload actually reaches storage." Both
  * the real @vercel/blob/client-backed adapter and the deterministic E2E
  * stub satisfy this interface, so either is unit-testable on its own
  * without going through getClientUploadAdapter().
  */
 export interface ClientUploadAdapter {
-  upload(file: File, folder: AdminImageFolder): Promise<string>;
+  upload(file: File, folder: AdminUploadFolder): Promise<string>;
 }
 
 // This module runs client-side (bundled into the browser via the gallery /

@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { LocaleStatus } from "@/components/locale-status";
-import { uploadAdminImage } from "../upload-image";
+import { uploadAdminImage } from "../upload-file";
 import {
   uploadGalleryImageAction,
   togglePublishedAction,
@@ -281,7 +281,7 @@ export function GalleryList({ images }: { images: GalleryImage[] }) {
 
 // Reads a File's real pixel dimensions in the browser, before it's uploaded.
 // Client-side only — preserves the invariant that server actions never read
-// file bytes (see upload-image.ts, #103). Never throws: any failure (decode
+// file bytes (see upload-file.ts, #103). Never throws: any failure (decode
 // error, or a zero/NaN width or height) resolves to null so the caller can
 // fall back to storing no dimensions, which must never block the upload.
 //

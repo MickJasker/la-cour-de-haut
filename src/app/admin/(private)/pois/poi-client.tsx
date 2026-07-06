@@ -37,7 +37,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Field, FieldError, FieldGroup, FieldSet } from "@/components/ui/field";
 import { ImageDropzone } from "../image-dropzone";
-import { uploadAdminImage } from "../upload-image";
+import { uploadAdminImage } from "../upload-file";
 import {
   createPoiAction,
   updatePoiAction,
