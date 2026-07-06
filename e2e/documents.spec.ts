@@ -88,6 +88,14 @@ test.describe("documents: admin", () => {
     page,
     request,
   }) => {
+    // The replace pipeline (client upload → server action → DB commit) has
+    // repeatedly needed more than the default budget on loaded CI runners.
+    test.setTimeout(60_000);
+    // A crashed client transition would otherwise surface only as a poll
+    // timeout with no cause — collect page errors so the poll can report them.
+    const pageErrors: Error[] = [];
+    page.on("pageerror", (error) => pageErrors.push(error));
+
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
     const row = list.locator("li").filter({
@@ -108,10 +116,14 @@ test.describe("documents: admin", () => {
     // public link until it reflects the new bytes instead of asserting on a
     // fixed UI transition.
     await expect(async () => {
+      expect(
+        pageErrors,
+        `client-side errors during replace: ${pageErrors.map(String).join("; ")}`,
+      ).toHaveLength(0);
       const res = await request.get(publicLink);
       const body = await res.text();
       expect(body).toContain("MARKER-B");
-    }).toPass({ timeout: 20000 });
+    }).toPass({ timeout: 45_000 });
 
     const res = await request.get(publicLink);
     expect(res.status()).toBe(200);
@@ -174,8 +186,12 @@ test.describe("documents: admin", () => {
       list.getByText("Huisregels (bijgewerkt)", { exact: true }),
     ).not.toBeVisible();
 
-    const res = await request.get(publicLink);
-    expect(res.status()).toBe(404);
+    // The row disappears optimistically before deleteDocumentAction commits
+    // (documents-client.tsx onDelete), so poll instead of asserting once.
+    await expect(async () => {
+      const res = await request.get(publicLink);
+      expect(res.status()).toBe(404);
+    }).toPass({ timeout: 15_000 });
   });
 
   test("an unknown slug 404s", async ({ request }) => {
