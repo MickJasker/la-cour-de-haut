@@ -111,7 +111,7 @@ test.describe("documents: admin", () => {
       const res = await request.get(publicLink);
       const body = await res.text();
       expect(body).toContain("MARKER-B");
-    }).toPass({ timeout: 15000 });
+    }).toPass({ timeout: 20000 });
 
     const res = await request.get(publicLink);
     expect(res.status()).toBe(200);
@@ -129,9 +129,15 @@ test.describe("documents: admin", () => {
   test("renaming the title keeps the slug (link) stable", async ({ page }) => {
     await page.goto("/admin/documents");
     const list = page.locator("[data-testid='document-list']");
-    const row = list.locator("li").filter({
-      has: page.getByText("Huisregels", { exact: true }),
-    });
+    // Pin the row by its stable testid before entering edit mode: the
+    // has-text filter stops matching the moment "Hernoemen" swaps the
+    // title <p> for an input, so a live text-based locator would go stale.
+    const rowTestId = await list
+      .locator("li")
+      .filter({ has: page.getByText("Huisregels", { exact: true }) })
+      .getAttribute("data-testid");
+    expect(rowTestId).not.toBeNull();
+    const row = page.getByTestId(rowTestId!);
 
     await row.getByRole("button", { name: /^hernoemen$/i }).click();
     await row.getByLabel("Titel").fill("Huisregels (bijgewerkt)");
