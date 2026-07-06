@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { galleryImage, contentBlock } from "@/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { GiteDialog } from "./gite-dialog";
+import { GeneralInfoDialog } from "./general-info-dialog";
 import { cacheLife, cacheTag } from "next/cache";
 import { RichTextRenderer } from "../rich-text-renderer";
 import { hasEditorText } from "@/lib/content/lexical/empty-state";
@@ -34,6 +35,21 @@ export async function GiteSection({ locale }: { locale: Locale }) {
       ? descriptionState
       : null;
 
+  const generalInfoRow = await db
+    .select({ value: contentBlock.value })
+    .from(contentBlock)
+    .where(eq(contentBlock.key, "general_info"))
+    .limit(1)
+    .then((r) => r[0] ?? null);
+  const generalInfoState =
+    generalInfoRow?.value?.type === "localizedEditorState"
+      ? pickLocalized(generalInfoRow.value, locale)
+      : null;
+  const generalInfo =
+    generalInfoState !== null && hasEditorText(generalInfoState)
+      ? generalInfoState
+      : null;
+
   const allPublished = await db
     .select({
       id: galleryImage.id,
@@ -46,7 +62,7 @@ export async function GiteSection({ locale }: { locale: Locale }) {
     .where(eq(galleryImage.published, true))
     .orderBy(asc(galleryImage.sortOrder));
 
-  if (allPublished.length === 0 && !description) return null;
+  if (allPublished.length === 0 && !description && !generalInfo) return null;
 
   // Each image renders exactly once; responsive grid placement recreates the
   // staggered desktop masonry while stacking image1/image2 on mobile.
@@ -130,15 +146,23 @@ export async function GiteSection({ locale }: { locale: Locale }) {
             </div>
           )}
 
-          {allPublished.length > 2 && (
-            <GiteDialog
-              images={allPublished}
-              className={`justify-self-start md:row-start-3 md:col-start-9 lg:col-start-1 lg:col-end-7 ${
-                allPublished.length <= 4 ? "md:hidden" : ""
-              }`}
-            >
-              {t("viewMorePhotos")}
-            </GiteDialog>
+          {(allPublished.length > 2 || generalInfo) && (
+            <div className="flex gap-4 justify-self-start md:row-start-3 md:col-start-9 lg:col-start-1 lg:col-end-7">
+              {allPublished.length > 2 && (
+                <GiteDialog
+                  images={allPublished}
+                  className={allPublished.length <= 4 ? "md:hidden" : undefined}
+                >
+                  {t("viewMorePhotos")}
+                </GiteDialog>
+              )}
+
+              {generalInfo && (
+                <GeneralInfoDialog title={t("generalInfo")} state={generalInfo}>
+                  {t("generalInfo")}
+                </GeneralInfoDialog>
+              )}
+            </div>
           )}
         </div>
       </div>

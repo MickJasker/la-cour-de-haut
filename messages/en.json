@@ -19,7 +19,8 @@
     },
     "gite": {
       "title": "The Gîte",
-      "viewMorePhotos": "View more photos"
+      "viewMorePhotos": "View more photos",
+      "generalInfo": "General information"
     },
     "reviews": {
       "title": "What guests say",

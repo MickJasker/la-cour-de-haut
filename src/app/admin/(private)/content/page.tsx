@@ -17,6 +17,7 @@ export default async function ContentAdminPage() {
         "hero_image_url",
         "hero_description",
         "about_us_description",
+        "general_info",
       ]),
     );
 
@@ -26,6 +27,8 @@ export default async function ContentAdminPage() {
   const aboutUsDescRow =
     rows.find((r) => r.key === "about_us_description") ?? null;
   const aboutUsDescValueSource = aboutUsDescRow?.valueSource ?? null;
+  const generalInfoRow = rows.find((r) => r.key === "general_info") ?? null;
+  const generalInfoValueSource = generalInfoRow?.valueSource ?? null;
 
   return (
     <main className="min-h-screen p-8">
@@ -55,6 +58,12 @@ export default async function ContentAdminPage() {
               : null
           }
           aboutUsDescriptionValueSource={aboutUsDescValueSource}
+          generalInfo={
+            generalInfoRow?.value?.type === "localizedEditorState"
+              ? generalInfoRow.value
+              : null
+          }
+          generalInfoValueSource={generalInfoValueSource}
         />
       </div>
     </main>
