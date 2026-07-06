@@ -29,7 +29,6 @@ import { FORWARD_HORIZON_MONTHS } from "@/lib/booking/calendar-day";
 
 const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
-import { CircleCheckBig } from "lucide-react";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import {
   submitBookingAction,
@@ -48,9 +47,13 @@ import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 export function BookForm({
   bookedDates,
   pricePerNight: pricePerNightPromise,
+  stickyCta = false,
 }: {
   bookedDates: Promise<string[]>;
   pricePerNight: Promise<number>;
+  /** Pins the total + submit button to the bottom of the nearest scroll
+      container (the booking dialog); the full price breakdown stays in flow. */
+  stickyCta?: boolean;
 }) {
   const t = useTranslations("booking");
   const locale = useLocale();
@@ -395,12 +398,16 @@ export function BookForm({
                           strong: renderStrong,
                         })}
                       </p>
-                      <p className="font-medium">
-                        {t.rich("form.totalLine", {
-                          totalPrice: currency.format(totalPrice),
-                          strong: renderStrong,
-                        })}
-                      </p>
+                      {/* In sticky mode the total lives in the CTA bar below;
+                          repeating it here reads as a duplicate at rest. */}
+                      {!stickyCta && (
+                        <p className="font-medium">
+                          {t.rich("form.totalLine", {
+                            totalPrice: currency.format(totalPrice),
+                            strong: renderStrong,
+                          })}
+                        </p>
+                      )}
                     </div>
                   </>
                 );
@@ -411,62 +418,101 @@ export function BookForm({
             </p>
           </div>
 
-          <FieldSet>
-            <input type="hidden" name="_locale" value={locale} />
-            {/* Honeypot: off-screen, hidden from assistive tech and keyboard nav */}
-            <div
-              aria-hidden="true"
-              style={{ position: "absolute", left: "-9999px", top: "auto" }}
-            >
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-              />
-            </div>
-
-            <Turnstile
-              ref={turnstileRef}
-              siteKey={(
-                process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
-              ).trim()}
-              options={{ size: "invisible", execution: "render" }}
-              onSuccess={setTurnstileToken}
-              onExpire={() => {
-                setTurnstileToken("");
-                turnstileRef.current?.reset();
-              }}
-            />
-            <input
-              type="hidden"
-              name="cf-turnstile-response"
-              value={turnstileToken}
-            />
-
-            {state.formError && (
-              <p className="text-sm text-destructive">{state.formError}</p>
+          {/* -bottom-10 cancels the dialog scroll container's pb-10: sticky
+              offsets resolve against the scrollport's content box, so without
+              it the bar floats above the dialog edge with content visible
+              underneath. */}
+          <div
+            className={cn(
+              stickyCta &&
+                "sticky -bottom-10 z-10 border-t border-border bg-background py-4",
             )}
+          >
+            <FieldSet className={cn(stickyCta && "gap-3")}>
+              <input type="hidden" name="_locale" value={locale} />
+              {/* Honeypot: off-screen, hidden from assistive tech and keyboard nav */}
+              <div
+                aria-hidden="true"
+                style={{ position: "absolute", left: "-9999px", top: "auto" }}
+              >
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                />
+              </div>
 
-            <div className="relative flex flex-col items-center">
-              {isSuccessful ? (
-                <div className="flex items-center justify-center h-10 bg-positive w-full rounded-md text-olive-50">
-                  <p className="text-style-body-large font-semibold!">
-                    {t("form.successMessage")}
-                  </p>
-                </div>
-              ) : (
-                <Button
-                  type="submit"
-                  disabled={isPending}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isPending ? t("form.submitting") : t("form.submit")}
-                </Button>
+              <Turnstile
+                ref={turnstileRef}
+                siteKey={(
+                  process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY ?? ""
+                ).trim()}
+                options={{ size: "invisible", execution: "render" }}
+                onSuccess={setTurnstileToken}
+                onExpire={() => {
+                  setTurnstileToken("");
+                  turnstileRef.current?.reset();
+                }}
+              />
+              <input
+                type="hidden"
+                name="cf-turnstile-response"
+                value={turnstileToken}
+              />
+
+              {state.formError && (
+                <p className="text-sm text-destructive">{state.formError}</p>
               )}
-            </div>
-          </FieldSet>
+
+              {stickyCta && (
+                <form.Subscribe>
+                  {(formState) => {
+                    const totalNights = calculateTotalNights(
+                      formState.values.stayDates?.from ?? "",
+                      formState.values.stayDates?.to ?? "",
+                    );
+
+                    if (!totalNights) return null;
+
+                    const { totalPrice } = calculatePriceBreakdown(
+                      pricePerNight,
+                      totalNights,
+                      Number(formState.values.guestCount),
+                    );
+
+                    return (
+                      <p className="text-md">
+                        {t.rich("form.totalLine", {
+                          totalPrice: currency.format(totalPrice),
+                          strong: renderStrong,
+                        })}
+                      </p>
+                    );
+                  }}
+                </form.Subscribe>
+              )}
+
+              <div className="relative flex flex-col items-center">
+                {isSuccessful ? (
+                  <div className="flex items-center justify-center h-10 bg-positive w-full rounded-md text-olive-50">
+                    <p className="text-style-body-large font-semibold!">
+                      {t("form.successMessage")}
+                    </p>
+                  </div>
+                ) : (
+                  <Button
+                    type="submit"
+                    disabled={isPending}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isPending ? t("form.submitting") : t("form.submit")}
+                  </Button>
+                )}
+              </div>
+            </FieldSet>
+          </div>
         </FieldGroup>
 
         <FieldSet>
