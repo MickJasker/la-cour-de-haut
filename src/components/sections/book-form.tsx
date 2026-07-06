@@ -473,8 +473,18 @@ export function BookForm({
           <p className="text-xs text-pretty">{t("form.disclaimer")}</p>
 
           <p className="text-xs text-muted-foreground">
-            {t.rich("privacyNotice", {
-              link: (chunks: ReactNode) => (
+            {t.rich("consentNotice", {
+              terms: (chunks: ReactNode) => (
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline underline-offset-2 hover:text-foreground transition-colors"
+                >
+                  {chunks}
+                </Link>
+              ),
+              privacy: (chunks: ReactNode) => (
                 <Link
                   href="/privacy"
                   target="_blank"

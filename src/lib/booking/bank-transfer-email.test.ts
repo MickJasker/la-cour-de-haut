@@ -86,4 +86,49 @@ describe("sendBankTransferEmail", () => {
     const call = mockSend.mock.calls[0]![0] as { subject: string };
     expect(call.subject).toBe("Your reservation at La Cour de Haut");
   });
+
+  describe("terms link", () => {
+    const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    beforeEach(() => {
+      process.env.RESEND_API_KEY = "re_test_key";
+      delete process.env.NEXT_PUBLIC_APP_URL;
+    });
+
+    afterEach(() => {
+      if (originalAppUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+      else process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
+    });
+
+    it.each([
+      ["nl", "https://lacourdehaut.fr/nl/terms"],
+      ["en", "https://lacourdehaut.fr/en/terms"],
+      ["fr", "https://lacourdehaut.fr/fr/terms"],
+      ["de", "https://lacourdehaut.fr/de/terms"],
+    ])(
+      "includes the locale-prefixed terms link for locale %s",
+      async (locale, expectedUrl) => {
+        await sendBankTransferEmail({ ...baseParams, locale });
+
+        const call = mockSend.mock.calls[0]![0] as { html: string };
+        expect(call.html).toContain(`href="${expectedUrl}"`);
+      },
+    );
+
+    it("falls back to the English terms link for an unknown locale, not the raw locale", async () => {
+      await sendBankTransferEmail({ ...baseParams, locale: "xx" });
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      expect(call.html).toContain(`href="https://lacourdehaut.fr/en/terms"`);
+    });
+
+    it("builds the terms URL from NEXT_PUBLIC_APP_URL when configured", async () => {
+      process.env.NEXT_PUBLIC_APP_URL = "https://example.com";
+
+      await sendBankTransferEmail({ ...baseParams, locale: "nl" });
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      expect(call.html).toContain(`href="https://example.com/nl/terms"`);
+    });
+  });
 });
