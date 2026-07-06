@@ -42,7 +42,17 @@ const nextConfig: NextConfig = {
   // `happy-dom` is loaded lazily inside the POI rich-text translation server
   // action (EditorState <-> HTML bridge); keep it external so Turbopack never
   // pulls it into the client/prerender graph. See ADR-0015.
-  serverExternalPackages: ["better-auth", "node-ical", "happy-dom"],
+  // `@google-cloud/translate` ships AMD-wrapped generated protos whose
+  // `define(["protobufjs/minimal"])` branch Turbopack tries to resolve from the
+  // package's own context — unresolvable under pnpm's strict layout (protobufjs
+  // is google-gax's dep, not translate's). Dev-only failure; keep the whole
+  // client external so Node resolves it at runtime.
+  serverExternalPackages: [
+    "better-auth",
+    "node-ical",
+    "happy-dom",
+    "@google-cloud/translate",
+  ],
   turbopack: {
     // better-auth bundles kysely-adapter SQLite dialects that reference internal
     // kysely exports moved to kysely/migration in 0.29.x. We use drizzleAdapter
