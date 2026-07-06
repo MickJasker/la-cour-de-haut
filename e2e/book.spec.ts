@@ -52,6 +52,27 @@ test.describe("booking dialog — intercepting route", () => {
     await expect(page).toHaveURL(/\/nl$/);
   });
 
+  test("the privacy link opens in a new tab and keeps the dialog and form state intact", async ({
+    page,
+  }) => {
+    await page.getByRole("banner").locator("a[href$='/book']").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+
+    // Fill a field so we can assert form state survives the click
+    await page.locator("#name").fill("Jan Jansen");
+
+    // The privacy link sits below the form, inside the dialog
+    const popupPromise = page.waitForEvent("popup");
+    await page.getByRole("dialog").locator("a[href$='/privacy']").click();
+    const popup = await popupPromise;
+
+    // Policy opens in a new tab; the booking flow is untouched behind it
+    await expect(popup).toHaveURL(/\/nl\/privacy/);
+    await expect(page).toHaveURL(/\/nl\/book/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.locator("#name")).toHaveValue("Jan Jansen");
+  });
+
   test("clicking the overlay closes the dialog", async ({ page }) => {
     await page.getByRole("banner").locator("a[href$='/book']").click();
     await expect(page.getByRole("dialog")).toBeVisible();

@@ -477,6 +477,8 @@ export function BookForm({
               link: (chunks: ReactNode) => (
                 <Link
                   href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="underline underline-offset-2 hover:text-foreground transition-colors"
                 >
                   {chunks}
