@@ -106,6 +106,14 @@ test.describe("documents: admin", () => {
     // (see documents-client.tsx), so setting files is the whole action —
     // no need to click "Vervangen" first. It's hidden (`className="hidden"`)
     // but setInputFiles works regardless of visibility.
+    //
+    // Hydration barrier (issue #159): the input is SSR-rendered `disabled`
+    // and only enabled once React has hydrated the row. Without this wait,
+    // setInputFiles (which performs no actionability checks) can dispatch
+    // the change event before the onChange handler exists — React does not
+    // replay discrete events on not-yet-hydrated trees, so the replace
+    // silently never starts and the poll below times out on MARKER-A.
+    await expect(row.locator("input[type='file']")).toBeEnabled();
     await row.locator("input[type='file']").setInputFiles({
       name: "huisregels-v2.pdf",
       mimeType: "application/pdf",

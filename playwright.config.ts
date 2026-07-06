@@ -4,6 +4,12 @@ try {
   process.loadEnvFile(".env.local");
 } catch {}
 
+// E2E_PORT lets a CI-style run (`CI=1 E2E_PORT=3100 pnpm exec playwright test`)
+// coexist with a dev server already bound to 3000 — without it, CI=1 disables
+// reuseExistingServer and the run fails (or silently reuses the wrong server
+// when CI is unset). Defaults to 3000, so CI itself is unaffected.
+const port = process.env.E2E_PORT ?? "3000";
+
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
@@ -14,7 +20,7 @@ export default defineConfig({
     // that flakes timeouts under parallel workers). Locally we keep `pnpm dev`
     // for fast iteration; reuse an already-running dev server.
     command: process.env.CI ? "pnpm build && pnpm start" : "pnpm dev",
-    url: "http://localhost:3000",
+    url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     // A production build can take a couple of minutes on a cold CI runner.
     timeout: 180_000,
@@ -27,11 +33,11 @@ export default defineConfig({
     // same-origin stub (see src/app/api/admin/blob-upload/route.ts) — it must
     // be set at build time (`pnpm build`, run by this command on CI) to be
     // inlined into the client bundle.
-    env: { E2E_TESTING: "1", NEXT_PUBLIC_E2E_TESTING: "1" },
+    env: { E2E_TESTING: "1", NEXT_PUBLIC_E2E_TESTING: "1", PORT: port },
   },
   retries: 1,
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: `http://localhost:${port}`,
     locale: "nl",
   },
   projects: [
