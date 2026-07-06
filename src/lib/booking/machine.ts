@@ -1,11 +1,7 @@
 import { toUtcDayString } from "./calendar-day";
 
 export type DbBookingStatus =
-  | "requested"
-  | "on_hold"
-  | "confirmed"
-  | "declined"
-  | "cancelled";
+  "requested" | "on_hold" | "confirmed" | "declined" | "cancelled";
 
 export type DisplayStatus = DbBookingStatus | "expired";
 

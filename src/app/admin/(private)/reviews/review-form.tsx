@@ -162,10 +162,7 @@ export function ReviewForm({ existing }: { existing?: Review }) {
                   onChange={(e) =>
                     field.handleChange(
                       e.target.value as
-                        | "airbnb"
-                        | "natuurhuisje"
-                        | "direct"
-                        | "google",
+                        "airbnb" | "natuurhuisje" | "direct" | "google",
                     )
                   }
                   onBlur={field.handleBlur}

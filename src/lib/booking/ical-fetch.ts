@@ -5,8 +5,7 @@ import type { BusyInterval } from "@/db/schema";
 import { FORWARD_HORIZON_MONTHS, toUtcDayString } from "./calendar-day";
 
 export type IcalFetchResult =
-  | { ok: true; intervals: BusyInterval[] }
-  | { ok: false; error: string };
+  { ok: true; intervals: BusyInterval[] } | { ok: false; error: string };
 
 /**
  * How far forward to expand recurring (RRULE) events. RRULEs can be unbounded

@@ -263,9 +263,7 @@ export type LocalizedEditorStateValue = {
   type: "localizedEditorState";
 } & LocalizedEditorState;
 export type ContentBlockValue =
-  | LocalizedText
-  | ImageUrl
-  | LocalizedEditorStateValue;
+  LocalizedText | ImageUrl | LocalizedEditorStateValue;
 
 export type LocalizedSource = {
   nl: "human" | "machine";

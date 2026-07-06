@@ -43,8 +43,7 @@ export type AuthoredDetailFieldInput = {
 };
 
 export type AuthoredFieldInput =
-  | AuthoredTextFieldInput
-  | AuthoredDetailFieldInput;
+  AuthoredTextFieldInput | AuthoredDetailFieldInput;
 
 type ResolvedOutcome<T> = {
   value: Localized<T>;
