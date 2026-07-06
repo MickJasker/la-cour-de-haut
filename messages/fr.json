@@ -77,7 +77,7 @@
       "tooLong": "Cette valeur est trop longue"
     },
     "aboutAction": "À propos de la Gîte",
-    "privacyNotice": "En soumettant ce formulaire, vous acceptez notre <link>politique de confidentialité</link>."
+    "consentNotice": "En envoyant cette demande, vous acceptez nos <terms>conditions générales</terms> ; veuillez également consulter notre <privacy>politique de confidentialité</privacy>."
   },
   "errors": {
     "notFound": {

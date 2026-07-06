@@ -77,7 +77,7 @@
       "tooLong": "Deze waarde is te lang"
     },
     "aboutAction": "Over de Gîte",
-    "privacyNotice": "Door dit formulier in te dienen gaat u akkoord met ons <link>privacybeleid</link>."
+    "consentNotice": "Door dit verzoek te versturen ga je akkoord met de <terms>algemene voorwaarden</terms>; lees ook onze <privacy>privacyverklaring</privacy>."
   },
   "errors": {
     "notFound": {

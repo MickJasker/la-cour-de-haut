@@ -59,6 +59,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
+    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/nl/terms`;
 
     return {
       subject: `Uw reservering bij La Cour de Haut`,
@@ -81,6 +82,7 @@ const templates: Record<
         <tr><th align="left">Betalingskenmerk</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Als wij uw betaling niet ontvangen vóór de betalingstermijn, vervalt de reservering automatisch.</p>
+      <p>Op uw reservering zijn onze <a href="${termsUrl}">algemene voorwaarden</a> van toepassing.</p>
       <p>Met vriendelijke groeten,<br/>La Cour de Haut</p>`,
     };
   },
@@ -97,6 +99,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
+    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/en/terms`;
 
     return {
       subject: `Your reservation at La Cour de Haut`,
@@ -119,6 +122,7 @@ const templates: Record<
         <tr><th align="left">Reference</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>If payment is not received before the deadline, your reservation will be released.</p>
+      <p>Your reservation is subject to our <a href="${termsUrl}">terms and conditions</a>.</p>
       <p>Kind regards,<br/>La Cour de Haut</p>`,
     };
   },
@@ -134,6 +138,7 @@ const templates: Record<
       day: "numeric",
     });
     const { discount, totalPrice } = p.price;
+    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/fr/terms`;
 
     return {
       subject: `Votre réservation à La Cour de Haut`,
@@ -155,6 +160,7 @@ const templates: Record<
         <tr><th align="left">Référence</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Si le paiement n'est pas reçu avant la date limite, la réservation sera automatiquement annulée.</p>
+      <p>Votre réservation est soumise à nos <a href="${termsUrl}">conditions générales</a>.</p>
       <p>Cordialement,<br/>La Cour de Haut</p>`,
     };
   },
@@ -170,6 +176,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
+    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/de/terms`;
 
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,
@@ -192,6 +199,7 @@ const templates: Record<
         <tr><th align="left">Verwendungszweck</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
       </table>
       <p>Wenn die Zahlung nicht vor Ablauf der Frist eingeht, wird die Reservierung automatisch storniert.</p>
+      <p>Für Ihre Reservierung gelten unsere <a href="${termsUrl}">Allgemeinen Geschäftsbedingungen</a>.</p>
       <p>Mit freundlichen Grüßen,<br/>La Cour de Haut</p>`,
     };
   },
