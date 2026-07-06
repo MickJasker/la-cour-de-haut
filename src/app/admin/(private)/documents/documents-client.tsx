@@ -4,6 +4,7 @@ import { useState, useTransition, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useIsHydrated } from "@/hooks/use-is-hydrated";
 import { uploadAdminDocument } from "../upload-file";
 import {
   createDocumentAction,
@@ -49,6 +50,7 @@ function DocumentRow({
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(doc.title);
   const [replaceError, setReplaceError] = useState<string | null>(null);
+  const isHydrated = useIsHydrated();
 
   const publicUrl = `${appUrl}/documents/${doc.slug}.pdf`;
   const replaceInputId = `document-replace-${doc.id}`;
@@ -74,8 +76,15 @@ function DocumentRow({
     }
     setReplaceError(null);
     startTransition(async () => {
-      const url = await uploadAdminDocument(file);
-      await replaceDocumentFileAction(doc.id, url);
+      // Without the catch, a failed upload or action would only reject the
+      // transition promise — the row would look untouched and the owner
+      // would believe the replace succeeded (issue #159).
+      try {
+        const url = await uploadAdminDocument(file);
+        await replaceDocumentFileAction(doc.id, url);
+      } catch {
+        setReplaceError("Vervangen is mislukt. Probeer het opnieuw.");
+      }
     });
   }
 
@@ -153,13 +162,19 @@ function DocumentRow({
             Vervangen
           </label>
         </Button>
+        {/* Disabled until hydration: the label opens the native file picker
+            without any JS, but before React hydrates this row the change
+            event is dropped (React doesn't replay discrete events on
+            not-yet-hydrated trees), silently discarding the chosen file.
+            A disabled input keeps the picker closed until selecting a file
+            actually works — and gives tests a deterministic ready signal. */}
         <input
           id={replaceInputId}
           data-testid={`document-replace-input-${doc.id}`}
           type="file"
           accept="application/pdf"
           className="hidden"
-          disabled={isPending}
+          disabled={!isHydrated || isPending}
           onChange={(e) => {
             const file = e.target.files?.[0];
             e.target.value = "";
