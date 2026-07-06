@@ -40,7 +40,11 @@ export function BookModalClient({
           </DialogDescription>
         </DialogHeader>
         <Suspense fallback={<BookFormSkeleton />}>
-          <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
+          <BookForm
+            bookedDates={bookedDates}
+            pricePerNight={pricePerNight}
+            stickyCta
+          />
         </Suspense>
       </DialogContent>
     </Dialog>
