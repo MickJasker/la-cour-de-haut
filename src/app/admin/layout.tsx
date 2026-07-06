@@ -1,7 +1,6 @@
 import { Suspense, type ReactNode } from "react";
 import { Mulish, PT_Serif } from "next/font/google";
 import "../globals.css";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 const mulish = Mulish({
   variable: "--font-mulish",
@@ -30,11 +29,6 @@ export default async function LocaleLayout({ children }: Props) {
             A Suspense boundary at the root opts the whole admin tree out of the
             PPR static shell, so runtime data access streams at request time. */}
         <Suspense fallback={null}>{children}</Suspense>
-        {/* SpeedInsights reads useSearchParams (client); Cache Components
-            requires that request-time read to live inside a Suspense boundary. */}
-        <Suspense fallback={null}>
-          <SpeedInsights />
-        </Suspense>
       </body>
     </html>
   );

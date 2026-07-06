@@ -1,4 +1,4 @@
-import { Suspense, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
 import { notFound } from "next/navigation";
@@ -7,7 +7,6 @@ import { getDictionary } from "@/i18n/dictionaries";
 import { getTranslations } from "@/i18n/server";
 import { hasLocale, locales } from "@/i18n/routing";
 import "../globals.css";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/sections/footer";
 import { ModalSlot } from "./modal-slot";
 import { getBaseUrl } from "@/lib/base-url";
@@ -92,13 +91,6 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
           <Footer locale={locale} />
           <ModalSlot>{modal}</ModalSlot>
         </I18nProvider>
-        {/* Client component reading useSearchParams; under Cache Components a
-            request-time read must sit in a Suspense boundary or the static
-            prerender bails ("Render in Browser should be wrapped in a suspense
-            boundary"). */}
-        <Suspense fallback={null}>
-          <SpeedInsights />
-        </Suspense>
       </body>
     </html>
   );
