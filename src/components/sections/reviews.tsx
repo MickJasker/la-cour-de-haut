@@ -11,6 +11,7 @@ import {
   reviewTranslatedFrom,
 } from "@/lib/translation/review-i18n";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { ReviewQuote } from "./review-quote";
 
 const SOURCE_LABELS: Record<string, string> = {
   airbnb: "AirBnB",
@@ -94,9 +95,11 @@ export async function ReviewsSection({ locale }: { locale: Locale }) {
                 className="bg-cream-50 rounded-xl p-6 shadow-sm flex flex-col gap-4 md:col-span-4"
               >
                 <Stars rating={r.rating} />
-                <blockquote className="text-stone-700 flex-1 font-display italic">
-                  &ldquo;{body}&rdquo;
-                </blockquote>
+                <ReviewQuote
+                  body={body}
+                  expandLabel={t("readMore")}
+                  collapseLabel={t("showLess")}
+                />
                 {markerText !== null && (
                   <p
                     className="text-xs text-stone-600 italic"
