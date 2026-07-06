@@ -28,6 +28,7 @@ import {
   MapPin,
   Form,
   FileText,
+  Files,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -124,6 +125,19 @@ export function AppSidebar() {
                   <Link href="/admin/documents" onClick={closeMobileSidebar}>
                     <FileText />
                     Documenten
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  variant={
+                    currentPath === "/admin/pages" ? "outline" : "default"
+                  }
+                  asChild
+                >
+                  <Link href="/admin/pages" onClick={closeMobileSidebar}>
+                    <Files />
+                    Pagina&apos;s
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

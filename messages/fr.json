@@ -36,26 +36,6 @@
       "callToAction": "Réservez votre séjour maintenant"
     }
   },
-  "privacy": {
-    "metadata": {
-      "title": "Politique de confidentialité",
-      "description": "Politique de confidentialité de La Cour de Haut — comment nous traitons vos données personnelles."
-    },
-    "title": "Politique de confidentialité",
-    "intro": "La Cour de Haut traite des données personnelles dans le cadre des demandes de réservation. Cette notice explique quelles données nous collectons, pourquoi, et combien de temps nous les conservons.",
-    "dataCollectedTitle": "Quelles données collectons-nous ?",
-    "dataCollectedBody": "Via le formulaire de réservation, nous collectons : votre prénom et nom de famille, adresse e-mail, numéro de téléphone, adresse postale (rue, code postal, ville et pays) et les dates de séjour souhaitées.",
-    "purposeTitle": "Pourquoi utilisons-nous vos données ?",
-    "purposeBody": "Nous utilisons vos données pour répondre à votre demande de réservation, confirmer la disponibilité, fournir des informations de paiement et de séjour, ainsi que pour notre gestion administrative et le contrat de location.",
-    "retentionTitle": "Combien de temps conservons-nous vos données ?",
-    "retentionBody": "Nous conservons vos données aussi longtemps que nécessaire pour traiter votre demande de réservation et la correspondance associée. Vous pouvez demander la suppression à tout moment en nous contactant.",
-    "rightsTitle": "Vos droits",
-    "rightsBody": "Vous avez le droit d'accéder, de rectifier et de supprimer vos données personnelles. Pour toute question ou demande, contactez-nous à : info@lacourdehaut.fr.",
-    "contactTitle": "Contact",
-    "contactBody": "La Cour de Haut — info@lacourdehaut.fr",
-    "turnstileTitle": "Protection anti-spam (Cloudflare Turnstile)",
-    "turnstileBody": "Pour protéger notre formulaire de réservation contre le spam et les abus, nous utilisons Cloudflare Turnstile en mode invisible. Turnstile peut collecter des informations techniques (telles que l'adresse IP et les données du navigateur) pour évaluer si une demande provient d'un être humain. Pour plus d'informations, consultez l'<link>Avenant de confidentialité Cloudflare Turnstile</link>."
-  },
   "booking": {
     "form": {
       "name": "Prénom et nom de famille",

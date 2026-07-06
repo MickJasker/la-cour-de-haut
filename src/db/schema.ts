@@ -294,6 +294,30 @@ export const document = pgTable("document", {
     .notNull(),
 });
 
+// Owner-managed simple public page (title + one rich-text body), served at
+// top-level /{locale}/{slug}. See ADR-0020.
+export const page = pgTable("page", {
+  id: text("id").primaryKey(),
+  // Frozen after create like poi.slug; system pages pin theirs at seed time
+  // instead of deriving from the title. See ADR-0020.
+  slug: text("slug").notNull().unique(),
+  title: jsonb("title")
+    .$type<{ nl: string; en?: string; fr?: string; de?: string }>()
+    .notNull(),
+  titleSource: jsonb("title_source").$type<LocalizedSource>().notNull(),
+  body: jsonb("body").$type<LocalizedEditorState>().notNull(),
+  bodySource: jsonb("body_source").$type<LocalizedSource>().notNull(),
+  published: boolean("published").notNull().default(false),
+  // System pages (privacy, terms): editable, undeletable, always published,
+  // so hardcoded links (booking form, footer) can never 404.
+  system: boolean("system").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
 export type ReviewSource = "airbnb" | "natuurhuisje" | "direct" | "google";
 
 export const review = pgTable("review", {

@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/routing";
 import { getPublishedPoiSitemapEntries } from "@/lib/content/poi-queries";
+import { getPublishedPageSitemapEntries } from "@/lib/pages/page-queries";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
 
@@ -22,13 +23,6 @@ const PUBLIC_PATHS = [
     options: {
       changeFrequency: "hourly",
       priority: 0.9,
-    },
-  },
-  {
-    path: "/privacy",
-    options: {
-      changeFrequency: "yearly",
-      priority: 0.1,
     },
   },
 ] as const satisfies Array<{
@@ -53,9 +47,14 @@ function entriesForPath(
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // getPublishedPoiSitemapEntries is "use cache"/cacheTag("poi"), so this route
-  // stays a cached metadata route and refreshes on updateTag("poi").
-  const pois = await getPublishedPoiSitemapEntries();
+  // Both queries are "use cache"/cacheTag'd, so this route stays a cached
+  // metadata route and refreshes on updateTag("poi") / updateTag("pages").
+  // Owner-managed pages (ADR-0020) replace the former static /privacy entry;
+  // unpublished pages are already filtered out by the query.
+  const [pois, pages] = await Promise.all([
+    getPublishedPoiSitemapEntries(),
+    getPublishedPageSitemapEntries(),
+  ]);
   return [
     ...PUBLIC_PATHS.flatMap((p) => entriesForPath(p.path, p.options)),
     ...pois.flatMap(({ slug, lastModified }) =>
@@ -63,6 +62,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified,
         changeFrequency: "weekly",
         priority: 0.8,
+      }),
+    ),
+    ...pages.flatMap(({ slug, lastModified }) =>
+      entriesForPath(`/${slug}`, {
+        lastModified,
+        changeFrequency: "yearly",
+        priority: 0.3,
       }),
     ),
   ];

@@ -36,26 +36,6 @@
       "callToAction": "Boek je verblijf nu"
     }
   },
-  "privacy": {
-    "metadata": {
-      "title": "Privacybeleid",
-      "description": "Privacybeleid van La Cour de Haut — hoe wij uw persoonsgegevens verwerken."
-    },
-    "title": "Privacybeleid",
-    "intro": "La Cour de Haut verwerkt persoonsgegevens in verband met boekingsverzoeken. Deze kennisgeving legt uit welke gegevens wij verzamelen, waarom, en hoe lang wij deze bewaren.",
-    "dataCollectedTitle": "Welke gegevens verzamelen wij?",
-    "dataCollectedBody": "Via het boekingsformulier verzamelen wij: uw voor- en achternaam, e-mailadres, telefoonnummer, postadres (straat, postcode, woonplaats en land) en de gewenste verblijfsdata.",
-    "purposeTitle": "Waarvoor worden uw gegevens gebruikt?",
-    "purposeBody": "Wij gebruiken uw gegevens om te reageren op uw boekingsverzoek, de beschikbaarheid te bevestigen, verdere betalings- en verblijfsinformatie te verstrekken en voor onze administratie en de huurovereenkomst.",
-    "retentionTitle": "Hoe lang bewaren wij uw gegevens?",
-    "retentionBody": "Wij bewaren uw gegevens zo lang als nodig is voor de afhandeling van uw boekingsverzoek en de bijbehorende correspondentie. U kunt op elk moment om verwijdering verzoeken door contact met ons op te nemen.",
-    "rightsTitle": "Uw rechten",
-    "rightsBody": "U heeft het recht op inzage, rectificatie en verwijdering van uw persoonsgegevens. Voor vragen of verzoeken kunt u contact opnemen via: info@lacourdehaut.fr.",
-    "contactTitle": "Contact",
-    "contactBody": "La Cour de Haut — info@lacourdehaut.fr",
-    "turnstileTitle": "Spambeveiliging (Cloudflare Turnstile)",
-    "turnstileBody": "Om ons boekingsformulier te beschermen tegen spam en misbruik, gebruiken wij Cloudflare Turnstile in onzichtbare modus. Turnstile kan technische informatie verzamelen (zoals IP-adres en browsergegevens) om te beoordelen of een verzoek van een mens afkomstig is. Zie voor meer informatie het <link>Cloudflare Turnstile Privacy Addendum</link>."
-  },
   "booking": {
     "form": {
       "name": "Voor- en achternaam",
