@@ -54,14 +54,20 @@ const templates: Record<
     });
     const { nights, discount, totalPrice } = p.price;
 
+    const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
     return {
       subject: `Uw reservering bij La Cour de Haut`,
       html: `
       <h2>Beste ${esc(p.guest.name)},</h2>
       <p>Bedankt voor uw boeking bij <strong>La Cour de Haut</strong>. Wij hebben de volgende datums voor u gereserveerd:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Aankomst</th><td>${esc(p.startDate)}</td></tr>
-        <tr><th align="left">Vertrek</th><td>${esc(p.endDate)}</td></tr>
+        <tr><th align="left">Aankomst</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
+        <tr><th align="left">Vertrek</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
         <tr><th align="left">Gasten</th><td>${p.guestCount}</td></tr>
         <tr><th align="left">Aantal nachten</th><td>${nights}</td></tr>
         ${discount > 0 ? `<tr><th align="left">10% korting (7+ nachten)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
@@ -86,14 +92,20 @@ const templates: Record<
     });
     const { nights, discount, totalPrice } = p.price;
 
+    const dateFormatter = new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+
     return {
       subject: `Your reservation at La Cour de Haut`,
       html: `
       <h2>Dear ${esc(p.guest.name)},</h2>
       <p>Thank you for your booking at <strong>La Cour de Haut</strong>. We have reserved the following dates for you:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Check-in</th><td>${esc(p.startDate)}</td></tr>
-        <tr><th align="left">Check-out</th><td>${esc(p.endDate)}</td></tr>
+        <tr><th align="left">Check-in</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
+        <tr><th align="left">Check-out</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
         <tr><th align="left">Guests</th><td>${p.guestCount}</td></tr>
         <tr><th align="left">Total nights</th><td>${nights}</td></tr>
         ${discount > 0 ? `<tr><th align="left">10% long-stay discount (7+ nights)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
@@ -116,6 +128,11 @@ const templates: Record<
       style: "currency",
       currency: "EUR",
     });
+    const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
     const { discount, totalPrice } = p.price;
 
     return {
@@ -124,8 +141,8 @@ const templates: Record<
         <h2>Cher(e) ${esc(p.guest.name)},</h2>
         <p>Merci pour votre réservation à <strong>La Cour de Haut</strong>. Nous avons réservé les dates suivantes pour vous :</p>
         <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Arrivée</th><td>${esc(p.startDate)}</td></tr>
-        <tr><th align="left">Départ</th><td>${esc(p.endDate)}</td></tr>
+        <tr><th align="left">Arrivée</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
+        <tr><th align="left">Départ</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
         <tr><th align="left">Voyageurs</th><td>${p.guestCount}</td></tr>
         ${discount > 0 ? `<tr><th align="left">Réduction long séjour 10% (7+ nuits)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
         <tr><th align="left">Prix total</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
@@ -148,6 +165,11 @@ const templates: Record<
       currency: "EUR",
     });
     const { nights, discount, totalPrice } = p.price;
+    const dateFormatter = new Intl.DateTimeFormat("de-DE", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
 
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,
@@ -155,8 +177,8 @@ const templates: Record<
       <h2>Liebe(r) ${esc(p.guest.name)},</h2>
       <p>Vielen Dank für Ihre Buchung bei <strong>La Cour de Haut</strong>. Wir haben die folgenden Daten für Sie reserviert:</p>
       <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Anreise</th><td>${esc(p.startDate)}</td></tr>
-        <tr><th align="left">Abreise</th><td>${esc(p.endDate)}</td></tr>
+        <tr><th align="left">Anreise</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
+        <tr><th align="left">Abreise</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
         <tr><th align="left">Gäste</th><td>${p.guestCount}</td></tr>
         <tr><th align="left">Gesamtnächte</th><td>${nights}</td></tr>
         ${discount > 0 ? `<tr><th align="left">10% Langzeitrabatt (7+ Nächte)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}

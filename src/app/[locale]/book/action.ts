@@ -111,6 +111,12 @@ async function sendOwnerNotification(data: {
     data.pricePerNight,
   );
 
+  const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   const totalPrice = data.pricePerNight * totalNights + tourismTax;
 
   await resend.emails.send({
@@ -129,8 +135,8 @@ async function sendOwnerNotification(data: {
         <tr><th align="left">Woonplaats</th><td>${esc(data.city)}</td></tr>
         <tr><th align="left">Land</th><td>${esc(getCountryName(data.country, "nl"))}</td></tr>
         <tr><th align="left">Gasten</th><td>${esc(data.guestCount)}</td></tr>
-        <tr><th align="left">Inchecken</th><td>${esc(data.startDate)}</td></tr>
-        <tr><th align="left">Uitchecken</th><td>${esc(data.endDate)}</td></tr>
+        <tr><th align="left">Inchecken</th><td>${dateFormatter.format(new Date(data.startDate))}</td></tr>
+        <tr><th align="left">Uitchecken</th><td>${dateFormatter.format(new Date(data.endDate))}</td></tr>
         <tr><th align="left">Nachten</th><td>${calculateTotalNights(data.startDate, data.endDate)}</td></tr>
         <tr><th align="left">Toeristenbelasting</th><td>${currencyFormatter.format(tourismTax)}</td></tr>
         <tr><th align="left">Totaalprijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
