@@ -12,8 +12,9 @@ import {
 import { pickLocalized } from "@/lib/translation/localized-field";
 import { truncateForMeta } from "@/lib/seo/meta-text";
 import { buildPoiJsonLd } from "@/lib/seo/poi-jsonld";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 
 // Enumerate published slugs so each detail page prerenders (await params is
 // static for known slugs); new slugs render on-demand. Returns a placeholder

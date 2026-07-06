@@ -6,6 +6,7 @@ import { createExportTokenAction } from "./actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getBaseUrl } from "@/lib/base-url";
 
 export default async function ExportPage() {
   await verifySession();
@@ -16,7 +17,7 @@ export default async function ExportPage() {
     .from(icalExportToken)
     .orderBy(icalExportToken.createdAt);
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+  const appUrl = getBaseUrl();
 
   return (
     <main className="min-h-screen p-8">

@@ -1,5 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
+import { getBaseUrl } from "@/lib/base-url";
 
 const esc = (s: string) =>
   s
@@ -59,7 +60,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
-    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/nl/terms`;
+    const termsUrl = `${getBaseUrl()}/nl/terms`;
 
     return {
       subject: `Uw reservering bij La Cour de Haut`,
@@ -99,7 +100,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
-    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/en/terms`;
+    const termsUrl = `${getBaseUrl()}/en/terms`;
 
     return {
       subject: `Your reservation at La Cour de Haut`,
@@ -138,7 +139,7 @@ const templates: Record<
       day: "numeric",
     });
     const { discount, totalPrice } = p.price;
-    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/fr/terms`;
+    const termsUrl = `${getBaseUrl()}/fr/terms`;
 
     return {
       subject: `Votre réservation à La Cour de Haut`,
@@ -176,7 +177,7 @@ const templates: Record<
       month: "long",
       day: "numeric",
     });
-    const termsUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/de/terms`;
+    const termsUrl = `${getBaseUrl()}/de/terms`;
 
     return {
       subject: `Ihre Reservierung bei La Cour de Haut`,

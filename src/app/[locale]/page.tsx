@@ -16,8 +16,9 @@ import {
 } from "@/lib/seo/lodging-jsonld";
 import HeroImage from "@/components/sections/hero.jpg";
 import { AboutUsSection } from "@/components/sections/about-us";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 
 export async function generateMetadata({
   params,

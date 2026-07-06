@@ -10,6 +10,7 @@ import "../globals.css";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/sections/footer";
 import { ModalSlot } from "./modal-slot";
+import { getBaseUrl } from "@/lib/base-url";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -18,7 +19,7 @@ const OG_LOCALE: Record<string, string> = {
   de: "de_DE",
 };
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 
 const mulish = Mulish({
   variable: "--font-mulish",

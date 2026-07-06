@@ -1,12 +1,13 @@
 import { verifySession } from "@/lib/auth/session";
 import { listDocuments } from "@/lib/documents/documents";
 import { DocumentList, UploadForm } from "./documents-client";
+import { getBaseUrl } from "@/lib/base-url";
 
 export default async function DocumentsAdminPage() {
   await verifySession();
   const docs = await listDocuments();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+  const appUrl = getBaseUrl();
 
   return (
     <main className="min-h-screen p-8">

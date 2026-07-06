@@ -18,6 +18,7 @@ import { bookingRequest } from "@/db/schema";
 import { isRangeAvailable, getBookedDays } from "@/lib/booking/availability";
 import { defaultLocale, hasLocale } from "@/i18n/routing";
 import { getCountryName } from "@/lib/countries";
+import { getBaseUrl } from "@/lib/base-url";
 
 const serverValidate = createServerValidate({
   ...formOpts,
@@ -142,7 +143,7 @@ async function sendOwnerNotification(data: {
         <tr><th align="left">Totaalprijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
       </table>
       <p style="margin-top:24px">
-        <a href="${process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr"}/admin">
+        <a href="${getBaseUrl()}/admin">
           Bekijk in beheeromgeving
         </a>
       </p>

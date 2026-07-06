@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { getTranslations } from "@/i18n/server";
 import { locales, type Locale } from "@/i18n/routing";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 import { BookForm } from "@/components/sections/book-form";
 import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
 import { SiteHeader } from "@/components/sections/site-header";

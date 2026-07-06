@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { admin } from "better-auth/plugins";
 import { getDb } from "@/db";
+import { PUBLIC_HOSTS } from "@/lib/base-url";
 
 function createAuth() {
   const secret = process.env.BETTER_AUTH_SECRET;
@@ -11,11 +12,7 @@ function createAuth() {
   return betterAuth({
     secret,
     baseURL: {
-      allowedHosts: [
-        "localhost",
-        "la-cour-de-haut.vercel.app",
-        "lacourdehaut.fr",
-      ],
+      allowedHosts: ["localhost", ...PUBLIC_HOSTS],
       protocol: "https",
       fallback: baseURL,
     },

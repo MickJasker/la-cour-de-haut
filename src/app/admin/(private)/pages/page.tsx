@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { page } from "@/db/schema";
 import { asc, desc } from "drizzle-orm";
 import { PagesClient } from "./pages-client";
+import { getBaseUrl } from "@/lib/base-url";
 
 export default async function PagesAdminPage() {
   await verifySession();
@@ -14,7 +15,7 @@ export default async function PagesAdminPage() {
     .from(page)
     .orderBy(desc(page.system), asc(page.createdAt));
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+  const appUrl = getBaseUrl();
 
   return (
     <main className="min-h-screen p-8">

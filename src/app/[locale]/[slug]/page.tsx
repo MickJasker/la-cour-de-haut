@@ -15,8 +15,9 @@ import { Link } from "@/i18n/navigation";
 import { getTranslations } from "@/i18n/server";
 import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_TAGS } from "@/lib/cache-tags";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 
 // Owner-managed pages (ADR-0020) live at top-level /{locale}/{slug}. Static
 // segments (book, poi, …) take precedence over this dynamic one; the admin

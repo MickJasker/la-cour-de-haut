@@ -2,8 +2,9 @@ import type { MetadataRoute } from "next";
 import { locales } from "@/i18n/routing";
 import { getPublishedPoiSitemapEntries } from "@/lib/content/poi-queries";
 import { getPublishedPageSitemapEntries } from "@/lib/pages/page-queries";
+import { getBaseUrl } from "@/lib/base-url";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lacourdehaut.fr";
+const BASE_URL = getBaseUrl();
 
 type SitemapEntryOptions = Omit<
   MetadataRoute.Sitemap[number],
