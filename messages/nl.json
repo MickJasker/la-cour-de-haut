@@ -23,7 +23,9 @@
       "source": "via {source}",
       "roughDate": "{distance} geleden",
       "translatedFrom": "Vertaald uit het {language}",
-      "translatedFromAuto": "Automatisch vertaald"
+      "translatedFromAuto": "Automatisch vertaald",
+      "readMore": "Lees meer",
+      "showLess": "Toon minder"
     },
     "poi": {
       "title": "Ontdek Normandië"

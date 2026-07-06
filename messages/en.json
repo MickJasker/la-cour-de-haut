@@ -26,7 +26,9 @@
       "source": "via {source}",
       "roughDate": "{distance} ago",
       "translatedFrom": "Translated from {language}",
-      "translatedFromAuto": "Auto-translated"
+      "translatedFromAuto": "Auto-translated",
+      "readMore": "Read more",
+      "showLess": "Show less"
     },
     "aboutUs": {
       "title": "About René and Yvonne"
