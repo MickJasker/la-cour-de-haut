@@ -21,7 +21,6 @@ import {
   CalendarFold,
   SquareDashedText,
   Star,
-  CalendarSync,
   ArrowUpToLine,
   ArrowDownToLine,
   ImageIcon,
@@ -29,10 +28,59 @@ import {
   Form,
   FileText,
   Files,
+  type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTransition } from "react";
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type NavGroup = {
+  label?: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    items: [{ href: "/admin", label: "Dashboard", icon: Form }],
+  },
+  {
+    label: "Verhuur",
+    items: [
+      { href: "/admin/bookings", label: "Boekingen", icon: CalendarFold },
+      {
+        href: "/admin/ical/import",
+        label: "iCal importeren",
+        icon: ArrowDownToLine,
+      },
+      {
+        href: "/admin/ical/export",
+        label: "iCal exporteren",
+        icon: ArrowUpToLine,
+      },
+    ],
+  },
+  {
+    label: "Website",
+    items: [
+      { href: "/admin/content", label: "Inhoud", icon: SquareDashedText },
+      { href: "/admin/gallery", label: "Galerij", icon: ImageIcon },
+      { href: "/admin/reviews", label: "Beoordelingen", icon: Star },
+      { href: "/admin/pois", label: "POI's", icon: MapPin },
+      { href: "/admin/pages", label: "Pagina's", icon: Files },
+      { href: "/admin/documents", label: "Documenten", icon: FileText },
+    ],
+  },
+  {
+    label: "Systeem",
+    items: [{ href: "/admin/settings", label: "Instellingen", icon: Settings }],
+  },
+];
 
 export function AppSidebar() {
   const router = useRouter();
@@ -49,162 +97,32 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarSeparator />
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={currentPath === "/admin" ? "outline" : "default"}
-                  asChild
-                >
-                  <Link href="/admin" onClick={closeMobileSidebar}>
-                    <Form />
-                    Dashboard
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/content" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/content" onClick={closeMobileSidebar}>
-                    <SquareDashedText />
-                    Inhoud
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/reviews" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/reviews" onClick={closeMobileSidebar}>
-                    <Star />
-                    Beoordelingen
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/gallery" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/gallery" onClick={closeMobileSidebar}>
-                    <ImageIcon />
-                    Galerij
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/pois" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/pois" onClick={closeMobileSidebar}>
-                    <MapPin />
-                    POI&apos;s
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/documents" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/documents" onClick={closeMobileSidebar}>
-                    <FileText />
-                    Documenten
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/pages" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/pages" onClick={closeMobileSidebar}>
-                    <Files />
-                    Pagina&apos;s
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/bookings" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/bookings" onClick={closeMobileSidebar}>
-                    <CalendarFold />
-                    Boekingen
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/settings" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/settings" onClick={closeMobileSidebar}>
-                    <Settings />
-                    Instellingen
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2">
-            <CalendarSync /> ICAL
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/ical/import" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/ical/import" onClick={closeMobileSidebar}>
-                    <ArrowDownToLine />
-                    Importeren
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  variant={
-                    currentPath === "/admin/ical/export" ? "outline" : "default"
-                  }
-                  asChild
-                >
-                  <Link href="/admin/ical/export" onClick={closeMobileSidebar}>
-                    <ArrowUpToLine />
-                    Exporteren
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {NAV_GROUPS.map((group) => (
+          <SidebarGroup key={group.label ?? "root"}>
+            {group.label && (
+              <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            )}
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton
+                      variant={
+                        currentPath === item.href ? "outline" : "default"
+                      }
+                      asChild
+                    >
+                      <Link href={item.href} onClick={closeMobileSidebar}>
+                        <item.icon />
+                        {item.label}
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
       <SidebarSeparator />
       <SidebarFooter>
