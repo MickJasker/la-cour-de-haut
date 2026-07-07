@@ -153,6 +153,25 @@ export async function getBusyIntervals(
 }
 
 /**
+ * Ensures every enabled iCal source's cache is fresh (≤5 minutes), re-fetching
+ * stale ones and writing the result back through the store — the same lazy
+ * refresh `getBusyIntervals` performs, exposed as a bare side effect.
+ *
+ * For callers that read `ical_source` rows directly because they need columns
+ * the availability store doesn't carry (the admin dashboard: name, lastError):
+ * await this first, then select — the rows then reflect the same freshness
+ * guarantee the booking form gets.
+ */
+export async function refreshIcalSourcesIfStale(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<void> {
+  const sources = await deps.store.listEnabledIcalSources();
+  await Promise.all(
+    sources.map((source) => refreshSourceIfStale(source, deps)),
+  );
+}
+
+/**
  * The single availability seam: "is this date range free?" — merges iCal
  * intervals with live DB holds and checks for a conflict in one call, so
  * callers (booking form submission, admin confirm guard) don't have to fetch

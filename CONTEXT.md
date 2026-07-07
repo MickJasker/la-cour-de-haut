@@ -43,6 +43,8 @@ Two-stage payment schedule with a security deposit (borg) — see [ADR-0021](doc
 
 **Inbound** (read): the site fetches **iCal sources** (Airbnb, Natuurhuisje, and any others the owner adds), merges them into **busy intervals**, and uses them to render the availability calendar and prevent the owner from confirming a conflicting request. Each source is a first-class record (not a fixed setting), so new platforms can be added without a schema change. Feeds are refreshed **lazily on read**: a source older than 5 minutes is re-fetched and its result cached back onto the source record, mirroring the lazy-expiry pattern of [ADR-0004](docs/adr/0004-lazy-hold-expiry-no-cron.md) (see also [ADR-0005](docs/adr/0005-db-materialized-lazy-ical-refresh.md)). No cron.
 
+**Echo filter**: platforms re-export what they import — Airbnb subscribes to Natuurhuisje and to our export feed, then publishes those dates in its own feed as `SUMMARY:Airbnb (Not Available)` (real Airbnb bookings are `SUMMARY:Reserved`). Inbound parsing skips "Not Available" events so every stay appears under its originating source only. Consequence: dates blocked manually inside Airbnb are ignored — manual blocks must be made in this app (or the originating platform), never in Airbnb.
+
 **Outbound** (write-back): the site exposes its own **export feed** at a stable, unguessable URL (`/api/ical/{token}.ics`) listing held and confirmed direct bookings. Platforms subscribe once during setup and block those dates on their end.
 
 **Sync is not instant** — platforms poll on their own schedule (typically hours). The human confirm + bank-transfer step is the real double-booking safeguard.

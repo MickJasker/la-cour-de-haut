@@ -142,6 +142,27 @@ UID:test-oneoff-mixed@example.com
 END:VEVENT
 END:VCALENDAR`;
 
+// Airbnb-shaped feed: a real booking (SUMMARY:Reserved) plus an
+// "Airbnb (Not Available)" block — the summary Airbnb gives both manual
+// blocks and dates it re-exports after importing our other calendars
+// (Natuurhuisje, our own export feed). Only the reservation may be imported.
+const ICAL_AIRBNB_REEXPORT = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Airbnb Inc//Hosting Calendar 1.0//EN
+BEGIN:VEVENT
+DTSTART:20260704T120000Z
+DTEND:20260707T120000Z
+SUMMARY:Reserved
+UID:airbnb-reservation-1@airbnb.com
+END:VEVENT
+BEGIN:VEVENT
+DTSTART:20260711T120000Z
+DTEND:20260714T120000Z
+SUMMARY:Airbnb (Not Available)
+UID:airbnb-block-1@airbnb.com
+END:VEVENT
+END:VCALENDAR`;
+
 function makeFetch(body: string, status = 200): typeof fetch {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
@@ -174,6 +195,18 @@ describe("fetchIcalFeed", () => {
     if (!result.ok) return;
     expect(result.intervals).toHaveLength(1);
     expect(result.intervals[0].start).toBe("2025-08-01");
+  });
+
+  it('skips Airbnb "Not Available" blocks but keeps Reserved bookings', async () => {
+    const result = await fetchIcalFeed(
+      "https://example.com/feed.ics",
+      makeFetch(ICAL_AIRBNB_REEXPORT),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intervals).toEqual([
+      { start: "2026-07-04", end: "2026-07-07" },
+    ]);
   });
 
   it("returns all events from a multi-event feed", async () => {

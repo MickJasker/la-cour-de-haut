@@ -29,6 +29,7 @@ import {
   isRangeAvailable,
   getBookedDays,
   getBusyIntervals,
+  refreshIcalSourcesIfStale,
 } from "./availability";
 
 function expandIntervals(intervals: BusyInterval[]): string[] {
@@ -594,5 +595,86 @@ describe("lazy iCal source refresh (ADR-0005), exercised through getBusyInterval
     expect(deps.fetchFeed).not.toHaveBeenCalled();
     expect(deps.store.syncSuccessCalls).toEqual([]);
     expect(deps.store.syncErrorCalls).toEqual([]);
+  });
+});
+
+describe("refreshIcalSourcesIfStale — the bare refresh side effect for direct ical_source readers (admin dashboard)", () => {
+  const NOW = new Date("2027-06-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("re-fetches a stale source and writes the result back through the store", async () => {
+    const staleSince = new Date(NOW.getTime() - 10 * 60 * 1000);
+    const deps = makeDeps({
+      now: NOW,
+      sources: [
+        {
+          id: "s1",
+          url: "https://example.com/s1.ics",
+          cachedIntervals: [{ start: "2000-01-01", end: "2000-01-02" }],
+          lastSyncedAt: staleSince,
+        },
+      ],
+      fetchFeed: async () => ({
+        ok: true,
+        intervals: [{ start: "2027-09-01", end: "2027-09-05" }],
+      }),
+    });
+
+    await refreshIcalSourcesIfStale(deps);
+
+    expect(deps.store.syncSuccessCalls).toEqual([
+      {
+        id: "s1",
+        intervals: [{ start: "2027-09-01", end: "2027-09-05" }],
+        syncedAt: NOW,
+      },
+    ]);
+  });
+
+  it("leaves a fresh source untouched — no fetch, no write-back", async () => {
+    const twoMinutesAgo = new Date(NOW.getTime() - 2 * 60 * 1000);
+    const deps = makeDeps({
+      now: NOW,
+      sources: [
+        {
+          id: "s1",
+          url: "https://example.com/s1.ics",
+          cachedIntervals: [{ start: "2027-07-01", end: "2027-07-03" }],
+          lastSyncedAt: twoMinutesAgo,
+        },
+      ],
+    });
+
+    await refreshIcalSourcesIfStale(deps);
+
+    expect(deps.fetchFeed).not.toHaveBeenCalled();
+    expect(deps.store.syncSuccessCalls).toEqual([]);
+    expect(deps.store.syncErrorCalls).toEqual([]);
+  });
+
+  it("a failed refresh records the error without throwing", async () => {
+    const staleSince = new Date(NOW.getTime() - 10 * 60 * 1000);
+    const deps = makeDeps({
+      now: NOW,
+      sources: [
+        {
+          id: "s1",
+          url: "https://example.com/s1.ics",
+          cachedIntervals: [{ start: "2027-05-01", end: "2027-05-03" }],
+          lastSyncedAt: staleSince,
+        },
+      ],
+      fetchFeed: async () => ({ ok: false, error: "HTTP 500" }),
+    });
+
+    await expect(refreshIcalSourcesIfStale(deps)).resolves.toBeUndefined();
+
+    expect(deps.store.syncErrorCalls).toEqual([
+      { id: "s1", error: "HTTP 500", erroredAt: NOW },
+    ]);
+    expect(deps.store.syncSuccessCalls).toEqual([]);
   });
 });

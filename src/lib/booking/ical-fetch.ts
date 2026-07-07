@@ -21,6 +21,25 @@ export type IcalFetchResult =
 const RECURRING_EXPANSION_WINDOW_MONTHS = FORWARD_HORIZON_MONTHS;
 
 /**
+ * Airbnb's exported feed contains two kinds of VEVENTs: real Airbnb bookings
+ * (`SUMMARY:Reserved`) and `SUMMARY:Airbnb (Not Available)` blocks. The blocks
+ * include dates Airbnb itself imported from our *other* connected calendars
+ * (Natuurhuisje, this site's own export feed), so importing them echoes every
+ * external booking back as a second "Airbnb" interval. Skip them: any date
+ * genuinely occupied is still busy via its originating feed or our own
+ * bookings. Trade-off: dates blocked manually inside Airbnb are exported the
+ * same way and are therefore ignored — manual blocks belong in this app, not
+ * in Airbnb.
+ */
+const REEXPORTED_BLOCK_SUMMARY = /not available/i;
+
+function isReexportedBlock(event: VEvent): boolean {
+  const summary = event.summary;
+  const text = typeof summary === "string" ? summary : (summary?.val ?? "");
+  return REEXPORTED_BLOCK_SUMMARY.test(text);
+}
+
+/**
  * Fetches and parses an iCal feed from the given URL.
  * Pure function — no DB access, no cache writes.
  * Returns a typed result so callers can handle errors without throwing.
@@ -85,6 +104,9 @@ export async function fetchIcalFeed(
           // A RECURRENCE-ID override can mark a single occurrence CANCELLED
           // (e.g. a deleted instance) without cancelling the whole series.
           if (instance.event.status === "CANCELLED") continue;
+          // instance.event is the base VEVENT or its RECURRENCE-ID override,
+          // so an override that rewrites the summary is judged on its own.
+          if (isReexportedBlock(instance.event)) continue;
 
           intervals.push({
             start: toUtcDayString(instance.start),
@@ -95,6 +117,7 @@ export async function fetchIcalFeed(
       }
 
       if (event.status === "CANCELLED") continue;
+      if (isReexportedBlock(event)) continue;
       if (!event.start || !event.end) continue;
 
       intervals.push({
