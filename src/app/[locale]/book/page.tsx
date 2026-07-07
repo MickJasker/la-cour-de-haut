@@ -9,7 +9,11 @@ import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
 import { SiteHeader } from "@/components/sections/site-header";
 import { Button } from "@/components/ui/button";
 import { Link } from "@/i18n/navigation";
-import { getBookedDatesAction, getPricePerNightAction } from "./action";
+import {
+  getBookedDatesAction,
+  getPricePerNightAction,
+  getPaymentScheduleConfigAction,
+} from "./action";
 import { Suspense } from "react";
 
 export async function generateMetadata({
@@ -47,6 +51,7 @@ export default async function BookPage({
   });
   const bookedDates = getBookedDatesAction();
   const pricePerNight = getPricePerNightAction();
+  const paymentConfig = getPaymentScheduleConfigAction();
 
   return (
     <>
@@ -63,7 +68,11 @@ export default async function BookPage({
       />
       <main className="flex flex-col flex-1 items-center justify-center p-6">
         <Suspense fallback={<BookFormSkeleton />}>
-          <BookForm bookedDates={bookedDates} pricePerNight={pricePerNight} />
+          <BookForm
+            bookedDates={bookedDates}
+            pricePerNight={pricePerNight}
+            paymentConfig={paymentConfig}
+          />
         </Suspense>
         <div className="h-22" />
       </main>

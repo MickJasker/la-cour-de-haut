@@ -68,7 +68,16 @@
       "country": "Land",
       "countryPlaceholder": "Selecteer een land",
       "countrySearchPlaceholder": "Zoek een land...",
-      "countryEmpty": "Geen land gevonden"
+      "countryEmpty": "Geen land gevonden",
+      "paymentSchedule": {
+        "heading": "Betaling in termijnen",
+        "deposit": "Aanbetaling ({percentage}%): <strong>{amount}</strong> — binnen {days, plural, one {# dag} other {# dagen}} na bevestiging",
+        "balanceWithBorg": "Restbetaling incl. borg: <strong>{amount}</strong> — uiterlijk {days, plural, one {# dag} other {# dagen}} vóór aankomst ({date})",
+        "balance": "Restbetaling: <strong>{amount}</strong> — uiterlijk {days, plural, one {# dag} other {# dagen}} vóór aankomst ({date})",
+        "totalWithBorg": "Volledig bedrag incl. borg: <strong>{amount}</strong> — te voldoen na bevestiging, vóór aankomst",
+        "total": "Volledig bedrag: <strong>{amount}</strong> — te voldoen na bevestiging, vóór aankomst",
+        "borgNote": "De borg van <strong>{amount}</strong> ontvangt u na afloop van het verblijf terug."
+      }
     },
     "fieldErrors": {
       "required": "Dit veld is verplicht",

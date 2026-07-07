@@ -12,13 +12,16 @@ import { BookForm } from "@/components/sections/book-form";
 import { BookFormSkeleton } from "@/components/sections/book-form-skeleton";
 import { useTranslations } from "@/i18n/provider";
 import { Suspense, useState } from "react";
+import type { BookingPaymentConfig } from "../../book/shared";
 
 export function BookModalClient({
   bookedDates,
   pricePerNight,
+  paymentConfig,
 }: {
   bookedDates: Promise<string[]>;
   pricePerNight: Promise<number>;
+  paymentConfig: Promise<BookingPaymentConfig>;
 }) {
   const router = useRouter();
   const t = useTranslations("sections.header");
@@ -43,6 +46,7 @@ export function BookModalClient({
           <BookForm
             bookedDates={bookedDates}
             pricePerNight={pricePerNight}
+            paymentConfig={paymentConfig}
             stickyCta
           />
         </Suspense>

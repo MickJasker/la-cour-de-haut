@@ -5,7 +5,9 @@ import {
   calculateTourismTax,
   calculatePriceBreakdown,
   createBookingFormSchema,
+  paymentScheduleRows,
 } from "./shared";
+import { computePaymentSchedule } from "@/lib/booking/payment-schedule";
 
 // Identity translator: error messages come back as their i18n keys, so a test
 // can assert exactly which field failed without depending on copy.
@@ -140,5 +142,93 @@ describe("calculatePriceBreakdown", () => {
     expect(result.discount).toBe(0);
     expect(result.rentalSubtotal).toBeCloseTo(600);
     expect(result.totalPrice).toBeGreaterThan(600);
+  });
+});
+
+describe("paymentScheduleRows", () => {
+  const SETTINGS = {
+    depositPercentage: 50,
+    depositDeadlineDays: 3,
+    balanceDueDaysBeforeArrival: 7,
+  };
+
+  it("splits into a deposit row and a balance+borg row for a normal stay", () => {
+    // confirm + 3 = 2026-07-10; arrival − 7 = 2026-07-24 → two steps.
+    const schedule = computePaymentSchedule(
+      1000,
+      200,
+      "2026-07-07",
+      "2026-07-31",
+      SETTINGS,
+    );
+    const rows = paymentScheduleRows(schedule, SETTINGS, 200);
+
+    expect(rows).toEqual([
+      { kind: "deposit", amount: 500, percentage: 50, dueWithinDays: 3 },
+      {
+        kind: "balance",
+        amount: 700, // remaining 500 + 200 borg
+        deadline: "2026-07-24",
+        dueDaysBeforeArrival: 7,
+        includesBorg: true,
+      },
+    ]);
+  });
+
+  it("collapses to a single total row on short notice", () => {
+    // arrival − 7 = 2026-07-10 = confirm + 3 → collapse.
+    const schedule = computePaymentSchedule(
+      1000,
+      200,
+      "2026-07-07",
+      "2026-07-17",
+      SETTINGS,
+    );
+    const rows = paymentScheduleRows(schedule, SETTINGS, 200);
+
+    expect(rows).toEqual([{ kind: "total", amount: 1200, includesBorg: true }]);
+  });
+
+  it("marks rows as borg-free when the security deposit is zero", () => {
+    const split = paymentScheduleRows(
+      computePaymentSchedule(1000, 0, "2026-07-07", "2026-07-31", SETTINGS),
+      SETTINGS,
+      0,
+    );
+    expect(split[1]).toMatchObject({ kind: "balance", includesBorg: false });
+
+    const collapsed = paymentScheduleRows(
+      computePaymentSchedule(1000, 0, "2026-07-07", "2026-07-17", SETTINGS),
+      SETTINGS,
+      0,
+    );
+    expect(collapsed[0]).toMatchObject({ kind: "total", includesBorg: false });
+  });
+
+  it("reflects non-default settings in the deposit row copy inputs", () => {
+    const settings = {
+      depositPercentage: 30,
+      depositDeadlineDays: 5,
+      balanceDueDaysBeforeArrival: 14,
+    };
+    const schedule = computePaymentSchedule(
+      2000,
+      300,
+      "2026-07-07",
+      "2026-09-01",
+      settings,
+    );
+    const rows = paymentScheduleRows(schedule, settings, 300);
+
+    expect(rows[0]).toEqual({
+      kind: "deposit",
+      amount: 600, // 30% of 2000
+      percentage: 30,
+      dueWithinDays: 5,
+    });
+    expect(rows[1]).toMatchObject({
+      kind: "balance",
+      dueDaysBeforeArrival: 14,
+    });
   });
 });

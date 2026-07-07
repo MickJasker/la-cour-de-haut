@@ -2,6 +2,10 @@ import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js/min";
 import { isValidCountryCode } from "@/lib/countries";
+import {
+  type PaymentSchedule,
+  type PaymentScheduleSettings,
+} from "@/lib/booking/payment-schedule";
 
 export const formOpts = formOptions({
   defaultValues: {
@@ -144,4 +148,81 @@ export function calculateTotalNights(from: string, to: string): number {
   return Math.ceil(
     (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
   );
+}
+
+/**
+ * The payment-schedule rows the booking form renders under the price summary,
+ * derived from `computePaymentSchedule`'s output (issue #167). Presentation
+ * only: it picks WHICH rows to show and carries the values each row's copy
+ * interpolates — the component maps a row to a translation key and formats the
+ * currency/date per locale. Sharing `computePaymentSchedule` with the
+ * confirm-time bank-transfer email guarantees the preview can never contradict
+ * what the guest is later asked to pay.
+ *
+ * `includesBorg` drives label selection: a zero borg would make an
+ * "incl. borg" line wrong, so the component swaps to the plain wording.
+ */
+export type PaymentScheduleRow =
+  | {
+      kind: "deposit";
+      /** EUR. */
+      amount: number;
+      /** Percentage of the total taken as the deposit. */
+      percentage: number;
+      /** Days after confirmation the deposit is due. */
+      dueWithinDays: number;
+    }
+  | {
+      kind: "balance";
+      /** EUR — the remainder of the total plus the borg. */
+      amount: number;
+      /** UTC day string (YYYY-MM-DD): arrival − dueDaysBeforeArrival. */
+      deadline: string;
+      /** Days before arrival the balance is due. */
+      dueDaysBeforeArrival: number;
+      includesBorg: boolean;
+    }
+  | {
+      kind: "total";
+      /** EUR — the full total plus the borg, due in one short-notice payment. */
+      amount: number;
+      includesBorg: boolean;
+    };
+
+/**
+ * Server-provided inputs for the form's payment-schedule preview: the schedule
+ * knobs plus the borg amount, read from settings by
+ * `getPaymentScheduleConfigAction`.
+ */
+export type BookingPaymentConfig = {
+  settings: PaymentScheduleSettings;
+  securityDeposit: number;
+};
+
+export function paymentScheduleRows(
+  schedule: PaymentSchedule,
+  settings: PaymentScheduleSettings,
+  securityDeposit: number,
+): PaymentScheduleRow[] {
+  const includesBorg = securityDeposit > 0;
+
+  if (schedule.collapsed) {
+    return [{ kind: "total", amount: schedule.totalAmount, includesBorg }];
+  }
+
+  return [
+    {
+      kind: "deposit",
+      amount: schedule.depositAmount,
+      percentage: settings.depositPercentage,
+      dueWithinDays: settings.depositDeadlineDays,
+    },
+    {
+      kind: "balance",
+      amount: schedule.balanceAmount,
+      deadline: schedule.balanceDeadline,
+      dueDaysBeforeArrival: settings.balanceDueDaysBeforeArrival,
+      includesBorg,
+    },
+  ];
 }

@@ -38,8 +38,11 @@ import {
   calculatePriceBreakdown,
   calculateTotalNights,
   formOpts,
+  paymentScheduleRows,
+  type BookingPaymentConfig,
 } from "@/app/[locale]/book/shared";
 import { createBookingFormSchema } from "@/app/[locale]/book/shared";
+import { computePaymentSchedule } from "@/lib/booking/payment-schedule";
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import { PhoneInput } from "@/components/ui/phone-input";
 import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
@@ -47,10 +50,12 @@ import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 export function BookForm({
   bookedDates,
   pricePerNight: pricePerNightPromise,
+  paymentConfig: paymentConfigPromise,
   stickyCta = false,
 }: {
   bookedDates: Promise<string[]>;
   pricePerNight: Promise<number>;
+  paymentConfig: Promise<BookingPaymentConfig>;
   /** Pins the total + submit button to the bottom of the nearest scroll
       container (the booking dialog); the full price breakdown stays in flow. */
   stickyCta?: boolean;
@@ -60,6 +65,7 @@ export function BookForm({
 
   const booked = use(bookedDates);
   const pricePerNight = use(pricePerNightPromise);
+  const paymentConfig = use(paymentConfigPromise);
 
   const [turnstileToken, setTurnstileToken] = useState("");
   const turnstileRef = useRef<TurnstileInstance>(null);
@@ -95,6 +101,13 @@ export function BookForm({
     style: "currency",
     currency: "EUR",
     minimumFractionDigits: 0,
+  });
+
+  // Locale-formatted deadline dates for the payment-schedule breakdown.
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
   });
 
   const isSuccessful = state.success;
@@ -368,6 +381,28 @@ export function BookForm({
                     Number(formState.values.guestCount),
                   );
 
+                // "Today" plays the confirm-date role for the preview: the
+                // owner hasn't confirmed yet, so the schedule is computed as if
+                // confirmation happened now. Read client-side (like the calendar
+                // and min-nights validation) — the rows only appear after a
+                // date selection, a post-hydration interaction, so there is no
+                // server/client "today" to disagree on.
+                const arrival = formState.values.stayDates?.from ?? "";
+                const scheduleRows =
+                  totalNights && arrival
+                    ? paymentScheduleRows(
+                        computePaymentSchedule(
+                          totalPrice,
+                          paymentConfig.securityDeposit,
+                          format(new Date(), "yyyy-MM-dd"),
+                          arrival,
+                          paymentConfig.settings,
+                        ),
+                        paymentConfig.settings,
+                        paymentConfig.securityDeposit,
+                      )
+                    : [];
+
                 return (
                   <>
                     <div
@@ -407,6 +442,70 @@ export function BookForm({
                             strong: renderStrong,
                           })}
                         </p>
+                      )}
+
+                      {scheduleRows.length > 0 && (
+                        <div className="mt-3 space-y-0.5 border-t border-border pt-3">
+                          <p className="font-medium">
+                            {t("form.paymentSchedule.heading")}
+                          </p>
+                          {scheduleRows.map((row) => {
+                            if (row.kind === "deposit") {
+                              return (
+                                <p key="deposit">
+                                  {t.rich("form.paymentSchedule.deposit", {
+                                    percentage: row.percentage,
+                                    amount: currency.format(row.amount),
+                                    days: row.dueWithinDays,
+                                    strong: renderStrong,
+                                  })}
+                                </p>
+                              );
+                            }
+                            if (row.kind === "balance") {
+                              return (
+                                <p key="balance">
+                                  {t.rich(
+                                    row.includesBorg
+                                      ? "form.paymentSchedule.balanceWithBorg"
+                                      : "form.paymentSchedule.balance",
+                                    {
+                                      amount: currency.format(row.amount),
+                                      days: row.dueDaysBeforeArrival,
+                                      date: dateFormatter.format(
+                                        new Date(row.deadline + "T00:00:00"),
+                                      ),
+                                      strong: renderStrong,
+                                    },
+                                  )}
+                                </p>
+                              );
+                            }
+                            return (
+                              <p key="total">
+                                {t.rich(
+                                  row.includesBorg
+                                    ? "form.paymentSchedule.totalWithBorg"
+                                    : "form.paymentSchedule.total",
+                                  {
+                                    amount: currency.format(row.amount),
+                                    strong: renderStrong,
+                                  },
+                                )}
+                              </p>
+                            );
+                          })}
+                          {paymentConfig.securityDeposit > 0 && (
+                            <p className="text-sm text-muted-foreground">
+                              {t.rich("form.paymentSchedule.borgNote", {
+                                amount: currency.format(
+                                  paymentConfig.securityDeposit,
+                                ),
+                                strong: renderStrong,
+                              })}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   </>
