@@ -183,6 +183,10 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.getByRole("button", { name: "Afwijzen" }).click();
 
+    // Sends the decline notice (issue #165), a no-op under E2E_TESTING
+    // (playwright.config.ts) — the transition succeeding here proves the
+    // send-then-transition path doesn't roll back under the stubbed
+    // transport.
     await expect(
       page.locator("span").filter({ hasText: /^Afgewezen$/ }),
     ).toBeVisible();
@@ -243,12 +247,46 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.getByRole("button", { name: "Annuleren" }).click();
 
+    // Sends the cancellation notice (issue #165), a no-op under E2E_TESTING
+    // (playwright.config.ts) — the transition succeeding here proves the
+    // send-then-transition path doesn't roll back under the stubbed
+    // transport. States the cancellation only — no refund/amount talk.
     await expect(
       rossiCard.locator("span").filter({ hasText: /^Geannuleerd$/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Annuleren" }),
     ).not.toBeVisible();
+  });
+
+  test("owner cancels an on_hold booking → status becomes 'Cancelled' and sends the cancellation email", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+    const deadlineStr = deadline.toISOString().slice(0, 10);
+
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('test-hold-cancel-1', 'Mette Olsen', 'mette@example.com', 2, 'de', '2027-11-15', '2027-11-22', 'on_hold', now(), ${deadlineStr}::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const olsenCard = page
+      .locator("div.border")
+      .filter({ hasText: "Mette Olsen" });
+    await expect(
+      olsenCard.locator("span").filter({ hasText: /^In afwachting$/ }),
+    ).toBeVisible();
+
+    await olsenCard.getByRole("button", { name: "Annuleren" }).click();
+
+    // Cancel is valid from on_hold too (not just confirmed) — sends the same
+    // cancellation notice, again a stubbed no-op under E2E_TESTING.
+    await expect(
+      olsenCard.locator("span").filter({ hasText: /^Geannuleerd$/ }),
+    ).toBeVisible();
   });
 
   test("on_hold booking with past deadline is shown as 'Expired'", async ({
@@ -288,6 +326,92 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     const confirmBtn = page.getByRole("button", { name: "Bevestigen" });
     await expect(confirmBtn).toBeDisabled();
+  });
+
+  test("two-stage happy path: confirm → deposit paid → balance paid → confirmed", async ({
+    page,
+  }) => {
+    // Arrival far in the future → the schedule does not collapse, so the
+    // booking passes through the deposit_paid stage.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('two-stage-1', 'Deux Etapes', 'deux@example.com', 2, 'nl', '2028-06-01', '2028-06-08', 'requested', now(), 200, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page.locator("div.border").filter({ hasText: "Deux Etapes" });
+    await expect(card).toBeVisible();
+
+    // Confirm — the dialog previews a two-stage schedule.
+    await card.getByRole("button", { name: "Bevestigen" }).click();
+    const dialog = page.getByRole("dialog", { name: /boeking bevestigen/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText("Aanbetaling")).toBeVisible();
+    await expect(dialog.getByText("Restbetaling")).toBeVisible();
+    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+
+    // on_hold with a two-stage snapshot → mark the deposit paid.
+    await expect(
+      card.locator("span").filter({ hasText: /^In afwachting$/ }),
+    ).toBeVisible();
+    await card.getByRole("button", { name: "Aanbetaling markeren" }).click();
+
+    // deposit_paid → mark the balance paid.
+    await expect(
+      card.locator("span").filter({ hasText: /^Aanbetaling voldaan$/ }),
+    ).toBeVisible();
+    await card.getByRole("button", { name: "Restbetaling markeren" }).click();
+
+    // confirmed.
+    await expect(
+      card.locator("span").filter({ hasText: /^Bevestigd$/ }),
+    ).toBeVisible();
+  });
+
+  test("collapse path: short-notice confirm → single payment → confirmed", async ({
+    page,
+  }) => {
+    // Arrival ~8 days out → balance deadline (arrival − 7) falls on/before the
+    // deposit deadline (today + 3), so the schedule collapses to one payment.
+    const sql = neon(process.env.DATABASE_URL!);
+    const arrival = new Date();
+    arrival.setDate(arrival.getDate() + 8);
+    const departure = new Date();
+    departure.setDate(departure.getDate() + 12);
+    const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('collapse-1', 'Court Delai', 'court@example.com', 2, 'nl', ${iso(arrival)}::date, ${iso(departure)}::date, 'requested', now(), 200, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page.locator("div.border").filter({ hasText: "Court Delai" });
+    await expect(card).toBeVisible();
+
+    // Confirm — the dialog previews a single collapsed payment.
+    await card.getByRole("button", { name: "Bevestigen" }).click();
+    const dialog = page.getByRole("dialog", { name: /boeking bevestigen/i });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(/Eén betaling/)).toBeVisible();
+    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+    await expect(page.getByRole("dialog")).not.toBeVisible();
+
+    // on_hold with a collapsed snapshot → a single mark-paid goes straight to
+    // confirmed (no deposit_paid stage, no "Aanbetaling markeren" button).
+    await expect(
+      card.locator("span").filter({ hasText: /^In afwachting$/ }),
+    ).toBeVisible();
+    await expect(
+      card.getByRole("button", { name: "Aanbetaling markeren" }),
+    ).not.toBeVisible();
+    await card.getByRole("button", { name: "Betaald markeren" }).click();
+
+    await expect(
+      card.locator("span").filter({ hasText: /^Bevestigd$/ }),
+    ).toBeVisible();
   });
 });
 

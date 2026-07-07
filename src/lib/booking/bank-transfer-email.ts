@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { getBaseUrl } from "@/lib/base-url";
+import type { PaymentSchedule } from "./payment-schedule";
 
 const esc = (s: string) =>
   s
@@ -22,7 +23,7 @@ export type BankDetails = {
 };
 
 /**
- * The price, frozen as of the booking request's `shownPriceAtBooking`
+ * The rental price, frozen as of the booking request's `shownPriceAtBooking`
  * (submit-time settings), not live settings. Computed once by the caller
  * (`applyTransition`) so this module never reads settings for the amount —
  * it only renders numbers it's handed.
@@ -38,173 +39,320 @@ type EmailParams = {
   startDate: string;
   endDate: string;
   guestCount: number;
-  paymentDeadline: string;
   locale: string;
   price: PriceSnapshot;
+  /** The frozen two-stage (or collapsed) payment schedule, ADR-0021. */
+  schedule: PaymentSchedule;
+  /** The borg (security deposit), always charged with the final payment. */
+  securityDeposit: number;
   bankDetails: BankDetails;
 };
 
-const templates: Record<
-  string,
-  (p: EmailParams) => { subject: string; html: string }
-> = {
-  nl: (p) => {
-    const currencyFormatter = new Intl.NumberFormat("nl-NL", {
-      style: "currency",
-      currency: "EUR",
-    });
-    const { nights, discount, totalPrice } = p.price;
+/**
+ * Per-locale copy for the email. Kept as one table so the four locales stay
+ * in lockstep — the render helpers below are locale-agnostic and read every
+ * string from here.
+ */
+type Copy = {
+  intl: string;
+  subject: string;
+  greeting: (name: string) => string;
+  intro: string;
+  checkIn: string;
+  checkOut: string;
+  guests: string;
+  nights: string;
+  discount: string;
+  totalPrice: string;
+  accountHolder: string;
+  iban: string;
+  bank: string;
+  reference: string;
+  amount: string;
+  dueBy: string;
+  /** Intro line before the schedule tables (two-stage). */
+  twoStageIntro: string;
+  /** Intro line before the single schedule table (collapsed). */
+  collapsedIntro: string;
+  depositHeading: string;
+  balanceHeading: string;
+  singleHeading: string;
+  /** Reference suffix distinguishing the two transfers. */
+  depositRef: string;
+  balanceRef: string;
+  /** "(of which € X is a refundable deposit)". */
+  borgNote: (borg: string) => string;
+  /** Warning that a missed first-payment deadline releases the dates. */
+  releaseNote: string;
+  /** Note that the balance secures the final confirmation. */
+  balanceNote: string;
+  termsNote: (url: string) => string;
+  signoff: string;
+};
 
-    const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const termsUrl = `${getBaseUrl()}/nl/terms`;
-
-    return {
-      subject: `Uw reservering bij La Cour de Haut`,
-      html: `
-      <h2>Beste ${esc(p.guest.name)},</h2>
-      <p>Bedankt voor uw boeking bij <strong>La Cour de Haut</strong>. Wij hebben de volgende datums voor u gereserveerd:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Aankomst</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
-        <tr><th align="left">Vertrek</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
-        <tr><th align="left">Gasten</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Aantal nachten</th><td>${nights}</td></tr>
-        ${discount > 0 ? `<tr><th align="left">10% korting (7+ nachten)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
-        <tr><th align="left">Totale prijs</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
-      </table>
-      <p>Om uw reservering definitief te maken, verzoeken wij u het verschuldigde bedrag vóór <strong>${esc(p.paymentDeadline)}</strong> over te maken naar:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Rekeninghouder</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
-        <tr><th align="left">Betalingskenmerk</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
-      </table>
-      <p>Als wij uw betaling niet ontvangen vóór de betalingstermijn, vervalt de reservering automatisch.</p>
-      <p>Op uw reservering zijn onze <a href="${termsUrl}">algemene voorwaarden</a> van toepassing.</p>
-      <p>Met vriendelijke groeten,<br/>La Cour de Haut</p>`,
-    };
+const COPY: Record<string, Copy> = {
+  nl: {
+    intl: "nl-NL",
+    subject: "Uw reservering bij La Cour de Haut",
+    greeting: (name) => `Beste ${name},`,
+    intro:
+      "Bedankt voor uw boeking bij <strong>La Cour de Haut</strong>. Wij hebben de volgende datums voor u gereserveerd:",
+    checkIn: "Aankomst",
+    checkOut: "Vertrek",
+    guests: "Gasten",
+    nights: "Aantal nachten",
+    discount: "10% korting (7+ nachten)",
+    totalPrice: "Totale prijs",
+    accountHolder: "Rekeninghouder",
+    iban: "IBAN",
+    bank: "Bank",
+    reference: "Betalingskenmerk",
+    amount: "Bedrag",
+    dueBy: "Te voldoen vóór",
+    twoStageIntro:
+      "De betaling verloopt in twee termijnen. Gelieve elk bedrag over te maken naar onderstaande rekening, met het vermelde betalingskenmerk:",
+    collapsedIntro:
+      "Gelieve het onderstaande bedrag over te maken naar onderstaande rekening, met het vermelde betalingskenmerk:",
+    depositHeading: "1. Aanbetaling",
+    balanceHeading: "2. Restbetaling (incl. borg)",
+    singleHeading: "Volledige betaling (incl. borg)",
+    depositRef: "aanbetaling",
+    balanceRef: "restbetaling",
+    borgNote: (borg) => `waarvan ${borg} borg (na het verblijf terugbetaald)`,
+    releaseNote:
+      "Als wij de aanbetaling niet vóór de vervaldatum ontvangen, vervalt de reservering automatisch.",
+    balanceNote:
+      "De restbetaling maakt uw reservering definitief; de borg ontvangt u na afloop van uw verblijf terug.",
+    termsNote: (url) =>
+      `Op uw reservering zijn onze <a href="${url}">algemene voorwaarden</a> van toepassing.`,
+    signoff: "Met vriendelijke groeten,<br/>La Cour de Haut",
   },
-
-  en: (p) => {
-    const currencyFormatter = new Intl.NumberFormat("en-GB", {
-      style: "currency",
-      currency: "EUR",
-    });
-    const { nights, discount, totalPrice } = p.price;
-
-    const dateFormatter = new Intl.DateTimeFormat("en-GB", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const termsUrl = `${getBaseUrl()}/en/terms`;
-
-    return {
-      subject: `Your reservation at La Cour de Haut`,
-      html: `
-      <h2>Dear ${esc(p.guest.name)},</h2>
-      <p>Thank you for your booking at <strong>La Cour de Haut</strong>. We have reserved the following dates for you:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Check-in</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
-        <tr><th align="left">Check-out</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
-        <tr><th align="left">Guests</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Total nights</th><td>${nights}</td></tr>
-        ${discount > 0 ? `<tr><th align="left">10% long-stay discount (7+ nights)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
-        <tr><th align="left">Total price</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
-      </table>
-      <p>To confirm your reservation, please transfer the agreed amount before <strong>${esc(p.paymentDeadline)}</strong> to:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Account holder</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
-        <tr><th align="left">Reference</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
-      </table>
-      <p>If payment is not received before the deadline, your reservation will be released.</p>
-      <p>Your reservation is subject to our <a href="${termsUrl}">terms and conditions</a>.</p>
-      <p>Kind regards,<br/>La Cour de Haut</p>`,
-    };
+  en: {
+    intl: "en-GB",
+    subject: "Your reservation at La Cour de Haut",
+    greeting: (name) => `Dear ${name},`,
+    intro:
+      "Thank you for your booking at <strong>La Cour de Haut</strong>. We have reserved the following dates for you:",
+    checkIn: "Check-in",
+    checkOut: "Check-out",
+    guests: "Guests",
+    nights: "Total nights",
+    discount: "10% long-stay discount (7+ nights)",
+    totalPrice: "Total price",
+    accountHolder: "Account holder",
+    iban: "IBAN",
+    bank: "Bank",
+    reference: "Reference",
+    amount: "Amount",
+    dueBy: "Due by",
+    twoStageIntro:
+      "Payment is made in two instalments. Please transfer each amount to the account below, quoting the reference shown:",
+    collapsedIntro:
+      "Please transfer the amount below to the account below, quoting the reference shown:",
+    depositHeading: "1. Deposit",
+    balanceHeading: "2. Balance (incl. security deposit)",
+    singleHeading: "Full payment (incl. security deposit)",
+    depositRef: "deposit",
+    balanceRef: "balance",
+    borgNote: (borg) =>
+      `of which ${borg} is a refundable security deposit (returned after your stay)`,
+    releaseNote:
+      "If we do not receive the deposit before the due date, your reservation will be released automatically.",
+    balanceNote:
+      "The balance confirms your reservation; the security deposit is returned to you after your stay.",
+    termsNote: (url) =>
+      `Your reservation is subject to our <a href="${url}">terms and conditions</a>.`,
+    signoff: "Kind regards,<br/>La Cour de Haut",
   },
-
-  fr: (p) => {
-    const currencyFormatter = new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "EUR",
-    });
-    const dateFormatter = new Intl.DateTimeFormat("fr-FR", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const { discount, totalPrice } = p.price;
-    const termsUrl = `${getBaseUrl()}/fr/terms`;
-
-    return {
-      subject: `Votre réservation à La Cour de Haut`,
-      html: `
-        <h2>Cher(e) ${esc(p.guest.name)},</h2>
-        <p>Merci pour votre réservation à <strong>La Cour de Haut</strong>. Nous avons réservé les dates suivantes pour vous :</p>
-        <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Arrivée</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
-        <tr><th align="left">Départ</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
-        <tr><th align="left">Voyageurs</th><td>${p.guestCount}</td></tr>
-        ${discount > 0 ? `<tr><th align="left">Réduction long séjour 10% (7+ nuits)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
-        <tr><th align="left">Prix total</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
-      </table>
-      <p>Pour confirmer votre réservation, veuillez virer le montant convenu avant le <strong>${esc(p.paymentDeadline)}</strong> à :</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Titulaire du compte</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
-        <tr><th align="left">Banque</th><td>${esc(p.bankDetails.bankName)}</td></tr>
-        <tr><th align="left">Référence</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
-      </table>
-      <p>Si le paiement n'est pas reçu avant la date limite, la réservation sera automatiquement annulée.</p>
-      <p>Votre réservation est soumise à nos <a href="${termsUrl}">conditions générales</a>.</p>
-      <p>Cordialement,<br/>La Cour de Haut</p>`,
-    };
+  fr: {
+    intl: "fr-FR",
+    subject: "Votre réservation à La Cour de Haut",
+    greeting: (name) => `Cher(e) ${name},`,
+    intro:
+      "Merci pour votre réservation à <strong>La Cour de Haut</strong>. Nous avons réservé les dates suivantes pour vous :",
+    checkIn: "Arrivée",
+    checkOut: "Départ",
+    guests: "Voyageurs",
+    nights: "Nombre de nuits",
+    discount: "Réduction long séjour 10% (7+ nuits)",
+    totalPrice: "Prix total",
+    accountHolder: "Titulaire du compte",
+    iban: "IBAN",
+    bank: "Banque",
+    reference: "Référence",
+    amount: "Montant",
+    dueBy: "À régler avant le",
+    twoStageIntro:
+      "Le paiement s'effectue en deux versements. Veuillez virer chaque montant sur le compte ci-dessous, en indiquant la référence indiquée :",
+    collapsedIntro:
+      "Veuillez virer le montant ci-dessous sur le compte ci-dessous, en indiquant la référence indiquée :",
+    depositHeading: "1. Acompte",
+    balanceHeading: "2. Solde (caution incluse)",
+    singleHeading: "Paiement intégral (caution incluse)",
+    depositRef: "acompte",
+    balanceRef: "solde",
+    borgNote: (borg) =>
+      `dont ${borg} de caution (restituée après votre séjour)`,
+    releaseNote:
+      "Si nous ne recevons pas l'acompte avant la date limite, la réservation sera automatiquement annulée.",
+    balanceNote:
+      "Le solde confirme votre réservation ; la caution vous est restituée après votre séjour.",
+    termsNote: (url) =>
+      `Votre réservation est soumise à nos <a href="${url}">conditions générales</a>.`,
+    signoff: "Cordialement,<br/>La Cour de Haut",
   },
-
-  de: (p) => {
-    const currencyFormatter = new Intl.NumberFormat("de-DE", {
-      style: "currency",
-      currency: "EUR",
-    });
-    const { nights, discount, totalPrice } = p.price;
-    const dateFormatter = new Intl.DateTimeFormat("de-DE", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    });
-    const termsUrl = `${getBaseUrl()}/de/terms`;
-
-    return {
-      subject: `Ihre Reservierung bei La Cour de Haut`,
-      html: `
-      <h2>Liebe(r) ${esc(p.guest.name)},</h2>
-      <p>Vielen Dank für Ihre Buchung bei <strong>La Cour de Haut</strong>. Wir haben die folgenden Daten für Sie reserviert:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Anreise</th><td>${dateFormatter.format(new Date(p.startDate))}</td></tr>
-        <tr><th align="left">Abreise</th><td>${dateFormatter.format(new Date(p.endDate))}</td></tr>
-        <tr><th align="left">Gäste</th><td>${p.guestCount}</td></tr>
-        <tr><th align="left">Gesamtnächte</th><td>${nights}</td></tr>
-        ${discount > 0 ? `<tr><th align="left">10% Langzeitrabatt (7+ Nächte)</th><td>−${currencyFormatter.format(discount)}</td></tr>` : ""}
-        <tr><th align="left">Gesamtpreis</th><td>${currencyFormatter.format(totalPrice)}</td></tr>
-      </table>
-      <p>Um Ihre Reservierung zu bestätigen, bitten wir Sie, den vereinbarten Betrag bis zum <strong>${esc(p.paymentDeadline)}</strong> zu überweisen an:</p>
-      <table cellpadding="6" style="border-collapse:collapse">
-        <tr><th align="left">Kontoinhaber</th><td>${esc(p.bankDetails.accountHolder)}</td></tr>
-        <tr><th align="left">IBAN</th><td>${esc(p.bankDetails.iban)}</td></tr>
-        <tr><th align="left">Bank</th><td>${esc(p.bankDetails.bankName)}</td></tr>
-        <tr><th align="left">Verwendungszweck</th><td>${esc(p.guest.name)} - ${esc(p.startDate)}</td></tr>
-      </table>
-      <p>Wenn die Zahlung nicht vor Ablauf der Frist eingeht, wird die Reservierung automatisch storniert.</p>
-      <p>Für Ihre Reservierung gelten unsere <a href="${termsUrl}">Allgemeinen Geschäftsbedingungen</a>.</p>
-      <p>Mit freundlichen Grüßen,<br/>La Cour de Haut</p>`,
-    };
+  de: {
+    intl: "de-DE",
+    subject: "Ihre Reservierung bei La Cour de Haut",
+    greeting: (name) => `Liebe(r) ${name},`,
+    intro:
+      "Vielen Dank für Ihre Buchung bei <strong>La Cour de Haut</strong>. Wir haben die folgenden Daten für Sie reserviert:",
+    checkIn: "Anreise",
+    checkOut: "Abreise",
+    guests: "Gäste",
+    nights: "Gesamtnächte",
+    discount: "10% Langzeitrabatt (7+ Nächte)",
+    totalPrice: "Gesamtpreis",
+    accountHolder: "Kontoinhaber",
+    iban: "IBAN",
+    bank: "Bank",
+    reference: "Verwendungszweck",
+    amount: "Betrag",
+    dueBy: "Zu zahlen bis",
+    twoStageIntro:
+      "Die Zahlung erfolgt in zwei Raten. Bitte überweisen Sie jeden Betrag auf das untenstehende Konto unter Angabe des genannten Verwendungszwecks:",
+    collapsedIntro:
+      "Bitte überweisen Sie den untenstehenden Betrag auf das untenstehende Konto unter Angabe des genannten Verwendungszwecks:",
+    depositHeading: "1. Anzahlung",
+    balanceHeading: "2. Restzahlung (inkl. Kaution)",
+    singleHeading: "Vollständige Zahlung (inkl. Kaution)",
+    depositRef: "Anzahlung",
+    balanceRef: "Restzahlung",
+    borgNote: (borg) =>
+      `davon ${borg} Kaution (nach Ihrem Aufenthalt zurückerstattet)`,
+    releaseNote:
+      "Wenn die Anzahlung nicht vor dem Fälligkeitsdatum eingeht, wird die Reservierung automatisch storniert.",
+    balanceNote:
+      "Die Restzahlung bestätigt Ihre Reservierung; die Kaution erhalten Sie nach Ihrem Aufenthalt zurück.",
+    termsNote: (url) =>
+      `Für Ihre Reservierung gelten unsere <a href="${url}">Allgemeinen Geschäftsbedingungen</a>.`,
+    signoff: "Mit freundlichen Grüßen,<br/>La Cour de Haut",
   },
 };
+
+function row(label: string, value: string): string {
+  return `<tr><th align="left">${label}</th><td>${value}</td></tr>`;
+}
+
+/** One payment instalment as its own bordered table. */
+function paymentTable(
+  heading: string,
+  c: Copy,
+  fmtCurrency: (n: number) => string,
+  fmtDate: (iso: string) => string,
+  amount: number,
+  deadline: string,
+  reference: string,
+  bank: BankDetails,
+  borgNote: string | null,
+): string {
+  return `
+      <h3 style="margin-bottom:4px">${heading}</h3>
+      <table cellpadding="6" style="border-collapse:collapse">
+        ${row(c.amount, `<strong>${fmtCurrency(amount)}</strong>${borgNote ? ` <em>— ${esc(borgNote)}</em>` : ""}`)}
+        ${row(c.dueBy, `<strong>${fmtDate(deadline)}</strong>`)}
+        ${row(c.accountHolder, esc(bank.accountHolder))}
+        ${row(c.iban, esc(bank.iban))}
+        ${row(c.bank, esc(bank.bankName))}
+        ${row(c.reference, esc(reference))}
+      </table>`;
+}
+
+function renderTemplate(p: EmailParams, c: Copy) {
+  const fmtCurrency = (n: number) =>
+    new Intl.NumberFormat(c.intl, {
+      style: "currency",
+      currency: "EUR",
+    }).format(n);
+  const dateFormatter = new Intl.DateTimeFormat(c.intl, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const fmtDate = (iso: string) => dateFormatter.format(new Date(iso));
+
+  const { nights, discount, totalPrice } = p.price;
+  const termsUrl = `${getBaseUrl()}/${c.intl.slice(0, 2)}/terms`;
+  const refBase = `${p.guest.name} - ${p.startDate}`;
+  const borg = p.securityDeposit;
+  const borgNote = borg > 0 ? c.borgNote(fmtCurrency(borg)) : null;
+
+  const summary = `
+      <table cellpadding="6" style="border-collapse:collapse">
+        ${row(c.checkIn, fmtDate(p.startDate))}
+        ${row(c.checkOut, fmtDate(p.endDate))}
+        ${row(c.guests, String(p.guestCount))}
+        ${row(c.nights, String(nights))}
+        ${discount > 0 ? row(c.discount, `−${fmtCurrency(discount)}`) : ""}
+        ${row(c.totalPrice, fmtCurrency(totalPrice))}
+      </table>`;
+
+  let paymentSection: string;
+  if (p.schedule.collapsed) {
+    paymentSection = `
+      <p>${c.collapsedIntro}</p>
+      ${paymentTable(
+        c.singleHeading,
+        c,
+        fmtCurrency,
+        fmtDate,
+        p.schedule.totalAmount,
+        p.schedule.deadline,
+        refBase,
+        p.bankDetails,
+        borgNote,
+      )}
+      <p>${c.releaseNote}</p>`;
+  } else {
+    paymentSection = `
+      <p>${c.twoStageIntro}</p>
+      ${paymentTable(
+        c.depositHeading,
+        c,
+        fmtCurrency,
+        fmtDate,
+        p.schedule.depositAmount,
+        p.schedule.depositDeadline,
+        `${refBase} - ${c.depositRef}`,
+        p.bankDetails,
+        null,
+      )}
+      ${paymentTable(
+        c.balanceHeading,
+        c,
+        fmtCurrency,
+        fmtDate,
+        p.schedule.balanceAmount,
+        p.schedule.balanceDeadline,
+        `${refBase} - ${c.balanceRef}`,
+        p.bankDetails,
+        borgNote,
+      )}
+      <p>${c.releaseNote}</p>
+      <p>${c.balanceNote}</p>`;
+  }
+
+  return {
+    subject: c.subject,
+    html: `
+      <h2>${esc(c.greeting(p.guest.name))}</h2>
+      <p>${c.intro}</p>
+      ${summary}
+      ${paymentSection}
+      <p>${c.termsNote(termsUrl)}</p>
+      <p>${c.signoff}</p>`,
+  };
+}
 
 /**
  * Sends the bank-transfer instructions email. `applyTransition` is the only
@@ -232,8 +380,8 @@ export async function sendBankTransferEmail(
   }
   const from = process.env.RESEND_FROM ?? "noreply@lacourdehaut.fr";
 
-  const tmpl = templates[params.locale] ?? templates.en!;
-  const { subject, html } = tmpl(params);
+  const copy = COPY[params.locale] ?? COPY.en!;
+  const { subject, html } = renderTemplate(params, copy);
 
   const resend = new Resend(apiKey);
   await resend.emails.send({

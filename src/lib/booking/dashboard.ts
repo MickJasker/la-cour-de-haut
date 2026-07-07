@@ -8,6 +8,10 @@ export type BookingRow = {
   guestCount: number;
   status: string;
   paymentDeadline: string | null;
+  // The balance (incl. borg) deadline of a two-stage booking (ADR-0021).
+  // Null for collapsed and legacy bookings; drives deposit_paid overdue /
+  // approaching categorisation below.
+  balanceDeadline: string | null;
 };
 
 export type IcalSourceRow = {
@@ -46,18 +50,38 @@ export function computeDashboard(
   icalSources: IcalSourceRow[],
   today: string,
 ): DashboardData {
+  const in3Days = new Date(new Date(today).getTime() + 3 * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+
   return {
     newRequests: bookings.filter((b) => b.status === "requested"),
-    // ADR-0004: a hold is "overdue" the moment it's expired — same predicate
-    // used by busy-intervals and display status, so this can't drift.
-    overdue: bookings.filter((b) => isExpiredHold(b, today)),
+    // Overdue = an on_hold whose deposit deadline passed (ADR-0004, same
+    // predicate as busy-intervals and display status), OR a deposit_paid
+    // whose balance deadline passed (ADR-0021). The latter never releases
+    // dates automatically — it only surfaces here for the owner to chase.
+    overdue: bookings.filter(
+      (b) =>
+        isExpiredHold(b, today) ||
+        (b.status === "deposit_paid" &&
+          b.balanceDeadline !== null &&
+          b.balanceDeadline < today),
+    ),
+    // Approaching = an on_hold whose deposit deadline is within 3 days, OR a
+    // deposit_paid whose balance deadline is within 3 days (and not already
+    // overdue). Boundary matches isExpiredHold: a deadline of exactly today is
+    // approaching, not overdue.
     approaching: bookings.filter((b) => {
-      if (b.status !== "on_hold" || b.paymentDeadline === null) return false;
-      if (isExpiredHold(b, today)) return false;
-      const in3Days = new Date(new Date(today).getTime() + 3 * 86_400_000)
-        .toISOString()
-        .slice(0, 10);
-      return b.paymentDeadline <= in3Days;
+      if (b.status === "on_hold") {
+        if (b.paymentDeadline === null) return false;
+        if (isExpiredHold(b, today)) return false;
+        return b.paymentDeadline <= in3Days;
+      }
+      if (b.status === "deposit_paid") {
+        if (b.balanceDeadline === null) return false;
+        return b.balanceDeadline >= today && b.balanceDeadline <= in3Days;
+      }
+      return false;
     }),
     brokenFeeds: icalSources.filter((f) => f.lastError !== null),
     upcoming: [

@@ -1,16 +1,39 @@
 import { toUtcDayString } from "./calendar-day";
 
 export type DbBookingStatus =
-  "requested" | "on_hold" | "confirmed" | "declined" | "cancelled";
+  | "requested"
+  | "on_hold"
+  | "deposit_paid"
+  | "confirmed"
+  | "declined"
+  | "cancelled";
 
 export type DisplayStatus = DbBookingStatus | "expired";
 
-export type BookingAction = "confirm" | "decline" | "mark_paid" | "cancel";
+export type BookingAction =
+  | "confirm"
+  | "decline"
+  | "mark_deposit_paid"
+  | "mark_balance_paid"
+  | "mark_paid"
+  | "cancel";
 
 export interface TransitionResult {
   nextStatus: DbBookingStatus;
   sideEffects: {
     sendBankTransferEmail?: true;
+    /** Deposit-received receipt (ADR-0021 wave 3, issue #164). */
+    sendDepositReceivedEmail?: true;
+    /** Balance-received receipt — both the two-stage balance leg and the
+     * collapsed single mark-paid land here (issue #164). */
+    sendBalanceReceivedEmail?: true;
+    /** Cancellation notice — fires from any of the three active statuses
+     * cancel is valid from (issue #165). No refund/amount talk; that stays
+     * off-platform. */
+    sendCancellationEmail?: true;
+    /** Decline notice sent to a guest whose fresh request wasn't accepted
+     * (issue #165). Today declined guests hear nothing at all. */
+    sendDeclineEmail?: true;
     releaseFromFeed?: true;
     blockInFeed?: true;
   };
@@ -27,23 +50,42 @@ const TRANSITIONS: Record<
     },
     decline: {
       nextStatus: "declined",
-      sideEffects: {},
+      sideEffects: { sendDeclineEmail: true },
     },
   },
   on_hold: {
+    // Two-stage path: the deposit has landed, balance + borg still due.
+    mark_deposit_paid: {
+      nextStatus: "deposit_paid",
+      sideEffects: { sendDepositReceivedEmail: true },
+    },
+    // Collapse path (short notice, ADR-0021): the single 100% + borg payment
+    // has landed, so the hold goes straight to confirmed. The admin UI only
+    // offers this action for a collapsed snapshot; two-stage bookings use
+    // mark_deposit_paid instead.
     mark_paid: {
       nextStatus: "confirmed",
-      sideEffects: {},
+      sideEffects: { sendBalanceReceivedEmail: true },
     },
     cancel: {
       nextStatus: "cancelled",
-      sideEffects: { releaseFromFeed: true },
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
+    },
+  },
+  deposit_paid: {
+    mark_balance_paid: {
+      nextStatus: "confirmed",
+      sideEffects: { sendBalanceReceivedEmail: true },
+    },
+    cancel: {
+      nextStatus: "cancelled",
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
     },
   },
   confirmed: {
     cancel: {
       nextStatus: "cancelled",
-      sideEffects: { releaseFromFeed: true },
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
     },
   },
   declined: {},

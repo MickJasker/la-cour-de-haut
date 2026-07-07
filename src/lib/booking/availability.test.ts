@@ -156,6 +156,15 @@ describe("isActiveDirectBooking — busy-intervals consumes the shared isExpired
     ).toBe(true);
   });
 
+  it("a deposit_paid booking always counts as active — a missed balance deadline never releases dates (ADR-0021)", () => {
+    expect(
+      isActiveDirectBooking(
+        { status: "deposit_paid", paymentDeadline: YESTERDAY },
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
   it("an on_hold booking with deadline yesterday is no longer active (expired)", () => {
     expect(
       isActiveDirectBooking(

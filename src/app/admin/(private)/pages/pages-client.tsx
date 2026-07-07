@@ -10,6 +10,7 @@ import {
 import {
   useActionState,
   useState,
+  useOptimistic,
   startTransition,
   useEffect,
   useLayoutEffect,
@@ -194,15 +195,16 @@ function PageRow({
   onEdit: (item: Page) => void;
 }) {
   const [isPending, startTransition] = useTransition();
-  const [published, setPublished] = useState(item.published);
+  // Optimistic with automatic rollback: if togglePagePublishedAction rejects
+  // (system guard, network failure, …), React reverts `published` back to
+  // `item.published` once the transition settles, instead of leaving the
+  // checkbox stuck showing a change that never actually persisted.
+  const [published, setOptimisticPublished] = useOptimistic(item.published);
   const publicUrl = `${appUrl}/nl/${item.slug}`;
 
   function handleDelete() {
     if (!confirm(`Pagina "${item.title.nl}" verwijderen?`)) return;
     onDelete(item.id);
-    startTransition(() => {
-      void deletePageAction(item.id);
-    });
   }
 
   return (
@@ -229,9 +231,16 @@ function PageRow({
               disabled={isPending}
               onCheckedChange={(checked) => {
                 const next = checked === true;
-                setPublished(next);
-                startTransition(() => {
-                  void togglePagePublishedAction(item.id, next);
+                startTransition(async () => {
+                  setOptimisticPublished(next);
+                  try {
+                    await togglePagePublishedAction(item.id, next);
+                  } catch (error) {
+                    console.error(
+                      `Failed to toggle published state for page ${item.id}`,
+                      error,
+                    );
+                  }
                 });
               }}
             />
@@ -270,22 +279,29 @@ export function PagesClient({
   pages: Page[];
   appUrl: string;
 }) {
-  const [serverPages, setServerPages] = useState(pages);
-  const [items, setItems] = useState(pages);
+  // Optimistic with automatic rollback: `pages` is the source of truth (the
+  // server prop, refreshed by `deletePageAction`'s `revalidatePath`); the
+  // reducer's removal is discarded back to `pages` once the transition
+  // settles, so a rejected delete (system guard, network failure, …)
+  // reinstates the row instead of leaving it gone until reload.
+  const [items, deleteOptimistically] = useOptimistic(
+    pages,
+    (state: Page[], deletedId: string) =>
+      state.filter((p) => p.id !== deletedId),
+  );
   const [editing, setEditing] = useState<Page | null>(null);
   const [formKey, setFormKey] = useState(0);
 
-  // Sync with updated server props (e.g. after an action revalidates the
-  // page). Updating state during render is React's recommended alternative
-  // to useEffect+setState — same pattern as PoiClient/GalleryList.
-  if (serverPages !== pages) {
-    setServerPages(pages);
-    setItems(pages);
-  }
-
   function handleDelete(id: string) {
-    setItems((prev) => prev.filter((p) => p.id !== id));
     if (editing?.id === id) setEditing(null);
+    startTransition(async () => {
+      deleteOptimistically(id);
+      try {
+        await deletePageAction(id);
+      } catch (error) {
+        console.error(`Failed to delete page ${id}`, error);
+      }
+    });
   }
 
   return (
