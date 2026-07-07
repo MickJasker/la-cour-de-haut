@@ -21,6 +21,14 @@ const ENTRIES: OccupancyEntry[] = [
     end: "2026-07-15",
   },
   {
+    kind: "booking",
+    id: "b-dep",
+    name: "Sophie Martin",
+    status: "deposit_paid",
+    start: "2026-07-16",
+    end: "2026-07-19",
+  },
+  {
     kind: "ical",
     sourceName: "Airbnb",
     start: "2026-07-20",
@@ -61,6 +69,13 @@ describe("OccupancyCalendar", () => {
     expect(html).toContain("Emma Leclerc");
     expect(html).toContain('href="/admin/bookings#booking-b-conf"');
     expect(html).toContain("bg-green-200");
+  });
+
+  it("renders a deposit_paid booking as a blue link to its inbox card (issue #166 spec)", () => {
+    const html = render();
+    expect(html).toContain("Sophie Martin");
+    expect(html).toContain('href="/admin/bookings#booking-b-dep"');
+    expect(html).toContain("bg-blue-200");
   });
 
   it("renders an iCal interval as a grey, non-clickable span with the source name", () => {
