@@ -75,13 +75,16 @@ export async function applyTransition(
   if (action === "mark_deposit_paid") {
     // The deposit-received receipt restates the balance leg + repeats bank
     // details (ADR-0021 wave 3, issue #164). mark_deposit_paid only ever
-    // reaches a booking with a two-stage snapshot — the collapsed path goes
-    // on_hold → confirmed directly via mark_paid — so a missing or collapsed
-    // schedule here is a lifecycle bug, not a user error.
+    // reaches a booking with a two-stage snapshot: a collapsed booking goes
+    // on_hold → confirmed directly via mark_paid, and a legacy NULL-snapshot
+    // row (never ran the ADR-0021 backfill) is treated as collapsed by the
+    // same convention — the admin UI offers neither of them this action.
+    // Reaching here with anything but a two-stage snapshot is a lifecycle
+    // bug, not a user error, and aborts before any DB write.
     const bookingSchedule = bookingPaymentSchedule(booking);
     if (!bookingSchedule || bookingSchedule.collapsed) {
       throw new Error(
-        "Booking has no two-stage payment schedule — mark_deposit_paid indicates a lifecycle bug, not a user error",
+        "Booking has no two-stage payment schedule (collapsed and legacy NULL-snapshot rows take mark_paid instead) — mark_deposit_paid indicates a lifecycle bug, not a user error",
       );
     }
     const settings = await getSettings();
@@ -111,19 +114,36 @@ export async function applyTransition(
   if (action === "mark_balance_paid" || action === "mark_paid") {
     // Balance-received receipt: payment complete, fires on both the
     // two-stage balance leg and the collapsed single mark-paid.
+    //
+    // A row with no snapshot is a legacy booking that never ran the ADR-0021
+    // backfill. Per the backfill's honor-what-was-emailed rule it is treated
+    // as a collapsed single payment, derived exactly as the SQL backfill
+    // derives it: the full total the guest was quoted (from the frozen
+    // shownPriceAtBooking via calculatePriceBreakdown), borg €0. The receipt
+    // must still go out — a legacy row never bricks the transition, and the
+    // email is never silently skipped.
     const bookingSchedule = bookingPaymentSchedule(booking);
-    if (!bookingSchedule) {
-      throw new Error(
-        "Booking has no payment schedule snapshot — cannot send the balance-received email; this indicates a lifecycle bug, not a user error",
-      );
+    let totalPaid: number;
+    let borgPaid: number;
+    if (bookingSchedule) {
+      totalPaid = scheduleTotal(bookingSchedule);
+      borgPaid = Number(booking.securityDepositAtBooking ?? 0);
+    } else {
+      const nights = calculateTotalNights(booking.startDate, booking.endDate);
+      totalPaid = calculatePriceBreakdown(
+        Number(booking.shownPriceAtBooking),
+        nights,
+        booking.guestCount,
+      ).totalPrice;
+      borgPaid = 0;
     }
     balanceReceivedParams = {
       guest: { name: booking.name, email: booking.email },
       startDate: booking.startDate,
       endDate: booking.endDate,
       locale: booking.locale,
-      totalPaid: scheduleTotal(bookingSchedule),
-      securityDeposit: Number(booking.securityDepositAtBooking ?? 0),
+      totalPaid,
+      securityDeposit: borgPaid,
     };
   }
 

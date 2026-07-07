@@ -139,6 +139,34 @@ const collapsedSnapshot = {
   securityDepositAtBooking: "200",
 };
 
+// A legacy row that never ran the ADR-0021 backfill: all snapshot columns
+// NULL (as drizzle returns them), e.g. an on_hold seeded before the two-stage
+// migration. `bookingPaymentSchedule` returns null for it; the convention is
+// to treat it as a collapsed single payment of the full quoted price, borg €0.
+const nullSnapshot = {
+  paymentCollapsed: null,
+  depositAmount: null,
+  balanceAmount: null,
+  paymentDeadline: "2027-08-10",
+  balanceDeadline: null,
+  securityDepositAtBooking: null,
+};
+
+/** The collapsed total a legacy NULL-snapshot row is treated as having paid:
+ * the full quoted price from shownPriceAtBooking — exactly how the ADR-0021
+ * SQL backfill derives it. */
+function legacyTotalForBase() {
+  const nights = calculateTotalNights(
+    baseBooking.startDate,
+    baseBooking.endDate,
+  );
+  return calculatePriceBreakdown(
+    Number(baseBooking.shownPriceAtBooking),
+    nights,
+    baseBooking.guestCount,
+  ).totalPrice;
+}
+
 describe("applyTransition — confirm", () => {
   it("updates DB status to on_hold and sends bank transfer email", async () => {
     const db = makeMockDb();
@@ -397,7 +425,7 @@ describe("applyTransition — mark_deposit_paid (two-stage)", () => {
     expect(db._set).not.toHaveBeenCalled();
   });
 
-  it("throws when the booking has no two-stage snapshot (lifecycle bug guard)", async () => {
+  it("throws when the booking has a collapsed snapshot (lifecycle bug guard)", async () => {
     const row = { ...baseBooking, status: "on_hold", ...collapsedSnapshot };
     const db = makeMockDb([row]);
     (getDb as Mock).mockReturnValue(db);
@@ -406,6 +434,18 @@ describe("applyTransition — mark_deposit_paid (two-stage)", () => {
       "lifecycle bug",
     );
     expect(db._set).not.toHaveBeenCalled();
+  });
+
+  it("throws without touching the DB for a legacy NULL-snapshot row (treated as collapsed, so mark_deposit_paid is never offered)", async () => {
+    const row = { ...baseBooking, status: "on_hold", ...nullSnapshot };
+    const db = makeMockDb([row]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await expect(applyTransition("bk-1", "mark_deposit_paid")).rejects.toThrow(
+      "lifecycle bug",
+    );
+    expect(db._set).not.toHaveBeenCalled();
+    expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
   });
 });
 
@@ -451,6 +491,22 @@ describe("applyTransition — mark_balance_paid (two-stage)", () => {
     expect(db._set).toHaveBeenCalledTimes(2);
     expect(db._set).toHaveBeenLastCalledWith({ status: "deposit_paid" });
   });
+
+  it("still transitions and emails a legacy NULL-snapshot row, deriving the collapsed total from shownPriceAtBooking with borg €0", async () => {
+    const row = { ...baseBooking, status: "deposit_paid", ...nullSnapshot };
+    const db = makeMockDb([row]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await applyTransition("bk-1", "mark_balance_paid");
+
+    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        totalPaid: legacyTotalForBase(),
+        securityDeposit: 0,
+      }),
+    );
+  });
 });
 
 describe("applyTransition — mark_paid (collapse path)", () => {
@@ -488,6 +544,24 @@ describe("applyTransition — mark_paid (collapse path)", () => {
 
     expect(db._set).toHaveBeenCalledTimes(2);
     expect(db._set).toHaveBeenLastCalledWith({ status: "on_hold" });
+  });
+
+  it("still transitions and emails a legacy NULL-snapshot on_hold row (ADR-0021 backfill convention: collapsed full price, borg €0)", async () => {
+    const row = { ...baseBooking, status: "on_hold", ...nullSnapshot };
+    const db = makeMockDb([row]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await applyTransition("bk-1", "mark_paid");
+
+    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledWith({
+      guest: { name: baseBooking.name, email: baseBooking.email },
+      startDate: baseBooking.startDate,
+      endDate: baseBooking.endDate,
+      locale: baseBooking.locale,
+      totalPaid: legacyTotalForBase(),
+      securityDeposit: 0,
+    });
   });
 });
 
