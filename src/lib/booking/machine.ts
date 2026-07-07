@@ -27,6 +27,13 @@ export interface TransitionResult {
     /** Balance-received receipt — both the two-stage balance leg and the
      * collapsed single mark-paid land here (issue #164). */
     sendBalanceReceivedEmail?: true;
+    /** Cancellation notice — fires from any of the three active statuses
+     * cancel is valid from (issue #165). No refund/amount talk; that stays
+     * off-platform. */
+    sendCancellationEmail?: true;
+    /** Decline notice sent to a guest whose fresh request wasn't accepted
+     * (issue #165). Today declined guests hear nothing at all. */
+    sendDeclineEmail?: true;
     releaseFromFeed?: true;
     blockInFeed?: true;
   };
@@ -43,7 +50,7 @@ const TRANSITIONS: Record<
     },
     decline: {
       nextStatus: "declined",
-      sideEffects: {},
+      sideEffects: { sendDeclineEmail: true },
     },
   },
   on_hold: {
@@ -62,7 +69,7 @@ const TRANSITIONS: Record<
     },
     cancel: {
       nextStatus: "cancelled",
-      sideEffects: { releaseFromFeed: true },
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
     },
   },
   deposit_paid: {
@@ -72,13 +79,13 @@ const TRANSITIONS: Record<
     },
     cancel: {
       nextStatus: "cancelled",
-      sideEffects: { releaseFromFeed: true },
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
     },
   },
   confirmed: {
     cancel: {
       nextStatus: "cancelled",
-      sideEffects: { releaseFromFeed: true },
+      sideEffects: { releaseFromFeed: true, sendCancellationEmail: true },
     },
   },
   declined: {},

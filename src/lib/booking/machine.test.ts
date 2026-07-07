@@ -16,10 +16,10 @@ describe("transition — valid paths", () => {
     expect(result.sideEffects.sendBankTransferEmail).toBe(true);
   });
 
-  it("requested → declined on decline", () => {
+  it("requested → declined on decline, with sendDeclineEmail", () => {
     const result = transition("requested", "decline");
     expect(result.nextStatus).toBe("declined");
-    expect(result.sideEffects).toEqual({});
+    expect(result.sideEffects).toEqual({ sendDeclineEmail: true });
   });
 
   it("on_hold → deposit_paid on mark_deposit_paid (two-stage path), with sendDepositReceivedEmail", () => {
@@ -40,22 +40,25 @@ describe("transition — valid paths", () => {
     expect(result.sideEffects).toEqual({ sendBalanceReceivedEmail: true });
   });
 
-  it("deposit_paid → cancelled on cancel, with releaseFromFeed", () => {
+  it("deposit_paid → cancelled on cancel, with releaseFromFeed + sendCancellationEmail", () => {
     const result = transition("deposit_paid", "cancel");
     expect(result.nextStatus).toBe("cancelled");
     expect(result.sideEffects.releaseFromFeed).toBe(true);
+    expect(result.sideEffects.sendCancellationEmail).toBe(true);
   });
 
-  it("on_hold → cancelled on cancel, with releaseFromFeed", () => {
+  it("on_hold → cancelled on cancel, with releaseFromFeed + sendCancellationEmail", () => {
     const result = transition("on_hold", "cancel");
     expect(result.nextStatus).toBe("cancelled");
     expect(result.sideEffects.releaseFromFeed).toBe(true);
+    expect(result.sideEffects.sendCancellationEmail).toBe(true);
   });
 
-  it("confirmed → cancelled on cancel, with releaseFromFeed", () => {
+  it("confirmed → cancelled on cancel, with releaseFromFeed + sendCancellationEmail", () => {
     const result = transition("confirmed", "cancel");
     expect(result.nextStatus).toBe("cancelled");
     expect(result.sideEffects.releaseFromFeed).toBe(true);
+    expect(result.sideEffects.sendCancellationEmail).toBe(true);
   });
 });
 

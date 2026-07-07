@@ -25,6 +25,12 @@ vi.mock("./deposit-received-email", () => ({
 vi.mock("./balance-received-email", () => ({
   sendBalanceReceivedEmail: vi.fn(),
 }));
+vi.mock("./cancellation-email", () => ({
+  sendCancellationEmail: vi.fn(),
+}));
+vi.mock("./decline-email", () => ({
+  sendDeclineEmail: vi.fn(),
+}));
 vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
 
 import { getDb } from "@/db";
@@ -37,6 +43,8 @@ import {
 import { sendBankTransferEmail } from "./bank-transfer-email";
 import { sendDepositReceivedEmail } from "./deposit-received-email";
 import { sendBalanceReceivedEmail } from "./balance-received-email";
+import { sendCancellationEmail } from "./cancellation-email";
+import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
 import { applyTransition } from "./lifecycle";
 
@@ -116,6 +124,8 @@ beforeEach(() => {
   (sendBankTransferEmail as Mock).mockResolvedValue(undefined);
   (sendDepositReceivedEmail as Mock).mockResolvedValue(undefined);
   (sendBalanceReceivedEmail as Mock).mockResolvedValue(undefined);
+  (sendCancellationEmail as Mock).mockResolvedValue(undefined);
+  (sendDeclineEmail as Mock).mockResolvedValue(undefined);
 });
 
 // A booking whose two-stage schedule was frozen at confirm time (ADR-0021):
@@ -330,7 +340,7 @@ describe("applyTransition — confirm", () => {
 });
 
 describe("applyTransition — decline", () => {
-  it("updates DB status to declined, sends no email", async () => {
+  it("updates DB status to declined and sends the decline email", async () => {
     const db = makeMockDb();
     (getDb as Mock).mockReturnValue(db);
 
@@ -340,6 +350,26 @@ describe("applyTransition — decline", () => {
       expect.objectContaining({ status: "declined" }),
     );
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
+    expect(sendDeclineEmail).toHaveBeenCalledOnce();
+    expect(sendDeclineEmail).toHaveBeenCalledWith({
+      guest: { name: baseBooking.name, email: baseBooking.email },
+      startDate: baseBooking.startDate,
+      endDate: baseBooking.endDate,
+      locale: baseBooking.locale,
+    });
+  });
+
+  it("rolls back to requested when the decline email fails to send", async () => {
+    const db = makeMockDb();
+    (getDb as Mock).mockReturnValue(db);
+    (sendDeclineEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+
+    await expect(applyTransition("bk-1", "decline")).rejects.toThrow(
+      "SMTP down",
+    );
+
+    expect(db._set).toHaveBeenCalledTimes(2);
+    expect(db._set).toHaveBeenLastCalledWith({ status: "requested" });
   });
 });
 
@@ -492,7 +522,7 @@ describe("applyTransition — mark_paid (collapse path)", () => {
 });
 
 describe("applyTransition — cancel", () => {
-  it("updates on_hold booking to cancelled", async () => {
+  it("updates on_hold booking to cancelled and sends the cancellation email", async () => {
     const db = makeMockDb([{ ...baseBooking, status: "on_hold" }]);
     (getDb as Mock).mockReturnValue(db);
 
@@ -501,9 +531,16 @@ describe("applyTransition — cancel", () => {
     expect(db._set).toHaveBeenCalledWith(
       expect.objectContaining({ status: "cancelled" }),
     );
+    expect(sendCancellationEmail).toHaveBeenCalledOnce();
+    expect(sendCancellationEmail).toHaveBeenCalledWith({
+      guest: { name: baseBooking.name, email: baseBooking.email },
+      startDate: baseBooking.startDate,
+      endDate: baseBooking.endDate,
+      locale: baseBooking.locale,
+    });
   });
 
-  it("updates deposit_paid booking to cancelled", async () => {
+  it("updates deposit_paid booking to cancelled and sends the cancellation email", async () => {
     const db = makeMockDb([{ ...baseBooking, status: "deposit_paid" }]);
     (getDb as Mock).mockReturnValue(db);
 
@@ -512,9 +549,10 @@ describe("applyTransition — cancel", () => {
     expect(db._set).toHaveBeenCalledWith(
       expect.objectContaining({ status: "cancelled" }),
     );
+    expect(sendCancellationEmail).toHaveBeenCalledOnce();
   });
 
-  it("updates confirmed booking to cancelled", async () => {
+  it("updates confirmed booking to cancelled and sends the cancellation email", async () => {
     const db = makeMockDb([{ ...baseBooking, status: "confirmed" }]);
     (getDb as Mock).mockReturnValue(db);
 
@@ -523,6 +561,38 @@ describe("applyTransition — cancel", () => {
     expect(db._set).toHaveBeenCalledWith(
       expect.objectContaining({ status: "cancelled" }),
     );
+    expect(sendCancellationEmail).toHaveBeenCalledOnce();
+  });
+
+  it("cancels an expired on_hold booking (still stored as on_hold) and sends the cancellation email — the guest missed the deadline but still hears about the cancellation", async () => {
+    const db = makeMockDb([
+      {
+        ...baseBooking,
+        status: "on_hold",
+        paymentDeadline: "2020-01-01",
+      },
+    ]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await applyTransition("bk-1", "cancel");
+
+    expect(db._set).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "cancelled" }),
+    );
+    expect(sendCancellationEmail).toHaveBeenCalledOnce();
+  });
+
+  it("rolls back to the prior status when the cancellation email fails to send", async () => {
+    const db = makeMockDb([{ ...baseBooking, status: "confirmed" }]);
+    (getDb as Mock).mockReturnValue(db);
+    (sendCancellationEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+
+    await expect(applyTransition("bk-1", "cancel")).rejects.toThrow(
+      "SMTP down",
+    );
+
+    expect(db._set).toHaveBeenCalledTimes(2);
+    expect(db._set).toHaveBeenLastCalledWith({ status: "confirmed" });
   });
 });
 

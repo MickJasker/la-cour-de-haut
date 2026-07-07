@@ -183,6 +183,10 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.getByRole("button", { name: "Afwijzen" }).click();
 
+    // Sends the decline notice (issue #165), a no-op under E2E_TESTING
+    // (playwright.config.ts) — the transition succeeding here proves the
+    // send-then-transition path doesn't roll back under the stubbed
+    // transport.
     await expect(
       page.locator("span").filter({ hasText: /^Afgewezen$/ }),
     ).toBeVisible();
@@ -243,12 +247,46 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.getByRole("button", { name: "Annuleren" }).click();
 
+    // Sends the cancellation notice (issue #165), a no-op under E2E_TESTING
+    // (playwright.config.ts) — the transition succeeding here proves the
+    // send-then-transition path doesn't roll back under the stubbed
+    // transport. States the cancellation only — no refund/amount talk.
     await expect(
       rossiCard.locator("span").filter({ hasText: /^Geannuleerd$/ }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Annuleren" }),
     ).not.toBeVisible();
+  });
+
+  test("owner cancels an on_hold booking → status becomes 'Cancelled' and sends the cancellation email", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    const deadline = new Date();
+    deadline.setDate(deadline.getDate() + 7);
+    const deadlineStr = deadline.toISOString().slice(0, 10);
+
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('test-hold-cancel-1', 'Mette Olsen', 'mette@example.com', 2, 'de', '2027-11-15', '2027-11-22', 'on_hold', now(), ${deadlineStr}::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const olsenCard = page
+      .locator("div.border")
+      .filter({ hasText: "Mette Olsen" });
+    await expect(
+      olsenCard.locator("span").filter({ hasText: /^In afwachting$/ }),
+    ).toBeVisible();
+
+    await olsenCard.getByRole("button", { name: "Annuleren" }).click();
+
+    // Cancel is valid from on_hold too (not just confirmed) — sends the same
+    // cancellation notice, again a stubbed no-op under E2E_TESTING.
+    await expect(
+      olsenCard.locator("span").filter({ hasText: /^Geannuleerd$/ }),
+    ).toBeVisible();
   });
 
   test("on_hold booking with past deadline is shown as 'Expired'", async ({
