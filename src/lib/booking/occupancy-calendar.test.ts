@@ -17,6 +17,7 @@ function booking(overrides: Partial<BookingRow>): BookingRow {
     guestCount: 2,
     status: "confirmed",
     paymentDeadline: null,
+    balanceDeadline: null,
     ...overrides,
   };
 }
@@ -59,6 +60,29 @@ describe("computeOccupancyEntries", () => {
     );
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ kind: "booking", status: "on_hold" });
+  });
+
+  it("includes deposit_paid bookings, even past their balance deadline (ADR-0021: dates stay blocked)", () => {
+    const entries = computeOccupancyEntries(
+      [
+        booking({
+          id: "b7",
+          status: "deposit_paid",
+          paymentDeadline: "2026-07-01", // deposit deadline long gone — irrelevant
+          balanceDeadline: "2026-07-05", // overdue balance never releases dates
+        }),
+      ],
+      [],
+      TODAY,
+    );
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({
+      kind: "booking",
+      id: "b7",
+      status: "deposit_paid",
+      start: "2026-07-10",
+      end: "2026-07-15",
+    });
   });
 
   it("excludes expired holds (ADR-0004: deadline passed means not occupying)", () => {

@@ -3,10 +3,12 @@ import { useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   declineBookingAction,
+  markDepositPaidBookingAction,
+  markBalancePaidBookingAction,
   markPaidBookingAction,
   cancelBookingAction,
 } from "./actions";
-import { ConfirmDialog } from "./confirm-dialog";
+import { ConfirmDialog, type ConfirmSchedulePreview } from "./confirm-dialog";
 import type { DisplayStatus } from "@/lib/booking/machine";
 
 type Props = {
@@ -14,8 +16,14 @@ type Props = {
   guestName: string;
   displayStatus: DisplayStatus;
   bankDetailsConfigured: boolean;
-  defaultDeadlineDays: number;
-  checkInDate: string;
+  /**
+   * Whether the frozen schedule is a single collapsed payment. Null for a
+   * booking with no snapshot yet (legacy on_hold seeded directly) — treated
+   * as collapsed, matching the ADR-0021 backfill rule, so it gets the single
+   * mark-paid action.
+   */
+  paymentCollapsed: boolean | null;
+  schedulePreview: ConfirmSchedulePreview;
 };
 
 export function BookingActions({
@@ -23,8 +31,8 @@ export function BookingActions({
   guestName,
   displayStatus,
   bankDetailsConfigured,
-  defaultDeadlineDays,
-  checkInDate,
+  paymentCollapsed,
+  schedulePreview,
 }: Props) {
   const [isPending, startTransition] = useTransition();
 
@@ -39,8 +47,7 @@ export function BookingActions({
           <ConfirmDialog
             bookingId={bookingId}
             guestName={guestName}
-            defaultDeadlineDays={defaultDeadlineDays}
-            checkInDate={checkInDate}
+            schedulePreview={schedulePreview}
           />
         ) : (
           <div title="Stel bankgegevens in via Instellingen voor bevestiging">
@@ -62,14 +69,45 @@ export function BookingActions({
   }
 
   if (displayStatus === "on_hold") {
+    // A collapsed booking (or a legacy hold with no snapshot) is a single
+    // payment → confirmed. A two-stage booking marks the deposit first.
+    const isCollapsed = paymentCollapsed !== false;
     return (
       <div className="flex gap-2">
         <Button
           size="sm"
           disabled={isPending}
-          onClick={() => action(markPaidBookingAction)}
+          onClick={() =>
+            action(
+              isCollapsed
+                ? markPaidBookingAction
+                : markDepositPaidBookingAction,
+            )
+          }
         >
-          Betaald markeren
+          {isCollapsed ? "Betaald markeren" : "Aanbetaling markeren"}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={isPending}
+          onClick={() => action(cancelBookingAction)}
+        >
+          Annuleren
+        </Button>
+      </div>
+    );
+  }
+
+  if (displayStatus === "deposit_paid") {
+    return (
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          disabled={isPending}
+          onClick={() => action(markBalancePaidBookingAction)}
+        >
+          Restbetaling markeren
         </Button>
         <Button
           size="sm"

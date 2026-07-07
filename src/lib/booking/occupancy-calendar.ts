@@ -4,14 +4,11 @@ import type { BookingRow, IcalSourceRow } from "./dashboard";
 
 /**
  * The booking statuses that occupy dates on the admin occupancy calendar —
- * the same "active" set that blocks availability (ADR-0004): a hold that has
- * expired no longer occupies.
- *
- * TODO(#163): add "deposit_paid" here once that status lands in the
- * booking_status enum; the calendar's status→color mapping
- * (occupancy-calendar.tsx) has a matching entry to fill in.
+ * the same "active" set that blocks availability (ADR-0004 / ADR-0021): a
+ * hold that has expired no longer occupies; a `deposit_paid` booking always
+ * does (a missed balance deadline never releases dates).
  */
-const OCCUPYING_STATUSES = ["on_hold", "confirmed"] as const;
+const OCCUPYING_STATUSES = ["on_hold", "deposit_paid", "confirmed"] as const;
 
 export type OccupyingBookingStatus = (typeof OCCUPYING_STATUSES)[number];
 
@@ -39,10 +36,10 @@ function toOccupyingStatus(status: string): OccupyingBookingStatus | null {
 
 /**
  * Turns the dashboard's raw rows into the flat list of things that occupy
- * dates: active direct bookings (on_hold non-expired + confirmed, via the
- * shared `isActiveDirectBooking` predicate so this can't drift from the
- * busy-interval logic) and every cached interval of every enabled iCal
- * source.
+ * dates: active direct bookings (on_hold non-expired + deposit_paid +
+ * confirmed, via the shared `isActiveDirectBooking` predicate so this can't
+ * drift from the busy-interval logic) and every cached interval of every
+ * enabled iCal source.
  */
 export function computeOccupancyEntries(
   bookings: BookingRow[],

@@ -51,14 +51,16 @@ const GUEST_ACTION_CONFIG: Record<
   overdue: {
     label: "Betaling verlopen",
     badgeClass: "bg-red-100 text-red-700",
+    // Covers a missed deposit deadline (on_hold) or balance deadline
+    // (deposit_paid), so link to the full inbox rather than one status filter.
     description: "Betalingstermijn verstreken",
-    href: "/admin/bookings?status=on_hold",
+    href: "/admin/bookings",
   },
   approaching: {
     label: "Betaling nadert",
     badgeClass: "bg-orange-100 text-orange-700",
     description: "Betalingstermijn binnen 3 dagen",
-    href: "/admin/bookings?status=on_hold",
+    href: "/admin/bookings",
   },
 };
 

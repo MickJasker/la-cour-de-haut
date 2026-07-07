@@ -13,14 +13,12 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Status → span color for direct bookings on the occupancy calendar.
- *
- * TODO(#163): when the `deposit_paid` status lands in the booking_status
- * enum, add it to `OCCUPYING_STATUSES` (occupancy-calendar.ts) and map it
- * here to blue: `deposit_paid: "bg-blue-200 text-blue-900 hover:bg-blue-300"`.
+ * Status → span color for direct bookings on the occupancy calendar (issue
+ * #166 spec): amber = on hold, blue = deposit paid, green = confirmed.
  */
 const BOOKING_SEGMENT_CLASSES: Record<OccupyingBookingStatus, string> = {
   on_hold: "bg-amber-200 text-amber-900 hover:bg-amber-300",
+  deposit_paid: "bg-blue-200 text-blue-900 hover:bg-blue-300",
   confirmed: "bg-green-200 text-green-900 hover:bg-green-300",
 };
 

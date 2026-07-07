@@ -119,3 +119,97 @@ export function computePaymentSchedule(
     balanceDeadline,
   };
 }
+
+/**
+ * The persisted shape of the schedule snapshot (issue #163), matching the
+ * `booking_request` columns added in ADR-0021. `paymentDeadline` doubles as
+ * the deposit deadline (two-stage) or the single deadline (collapsed).
+ * Numeric columns come back from drizzle as strings, so amounts are typed
+ * loosely and coerced in `bookingPaymentSchedule`.
+ */
+export interface BookingScheduleColumns {
+  paymentCollapsed: boolean | null;
+  depositAmount: string | number | null;
+  balanceAmount: string | number | null;
+  paymentDeadline: string | null;
+  balanceDeadline: string | null;
+  securityDepositAtBooking: string | number | null;
+}
+
+/**
+ * The DB `.set(...)` payload for the schedule snapshot, produced from a
+ * `PaymentSchedule` at confirm time. Kept next to `bookingPaymentSchedule`
+ * (its inverse) so the collapsed-vs-two-stage column mapping lives in exactly
+ * one place. Amounts are strings because the columns are `numeric`.
+ */
+export interface ScheduleSnapshot {
+  paymentCollapsed: boolean;
+  depositAmount: string;
+  paymentDeadline: string;
+  balanceAmount: string | null;
+  balanceDeadline: string | null;
+  securityDepositAtBooking: string;
+}
+
+/**
+ * Maps a computed `PaymentSchedule` to the persisted snapshot columns. For a
+ * collapsed schedule the single 100% + borg amount is stored in
+ * `depositAmount` (due at `paymentDeadline`), with the balance columns NULL.
+ */
+export function scheduleToSnapshot(
+  schedule: PaymentSchedule,
+  securityDeposit: number,
+): ScheduleSnapshot {
+  if (schedule.collapsed) {
+    return {
+      paymentCollapsed: true,
+      depositAmount: String(schedule.totalAmount),
+      paymentDeadline: schedule.deadline,
+      balanceAmount: null,
+      balanceDeadline: null,
+      securityDepositAtBooking: String(securityDeposit),
+    };
+  }
+  return {
+    paymentCollapsed: false,
+    depositAmount: String(schedule.depositAmount),
+    paymentDeadline: schedule.depositDeadline,
+    balanceAmount: String(schedule.balanceAmount),
+    balanceDeadline: schedule.balanceDeadline,
+    securityDepositAtBooking: String(securityDeposit),
+  };
+}
+
+/**
+ * Reconstructs the frozen `PaymentSchedule` from a booking row's snapshot
+ * columns — the inverse of `scheduleToSnapshot`, and the single reader every
+ * surface (admin UI, dashboard, receipt/cancel emails) uses so none of them
+ * re-derives the collapsed-vs-two-stage shape. Returns `null` when the
+ * booking has no snapshot yet (still `requested`, or a legacy row that never
+ * ran the ADR-0021 backfill).
+ */
+export function bookingPaymentSchedule(
+  row: BookingScheduleColumns,
+): PaymentSchedule | null {
+  if (
+    row.paymentCollapsed === null ||
+    row.paymentDeadline === null ||
+    row.depositAmount === null
+  ) {
+    return null;
+  }
+  if (row.paymentCollapsed) {
+    return {
+      collapsed: true,
+      totalAmount: Number(row.depositAmount),
+      deadline: row.paymentDeadline,
+    };
+  }
+  return {
+    collapsed: false,
+    depositAmount: Number(row.depositAmount),
+    depositDeadline: row.paymentDeadline,
+    balanceAmount: Number(row.balanceAmount),
+    balanceDeadline: row.balanceDeadline!,
+  };
+}
