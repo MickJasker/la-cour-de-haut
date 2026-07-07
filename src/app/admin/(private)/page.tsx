@@ -9,6 +9,7 @@ import {
   type UpcomingEntry,
 } from "@/lib/booking/dashboard";
 import { computeOccupancyEntries } from "@/lib/booking/occupancy-calendar";
+import { refreshIcalSourcesIfStale } from "@/lib/booking/availability";
 import { OccupancyCalendar } from "./occupancy-calendar";
 import { toUtcDayString } from "@/lib/booking/calendar-day";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -169,6 +170,12 @@ export default async function AdminPage() {
 
   const today = toUtcDayString();
   const db = getDb();
+
+  // Dashboard reads ical_source directly (it needs name/lastError, which the
+  // availability store doesn't carry), so it must trigger the ADR-0005 lazy
+  // refresh itself — before the select — or it renders whatever cache the
+  // booking form last wrote.
+  await refreshIcalSourcesIfStale();
 
   // Deliberately broader than "active" (on_hold-non-expired or confirmed,
   // per ADR-0004): expired holds must still be fetched so computeDashboard
