@@ -9,12 +9,25 @@ export async function Footer({ locale }: { locale: string }) {
   const displayNames = new Intl.DisplayNames(locale, { type: "region" });
   const loc = locale as Locale;
 
-  // System pages (ADR-0020) always exist, but stay defensive: never let a
-  // lookup miss crash the footer, just omit that link.
-  const [privacyPage, termsPage] = await Promise.all([
+  // System pages (ADR-0020) always exist, so a `null` result (lookup miss)
+  // can't happen in practice. But a rejected query (DB hiccup) still can —
+  // and `Promise.all` would propagate that rejection, taking the whole
+  // `[locale]` layout down with it. `allSettled` degrades instead: a failed
+  // lookup just omits that legal link rather than crashing the page.
+  const [privacyResult, termsResult] = await Promise.allSettled([
     getPublishedPageBySlug("privacy"),
     getPublishedPageBySlug("terms"),
   ]);
+  if (privacyResult.status === "rejected") {
+    console.error("Failed to load the privacy page", privacyResult.reason);
+  }
+  if (termsResult.status === "rejected") {
+    console.error("Failed to load the terms page", termsResult.reason);
+  }
+  const privacyPage =
+    privacyResult.status === "fulfilled" ? privacyResult.value : null;
+  const termsPage =
+    termsResult.status === "fulfilled" ? termsResult.value : null;
 
   return (
     <footer className="bg-brand-forest text-olive-50 flex flex-col items-center justify-center p-10 gap-10">

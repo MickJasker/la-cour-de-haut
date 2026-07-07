@@ -8,12 +8,15 @@ import {
   type IcalSourceRow,
   type UpcomingEntry,
 } from "@/lib/booking/dashboard";
+import { computeOccupancyEntries } from "@/lib/booking/occupancy-calendar";
+import { OccupancyCalendar } from "./occupancy-calendar";
 import { toUtcDayString } from "@/lib/booking/calendar-day";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   TriangleAlert,
   CheckCircle,
   CalendarDays,
+  CalendarRange,
   Clock,
   AlertCircle,
 } from "lucide-react";
@@ -188,6 +191,15 @@ export default async function AdminPage() {
       today,
     );
 
+  // Everything that occupies dates (active direct bookings + iCal
+  // intervals), for the month-grid calendar. Expired holds are excluded by
+  // the shared ADR-0004 predicate inside computeOccupancyEntries.
+  const occupancyEntries = computeOccupancyEntries(
+    bookings as BookingRow[],
+    sources as IcalSourceRow[],
+    today,
+  );
+
   const hasGuestActions =
     newRequests.length > 0 || overdue.length > 0 || approaching.length > 0;
 
@@ -195,6 +207,18 @@ export default async function AdminPage() {
     <main className="min-h-screen p-8">
       <div className="max-w-3xl mx-auto space-y-8">
         <h1 className="text-2xl font-semibold">Beheer</h1>
+
+        {/* Occupancy calendar */}
+        <section className="space-y-3">
+          <h2 className="text-sm font-medium text-stone-500 uppercase tracking-wide flex items-center gap-2">
+            <CalendarRange className="size-3.5" />
+            Bezetting
+          </h2>
+          <OccupancyCalendar
+            entries={occupancyEntries}
+            initialMonth={today.slice(0, 7)}
+          />
+        </section>
 
         {/* Guest actions */}
         {hasGuestActions && (
