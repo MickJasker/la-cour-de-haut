@@ -21,17 +21,23 @@ export type IcalFetchResult =
 const RECURRING_EXPANSION_WINDOW_MONTHS = FORWARD_HORIZON_MONTHS;
 
 /**
- * Airbnb's exported feed contains two kinds of VEVENTs: real Airbnb bookings
- * (`SUMMARY:Reserved`) and `SUMMARY:Airbnb (Not Available)` blocks. The blocks
- * include dates Airbnb itself imported from our *other* connected calendars
- * (Natuurhuisje, this site's own export feed), so importing them echoes every
- * external booking back as a second "Airbnb" interval. Skip them: any date
- * genuinely occupied is still busy via its originating feed or our own
- * bookings. Trade-off: dates blocked manually inside Airbnb are exported the
- * same way and are therefore ignored — manual blocks belong in this app, not
- * in Airbnb.
+ * Both platforms label a VEVENT differently depending on whether it is a real
+ * booking on that platform or a mere block — and "blocks" include the dates a
+ * platform imported from our *other* connected calendars (each subscribes to
+ * the other and to this site's export feed), so importing blocks echoes every
+ * booking back a second time under the wrong source name:
+ *
+ * - Airbnb: bookings are `SUMMARY:Reserved`; blocks are
+ *   `SUMMARY:Airbnb (Not available)`.
+ * - Natuurhuisje: bookings are `SUMMARY:Boeking natuurhuisje (id)`; blocks
+ *   are `SUMMARY:Blokkade <id> natuurhuisje`.
+ *
+ * Skip the blocks: any date genuinely occupied is still busy via its
+ * originating feed or our own bookings. Trade-off: dates blocked *manually*
+ * inside a platform carry the same block summary and are therefore ignored —
+ * manual blocks belong in this app, not on a platform.
  */
-const REEXPORTED_BLOCK_SUMMARY = /not available/i;
+const REEXPORTED_BLOCK_SUMMARY = /not available|blokkade/i;
 
 function isReexportedBlock(event: VEvent): boolean {
   const summary = event.summary;
