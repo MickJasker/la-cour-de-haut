@@ -14,11 +14,15 @@ import {
   securityDepositAmount,
 } from "@/lib/settings/settings";
 import { sendBankTransferEmail, type BankDetails } from "./bank-transfer-email";
+import { sendDepositReceivedEmail } from "./deposit-received-email";
+import { sendBalanceReceivedEmail } from "./balance-received-email";
 import { isRangeAvailable } from "./availability";
 import { toUtcDayString } from "./calendar-day";
 import {
   computePaymentSchedule,
   scheduleToSnapshot,
+  bookingPaymentSchedule,
+  scheduleTotal,
   type PaymentSchedule,
   type ScheduleSnapshot,
 } from "./payment-schedule";
@@ -63,6 +67,65 @@ export async function applyTransition(
   let securityDeposit = 0;
   let price:
     { nights: number; discount: number; totalPrice: number } | undefined;
+  let depositReceivedParams:
+    Parameters<typeof sendDepositReceivedEmail>[0] | undefined;
+  let balanceReceivedParams:
+    Parameters<typeof sendBalanceReceivedEmail>[0] | undefined;
+
+  if (action === "mark_deposit_paid") {
+    // The deposit-received receipt restates the balance leg + repeats bank
+    // details (ADR-0021 wave 3, issue #164). mark_deposit_paid only ever
+    // reaches a booking with a two-stage snapshot — the collapsed path goes
+    // on_hold → confirmed directly via mark_paid — so a missing or collapsed
+    // schedule here is a lifecycle bug, not a user error.
+    const bookingSchedule = bookingPaymentSchedule(booking);
+    if (!bookingSchedule || bookingSchedule.collapsed) {
+      throw new Error(
+        "Booking has no two-stage payment schedule — mark_deposit_paid indicates a lifecycle bug, not a user error",
+      );
+    }
+    const settings = await getSettings();
+    if (!hasBankDetails(settings)) {
+      throw new Error(
+        "Bank details must be configured to send the deposit-received email",
+      );
+    }
+    depositReceivedParams = {
+      guest: { name: booking.name, email: booking.email },
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      locale: booking.locale,
+      schedule: {
+        balanceAmount: bookingSchedule.balanceAmount,
+        balanceDeadline: bookingSchedule.balanceDeadline,
+      },
+      securityDeposit: Number(booking.securityDepositAtBooking ?? 0),
+      bankDetails: {
+        iban: settings.iban,
+        bankName: settings.bank_name,
+        accountHolder: settings.account_holder,
+      },
+    };
+  }
+
+  if (action === "mark_balance_paid" || action === "mark_paid") {
+    // Balance-received receipt: payment complete, fires on both the
+    // two-stage balance leg and the collapsed single mark-paid.
+    const bookingSchedule = bookingPaymentSchedule(booking);
+    if (!bookingSchedule) {
+      throw new Error(
+        "Booking has no payment schedule snapshot — cannot send the balance-received email; this indicates a lifecycle bug, not a user error",
+      );
+    }
+    balanceReceivedParams = {
+      guest: { name: booking.name, email: booking.email },
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      locale: booking.locale,
+      totalPaid: scheduleTotal(bookingSchedule),
+      securityDeposit: Number(booking.securityDepositAtBooking ?? 0),
+    };
+  }
 
   if (action === "confirm") {
     const [settings, available] = await Promise.all([
@@ -164,6 +227,48 @@ export async function applyTransition(
           confirmedAt: null,
           ...EMPTY_SNAPSHOT,
         })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
+  }
+
+  if (result.sideEffects.sendDepositReceivedEmail) {
+    if (!depositReceivedParams) {
+      // Only a side effect of mark_deposit_paid, which always populates this
+      // above before reaching this point.
+      throw new Error(
+        "Deposit-received email params not resolved — this indicates a lifecycle bug, not a user error",
+      );
+    }
+    try {
+      await sendDepositReceivedEmail(depositReceivedParams);
+    } catch (err) {
+      // Same compensating-rollback policy as the bank-transfer email: no
+      // status change may be reported as successful without the receipt
+      // actually going out. Neither the snapshot nor confirmedAt is touched
+      // by this transition, so only the status needs restoring.
+      await db
+        .update(bookingRequest)
+        .set({ status: booking.status as DbBookingStatus })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
+  }
+
+  if (result.sideEffects.sendBalanceReceivedEmail) {
+    if (!balanceReceivedParams) {
+      // Only a side effect of mark_balance_paid / mark_paid, which always
+      // populate this above before reaching this point.
+      throw new Error(
+        "Balance-received email params not resolved — this indicates a lifecycle bug, not a user error",
+      );
+    }
+    try {
+      await sendBalanceReceivedEmail(balanceReceivedParams);
+    } catch (err) {
+      await db
+        .update(bookingRequest)
+        .set({ status: booking.status as DbBookingStatus })
         .where(eq(bookingRequest.id, bookingId));
       throw err;
     }

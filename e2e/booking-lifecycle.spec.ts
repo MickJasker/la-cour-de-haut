@@ -314,13 +314,18 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.getByRole("button", { name: "Boeking bevestigen" }).click();
     await expect(page.getByRole("dialog")).not.toBeVisible();
 
-    // on_hold with a two-stage snapshot → mark the deposit paid.
+    // on_hold with a two-stage snapshot → mark the deposit paid. This also
+    // sends the deposit-received receipt (issue #164), a no-op under
+    // E2E_TESTING (playwright.config.ts) — the transition succeeding here
+    // proves the send-then-transition path doesn't roll back under the
+    // stubbed transport.
     await expect(
       card.locator("span").filter({ hasText: /^In afwachting$/ }),
     ).toBeVisible();
     await card.getByRole("button", { name: "Aanbetaling markeren" }).click();
 
-    // deposit_paid → mark the balance paid.
+    // deposit_paid → mark the balance paid. Sends the balance-received
+    // receipt (issue #164), likewise stubbed.
     await expect(
       card.locator("span").filter({ hasText: /^Aanbetaling voldaan$/ }),
     ).toBeVisible();
@@ -369,6 +374,8 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await expect(
       card.getByRole("button", { name: "Aanbetaling markeren" }),
     ).not.toBeVisible();
+    // Sends the balance-received receipt (issue #164) — the collapse path's
+    // single mark-paid gets the same receipt as the two-stage balance leg.
     await card.getByRole("button", { name: "Betaald markeren" }).click();
 
     await expect(

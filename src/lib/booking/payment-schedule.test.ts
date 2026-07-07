@@ -3,6 +3,7 @@ import {
   computePaymentSchedule,
   scheduleToSnapshot,
   bookingPaymentSchedule,
+  scheduleTotal,
   type PaymentSchedule,
 } from "./payment-schedule";
 
@@ -234,5 +235,27 @@ describe("scheduleToSnapshot ↔ bookingPaymentSchedule round-trip", () => {
         securityDepositAtBooking: null,
       }),
     ).toBeNull();
+  });
+});
+
+describe("scheduleTotal", () => {
+  it("sums deposit + balance for a two-stage schedule", () => {
+    const schedule: PaymentSchedule = {
+      collapsed: false,
+      depositAmount: 316.5,
+      depositDeadline: "2027-08-10",
+      balanceAmount: 516.5,
+      balanceDeadline: "2027-08-25",
+    };
+    expect(scheduleTotal(schedule)).toBe(833);
+  });
+
+  it("returns the single total for a collapsed schedule", () => {
+    const schedule: PaymentSchedule = {
+      collapsed: true,
+      totalAmount: 1200,
+      deadline: "2026-07-10",
+    };
+    expect(scheduleTotal(schedule)).toBe(1200);
   });
 });

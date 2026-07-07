@@ -22,21 +22,22 @@ describe("transition — valid paths", () => {
     expect(result.sideEffects).toEqual({});
   });
 
-  it("on_hold → deposit_paid on mark_deposit_paid (two-stage path)", () => {
+  it("on_hold → deposit_paid on mark_deposit_paid (two-stage path), with sendDepositReceivedEmail", () => {
     const result = transition("on_hold", "mark_deposit_paid");
     expect(result.nextStatus).toBe("deposit_paid");
-    expect(result.sideEffects).toEqual({});
+    expect(result.sideEffects).toEqual({ sendDepositReceivedEmail: true });
   });
 
-  it("on_hold → confirmed on mark_paid (collapse path)", () => {
+  it("on_hold → confirmed on mark_paid (collapse path), with sendBalanceReceivedEmail", () => {
     const result = transition("on_hold", "mark_paid");
     expect(result.nextStatus).toBe("confirmed");
+    expect(result.sideEffects).toEqual({ sendBalanceReceivedEmail: true });
   });
 
-  it("deposit_paid → confirmed on mark_balance_paid", () => {
+  it("deposit_paid → confirmed on mark_balance_paid, with sendBalanceReceivedEmail", () => {
     const result = transition("deposit_paid", "mark_balance_paid");
     expect(result.nextStatus).toBe("confirmed");
-    expect(result.sideEffects).toEqual({});
+    expect(result.sideEffects).toEqual({ sendBalanceReceivedEmail: true });
   });
 
   it("deposit_paid → cancelled on cancel, with releaseFromFeed", () => {
