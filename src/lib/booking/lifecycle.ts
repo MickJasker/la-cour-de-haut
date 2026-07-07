@@ -16,6 +16,8 @@ import {
 import { sendBankTransferEmail, type BankDetails } from "./bank-transfer-email";
 import { sendDepositReceivedEmail } from "./deposit-received-email";
 import { sendBalanceReceivedEmail } from "./balance-received-email";
+import { sendCancellationEmail } from "./cancellation-email";
+import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
 import { toUtcDayString } from "./calendar-day";
 import {
@@ -71,6 +73,9 @@ export async function applyTransition(
     Parameters<typeof sendDepositReceivedEmail>[0] | undefined;
   let balanceReceivedParams:
     Parameters<typeof sendBalanceReceivedEmail>[0] | undefined;
+  let cancellationEmailParams:
+    Parameters<typeof sendCancellationEmail>[0] | undefined;
+  let declineEmailParams: Parameters<typeof sendDeclineEmail>[0] | undefined;
 
   if (action === "mark_deposit_paid") {
     // The deposit-received receipt restates the balance leg + repeats bank
@@ -144,6 +149,29 @@ export async function applyTransition(
       locale: booking.locale,
       totalPaid,
       securityDeposit: borgPaid,
+    };
+  }
+
+  if (action === "cancel") {
+    // Cancellation notice: fires from on_hold, deposit_paid, or confirmed
+    // (issue #165) — including an expired on_hold, whose row is still
+    // on_hold in the DB (expired is only a derived display status). The
+    // guest already missed their deadline but still hears the booking is
+    // cancelled, so this isn't special-cased.
+    cancellationEmailParams = {
+      guest: { name: booking.name, email: booking.email },
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      locale: booking.locale,
+    };
+  }
+
+  if (action === "decline") {
+    declineEmailParams = {
+      guest: { name: booking.name, email: booking.email },
+      startDate: booking.startDate,
+      endDate: booking.endDate,
+      locale: booking.locale,
     };
   }
 
@@ -285,6 +313,48 @@ export async function applyTransition(
     }
     try {
       await sendBalanceReceivedEmail(balanceReceivedParams);
+    } catch (err) {
+      await db
+        .update(bookingRequest)
+        .set({ status: booking.status as DbBookingStatus })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
+  }
+
+  if (result.sideEffects.sendCancellationEmail) {
+    if (!cancellationEmailParams) {
+      // Only a side effect of cancel, which always populates this above
+      // before reaching this point.
+      throw new Error(
+        "Cancellation email params not resolved — this indicates a lifecycle bug, not a user error",
+      );
+    }
+    try {
+      await sendCancellationEmail(cancellationEmailParams);
+    } catch (err) {
+      // Same compensating-rollback policy as the other transactional emails:
+      // a cancel must never report success without the notice actually
+      // going out. Neither the snapshot nor confirmedAt is touched by this
+      // transition, so only the status needs restoring.
+      await db
+        .update(bookingRequest)
+        .set({ status: booking.status as DbBookingStatus })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
+  }
+
+  if (result.sideEffects.sendDeclineEmail) {
+    if (!declineEmailParams) {
+      // Only a side effect of decline, which always populates this above
+      // before reaching this point.
+      throw new Error(
+        "Decline email params not resolved — this indicates a lifecycle bug, not a user error",
+      );
+    }
+    try {
+      await sendDeclineEmail(declineEmailParams);
     } catch (err) {
       await db
         .update(bookingRequest)
