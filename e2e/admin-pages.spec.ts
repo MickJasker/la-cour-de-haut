@@ -8,11 +8,15 @@ import { neon } from "@neondatabase/serverless";
 const sql = neon(process.env.DATABASE_URL!);
 
 async function clearOwnPages() {
-  // Scoped to this spec's own rows (slug derives from the title "Huisregels"
-  // via the translate stub; dedup can suffix it): spec files run in parallel
-  // workers, so a blanket `system = false` delete would race pages.spec.ts's
-  // seeded draft row.
-  await sql`DELETE FROM page WHERE slug LIKE 'huisregels%'`;
+  // Scoped to this spec's own rows: spec files run in parallel workers, so a
+  // blanket `system = false` delete would race pages.spec.ts's seeded rows.
+  // Match on the created title, not the derived slug — the slug depends on
+  // which translator ran ("huisregels-en" from the E2E stub, "house-rules"
+  // when a reused dev server ran real translation), so slug-based cleanup
+  // leaves residue behind.
+  await sql`
+    DELETE FROM page WHERE system = false AND title->>'nl' = 'Huisregels'
+  `;
 }
 
 async function getPageBySlug(slug: string) {
