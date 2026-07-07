@@ -22,6 +22,11 @@ export interface TransitionResult {
   nextStatus: DbBookingStatus;
   sideEffects: {
     sendBankTransferEmail?: true;
+    /** Deposit-received receipt (ADR-0021 wave 3, issue #164). */
+    sendDepositReceivedEmail?: true;
+    /** Balance-received receipt — both the two-stage balance leg and the
+     * collapsed single mark-paid land here (issue #164). */
+    sendBalanceReceivedEmail?: true;
     releaseFromFeed?: true;
     blockInFeed?: true;
   };
@@ -45,7 +50,7 @@ const TRANSITIONS: Record<
     // Two-stage path: the deposit has landed, balance + borg still due.
     mark_deposit_paid: {
       nextStatus: "deposit_paid",
-      sideEffects: {},
+      sideEffects: { sendDepositReceivedEmail: true },
     },
     // Collapse path (short notice, ADR-0021): the single 100% + borg payment
     // has landed, so the hold goes straight to confirmed. The admin UI only
@@ -53,7 +58,7 @@ const TRANSITIONS: Record<
     // mark_deposit_paid instead.
     mark_paid: {
       nextStatus: "confirmed",
-      sideEffects: {},
+      sideEffects: { sendBalanceReceivedEmail: true },
     },
     cancel: {
       nextStatus: "cancelled",
@@ -63,7 +68,7 @@ const TRANSITIONS: Record<
   deposit_paid: {
     mark_balance_paid: {
       nextStatus: "confirmed",
-      sideEffects: {},
+      sideEffects: { sendBalanceReceivedEmail: true },
     },
     cancel: {
       nextStatus: "cancelled",

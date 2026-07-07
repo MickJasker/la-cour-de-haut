@@ -121,6 +121,21 @@ export function computePaymentSchedule(
 }
 
 /**
+ * The full amount the guest ultimately pays (rental + borg), regardless of
+ * shape — collapsed already stores the combined total; two-stage always
+ * splits it so the two instalments sum to exactly total + borg (see
+ * `computePaymentSchedule`). Used by the balance-received receipt (issue
+ * #164), which fires on both the collapsed single mark-paid and the
+ * two-stage `mark_balance_paid`, to state what was actually received without
+ * re-deriving the split.
+ */
+export function scheduleTotal(schedule: PaymentSchedule): number {
+  return schedule.collapsed
+    ? schedule.totalAmount
+    : schedule.depositAmount + schedule.balanceAmount;
+}
+
+/**
  * The persisted shape of the schedule snapshot (issue #163), matching the
  * `booking_request` columns added in ADR-0021. `paymentDeadline` doubles as
  * the deposit deadline (two-stage) or the single deadline (collapsed).
