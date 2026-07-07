@@ -147,7 +147,8 @@ export default async function BookingsPage({ searchParams }: PageProps) {
             {filtered.map((booking) => (
               <div
                 key={booking.id}
-                className="rounded-lg border border-stone-200 bg-white p-5 space-y-4"
+                id={`booking-${booking.id}`}
+                className="rounded-lg border border-stone-200 bg-white p-5 space-y-4 scroll-mt-8 target:border-stone-400"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="space-y-1">
