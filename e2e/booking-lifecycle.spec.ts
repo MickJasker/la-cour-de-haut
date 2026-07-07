@@ -9,7 +9,7 @@ async function seedBankDetails() {
   const sql = neon(process.env.DATABASE_URL!);
   await sql`
     INSERT INTO setting (key, value)
-    VALUES ('iban', 'NL91ABNA0417164300'), ('bank_name', 'Test Bank'), ('account_holder', 'La Cour de Haut'), ('payment_deadline_days', '7')
+    VALUES ('iban', 'NL91ABNA0417164300'), ('bank_name', 'Test Bank'), ('account_holder', 'La Cour de Haut'), ('deposit_percentage', '50'), ('deposit_deadline_days', '3'), ('balance_due_days_before_arrival', '7'), ('security_deposit_amount', '200')
     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
   `;
 }

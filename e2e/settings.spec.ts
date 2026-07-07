@@ -42,7 +42,11 @@ test.describe("settings: admin", () => {
     await page.getByLabel(/iban/i).fill("NL91ABNA0417164300");
     await page.getByLabel(/banknaam/i).fill("ABN AMRO");
     await page.getByLabel(/prijs per nacht/i).fill("120");
-    await page.getByLabel(/betalingstermijn/i).fill("7");
+    // Payment schedule (issue #162) — all four are required fields.
+    await page.getByLabel(/aanbetaling \(%\)/i).fill("50");
+    await page.getByLabel(/termijn aanbetaling/i).fill("3");
+    await page.getByLabel(/restbetaling vóór aankomst/i).fill("7");
+    await page.getByLabel(/borg/i).fill("200");
     await page.getByRole("button", { name: /opslaan/i }).click();
     await expect(page.getByText(/opgeslagen/i)).toBeVisible();
   });

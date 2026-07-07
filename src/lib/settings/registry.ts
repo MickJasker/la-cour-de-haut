@@ -150,13 +150,32 @@ export const settingsRegistry = {
     clientValidation: z.string().min(1, "Vereist"),
     serverType: z.string(),
   },
-  payment_deadline_days: {
-    label: "Betalingstermijn (dagen)",
-    section: "bank",
+  deposit_percentage: {
+    label: "Aanbetaling (%)",
+    section: "payment_schedule",
+    inputType: "number",
+    min: 1,
+    max: 100,
+    placeholder: "50",
+    hint: "Percentage van de totaalprijs dat de gast als aanbetaling betaalt.",
+    clientValidation: z
+      .string()
+      .min(1, "Vereist")
+      .refine(
+        (v) =>
+          Number.isInteger(Number(v)) && Number(v) >= 1 && Number(v) <= 100,
+        { message: "Geheel getal tussen 1 en 100" },
+      ),
+    serverType: z.coerce.number().int().min(1).max(100),
+  },
+  deposit_deadline_days: {
+    label: "Termijn aanbetaling (dagen)",
+    section: "payment_schedule",
     inputType: "number",
     min: 1,
     max: 90,
-    hint: "Aantal dagen vanaf vandaag dat de gast heeft om te betalen wanneer u een boeking bevestigt.",
+    placeholder: "3",
+    hint: "Aantal dagen na bevestiging dat de gast heeft om de aanbetaling te doen.",
     clientValidation: z
       .string()
       .min(1, "Vereist")
@@ -164,6 +183,38 @@ export const settingsRegistry = {
         message: "Moet minstens 1 zijn",
       }),
     serverType: z.coerce.number().int().positive(),
+  },
+  balance_due_days_before_arrival: {
+    label: "Restbetaling vóór aankomst (dagen)",
+    section: "payment_schedule",
+    inputType: "number",
+    min: 1,
+    max: 90,
+    placeholder: "7",
+    hint: "Aantal dagen vóór aankomst dat de restbetaling (incl. borg) binnen moet zijn.",
+    clientValidation: z
+      .string()
+      .min(1, "Vereist")
+      .refine((v) => Number.isInteger(Number(v)) && Number(v) >= 1, {
+        message: "Moet minstens 1 zijn",
+      }),
+    serverType: z.coerce.number().int().positive(),
+  },
+  security_deposit_amount: {
+    label: "Borg (€)",
+    section: "payment_schedule",
+    inputType: "number",
+    min: 0,
+    step: 0.01,
+    placeholder: "200",
+    hint: "Vast bedrag dat de gast samen met de laatste betaling voldoet en na het verblijf terugkrijgt. 0 betekent geen borg.",
+    clientValidation: z
+      .string()
+      .min(1, "Vereist")
+      .refine((v) => Number.isFinite(Number(v)) && Number(v) >= 0, {
+        message: "Mag niet negatief zijn",
+      }),
+    serverType: z.coerce.number().min(0),
   },
   price_per_night: {
     label: "Prijs per nacht",
@@ -202,6 +253,11 @@ export const sectionMeta: Record<
     label: "Bankgegevens",
     description:
       "Deze gegevens worden opgenomen in de overschrijvingse-mail die naar gasten wordt verstuurd wanneer u een boeking bevestigt.",
+  },
+  payment_schedule: {
+    label: "Betalingsschema",
+    description:
+      "Bepaalt hoe de totaalprijs wordt gesplitst in een aanbetaling en een restbetaling (incl. borg), en de bijbehorende betaaltermijnen. Bij korte termijn tussen bevestiging en aankomst wordt alles in één keer gevraagd.",
   },
   pricing: {
     label: "Tarieven",

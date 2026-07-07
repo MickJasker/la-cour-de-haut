@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { setting } from "@/db/schema";
 import { cacheLife, cacheTag, updateTag } from "next/cache";
 import { settingsRegistry, type ServerShape } from "./registry";
+import type { PaymentScheduleSettings } from "@/lib/booking/payment-schedule";
 
 // Cast is safe: Object.fromEntries loses per-key types but ServerShape
 // captures them. The runtime shape is identical to the static assertion.
@@ -54,6 +55,22 @@ export function hasBankDetails(
   return Boolean(s.iban && s.bank_name && s.account_holder);
 }
 
-export function paymentDeadlineDays(s: Settings): number {
-  return s.payment_deadline_days ?? 7;
+/**
+ * The payment-schedule knobs for `computePaymentSchedule`
+ * (`src/lib/booking/payment-schedule.ts`), with the issue-#162 defaults
+ * (50% / 3 days / 7 days) as fallbacks for missing keys. The keys are also
+ * seeded by `scripts/seed-property-settings.mts`, so the fallbacks only
+ * matter for rows deleted out-of-band.
+ */
+export function paymentScheduleSettings(s: Settings): PaymentScheduleSettings {
+  return {
+    depositPercentage: s.deposit_percentage ?? 50,
+    depositDeadlineDays: s.deposit_deadline_days ?? 3,
+    balanceDueDaysBeforeArrival: s.balance_due_days_before_arrival ?? 7,
+  };
+}
+
+/** The borg: a fixed EUR amount charged with the final payment. */
+export function securityDepositAmount(s: Settings): number {
+  return s.security_deposit_amount ?? 0;
 }
