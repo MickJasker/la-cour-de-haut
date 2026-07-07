@@ -1,11 +1,19 @@
 /**
  * Seeds the required property contact settings (`property_telephone`,
- * `property_email`) with their initial values.
+ * `property_email`) and the payment-schedule settings with their initial
+ * values.
  *
- * These two settings are **required** (the admin settings form won't save while
- * either is blank) and there is no code-level fallback, so a fresh deploy must
- * have them present before the app serves a page — otherwise the header would
- * render empty `tel:`/`mailto:` links and the JSON-LD would omit the fields.
+ * The contact settings are **required** (the admin settings form won't save
+ * while either is blank) and there is no code-level fallback, so a fresh
+ * deploy must have them present before the app serves a page — otherwise the
+ * header would render empty `tel:`/`mailto:` links and the JSON-LD would omit
+ * the fields.
+ *
+ * The payment-schedule settings (issue #162) do have code-level fallbacks in
+ * `paymentScheduleSettings()` / `securityDepositAmount()`, but are seeded so
+ * the admin settings form shows the agreed defaults instead of blank required
+ * fields (they replace the removed `payment_deadline_days` key, whose old row
+ * is simply ignored by the settings parser).
  *
  * That's why this is chained into `db:migrate` (which runs inside `pnpm build`)
  * rather than being a manual one-off like `seed-owner` / `seed-ical-sources`.
@@ -29,6 +37,10 @@ const db = getDb();
 const SEED = [
   { key: "property_telephone", value: "+33673100889" },
   { key: "property_email", value: "info@lacourdehaut.fr" },
+  { key: "deposit_percentage", value: "50" },
+  { key: "deposit_deadline_days", value: "3" },
+  { key: "balance_due_days_before_arrival", value: "7" },
+  { key: "security_deposit_amount", value: "0" },
 ];
 
 const result = await db

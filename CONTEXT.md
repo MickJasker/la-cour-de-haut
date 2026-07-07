@@ -74,7 +74,7 @@ Two test runners, strictly separated by what they can see:
 
 Owner-configurable values stored in a key-value `setting` table (`key TEXT PRIMARY KEY, value TEXT`). Known keys are declared in a Zod schema; code reads settings through typed accessors that parse and validate values. New keys require no schema migration.
 
-Current keys: `iban`, `bank_name`, `account_holder`, `payment_deadline_days` (default `"7"`).
+Key groups: bank details (`iban`, `bank_name`, `account_holder`), the payment schedule (`deposit_percentage` default `"50"`, `deposit_deadline_days` default `"3"`, `balance_due_days_before_arrival` default `"7"`, `security_deposit_amount` default `"0"` — consumed via `computePaymentSchedule` in `src/lib/booking/payment-schedule.ts`, the single source of truth for the deposit/balance split and its short-notice collapse rule), contact and SEO fields (`property_*`), and `price_per_night`.
 
 ## Media storage
 

@@ -5,7 +5,7 @@ import { desc } from "drizzle-orm";
 import {
   getSettings,
   hasBankDetails,
-  paymentDeadlineDays,
+  paymentScheduleSettings,
 } from "@/lib/settings/settings";
 import {
   toDisplayStatus,
@@ -84,7 +84,9 @@ export default async function BookingsPage({ searchParams }: PageProps) {
       : bookings;
 
   const bankDetailsOk = hasBankDetails(settings);
-  const deadlineDays = paymentDeadlineDays(settings);
+  // The confirm dialog's default deadline is the deposit deadline: days the
+  // guest gets after confirmation to pay (deposit_deadline_days, issue #162).
+  const deadlineDays = paymentScheduleSettings(settings).depositDeadlineDays;
 
   return (
     <main className="min-h-screen p-8">
