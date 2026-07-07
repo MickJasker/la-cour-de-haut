@@ -64,12 +64,12 @@ async function seedPage(opts: {
   `;
 }
 
-async function deleteSeededDraft() {
-  // Scoped to this spec's own row: spec files run in parallel workers, so a
+async function deleteSeededPage(id: string) {
+  // Scoped to this spec's own rows: spec files run in parallel workers, so a
   // blanket `system = false` delete would race admin-pages.spec.ts's live
   // rows. (System pages must survive regardless: global-setup only reseeds
   // them once per run.)
-  await sql`DELETE FROM page WHERE id = 'e2e-draft'`;
+  await sql`DELETE FROM page WHERE id = ${id}`;
 }
 
 async function gotoFresh(page: Page, path: string) {
@@ -79,26 +79,18 @@ async function gotoFresh(page: Page, path: string) {
 }
 
 test.describe("pages: public", () => {
+  // System pages (terms, privacy) are owner-editable content: CI's throwaway
+  // DB branches off real data, so their body/title/excerpt can be anything.
+  // Assert only structure on them; content-coupled assertions (body render,
+  // excerpt description, hreflang) run against a spec-owned seeded page.
+
   test("seeded terms system page renders at /nl/terms", async ({ page }) => {
     await gotoFresh(page, "/nl/terms");
 
-    await expect(
-      page.getByRole("heading", { name: "Algemene voorwaarden" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("De algemene voorwaarden worden binnenkort gepubliceerd"),
-    ).toBeVisible();
-  });
-
-  test("page metadata: title, excerpt description, hreflang alternates", async ({
-    page,
-  }) => {
-    await gotoFresh(page, "/nl/terms");
-
-    await expect(page).toHaveTitle("Algemene voorwaarden · La Cour de Haut");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      /De algemene voorwaarden worden binnenkort gepubliceerd/,
+      /\S/,
     );
     await expect(
       page.locator('link[rel="alternate"][hreflang="en"]'),
@@ -108,22 +100,43 @@ test.describe("pages: public", () => {
     ).toHaveAttribute("href", /\/nl\/terms$/);
   });
 
+  test("page metadata and body come from the DB page", async ({ page }) => {
+    await deleteSeededPage("e2e-pub");
+    await seedPage({ id: "e2e-pub", title: "Testpagina", published: true });
+
+    await gotoFresh(page, "/nl/e2e-pub");
+
+    await expect(
+      page.getByRole("heading", { name: "Testpagina", level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByText("Testtekst voor een pagina.")).toBeVisible();
+    await expect(page).toHaveTitle("Testpagina · La Cour de Haut");
+    // No separate description field (ADR-0020): the excerpt of the body text.
+    await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+      "content",
+      /Testtekst voor een pagina/,
+    );
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="en"]'),
+    ).toHaveAttribute("href", /\/en\/e2e-pub$/);
+    await expect(
+      page.locator('link[rel="alternate"][hreflang="x-default"]'),
+    ).toHaveAttribute("href", /\/nl\/e2e-pub$/);
+
+    await deleteSeededPage("e2e-pub");
+  });
+
   test("privacy is served from the DB page (hardcoded route removed)", async ({
     page,
   }) => {
     await gotoFresh(page, "/nl/privacy");
 
-    await expect(
-      page.getByRole("heading", { name: "Privacybeleid", level: 1 }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("heading", { name: "Welke gegevens verzamelen wij?" }),
-    ).toBeVisible();
-    // The excerpt-derived description proves the DB page renders — the old
-    // hardcoded route shipped a curated description instead.
+    // A 200 with an h1 proves the [slug] DB route serves it — the hardcoded
+    // route no longer exists in code. Content itself is owner-editable.
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect(page.locator('meta[name="description"]')).toHaveAttribute(
       "content",
-      /La Cour de Haut verwerkt persoonsgegevens/,
+      /\S/,
     );
   });
 
@@ -143,12 +156,12 @@ test.describe("pages: public", () => {
   });
 
   test("unpublished draft page returns 404", async ({ page }) => {
-    await deleteSeededDraft();
+    await deleteSeededPage("e2e-draft");
     await seedPage({ id: "e2e-draft", published: false });
 
     const response = await page.goto("/nl/e2e-draft");
     expect(response?.status()).toBe(404);
 
-    await deleteSeededDraft();
+    await deleteSeededPage("e2e-draft");
   });
 });
