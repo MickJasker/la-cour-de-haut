@@ -6,12 +6,18 @@ import {
   getSettings,
   hasBankDetails,
   paymentScheduleSettings,
+  securityDepositAmount,
 } from "@/lib/settings/settings";
 import {
   toDisplayStatus,
   type DisplayStatus,
   type DbBookingStatus,
 } from "@/lib/booking/machine";
+import {
+  computePaymentSchedule,
+  bookingPaymentSchedule,
+} from "@/lib/booking/payment-schedule";
+import { toUtcDayString } from "@/lib/booking/calendar-day";
 import { BookingActions } from "./booking-actions";
 import { NotesEditor } from "./notes-editor";
 import Link from "next/link";
@@ -27,6 +33,7 @@ import { getCountryName } from "@/lib/countries";
 const STATUS_LABELS: Record<DisplayStatus, string> = {
   requested: "Aangevraagd",
   on_hold: "In afwachting",
+  deposit_paid: "Aanbetaling voldaan",
   confirmed: "Bevestigd",
   declined: "Afgewezen",
   cancelled: "Geannuleerd",
@@ -36,6 +43,7 @@ const STATUS_LABELS: Record<DisplayStatus, string> = {
 const STATUS_COLORS: Record<DisplayStatus, string> = {
   requested: "bg-blue-100 text-blue-800",
   on_hold: "bg-yellow-100 text-yellow-800",
+  deposit_paid: "bg-teal-100 text-teal-800",
   confirmed: "bg-green-100 text-green-800",
   declined: "bg-stone-100 text-stone-500",
   cancelled: "bg-red-100 text-red-700",
@@ -45,11 +53,17 @@ const STATUS_COLORS: Record<DisplayStatus, string> = {
 const ALL_STATUSES: DisplayStatus[] = [
   "requested",
   "on_hold",
+  "deposit_paid",
   "expired",
   "confirmed",
   "declined",
   "cancelled",
 ];
+
+const eur = new Intl.NumberFormat("nl-NL", {
+  style: "currency",
+  currency: "EUR",
+});
 
 type PageProps = {
   searchParams: Promise<{ status?: string }>;
@@ -84,9 +98,9 @@ export default async function BookingsPage({ searchParams }: PageProps) {
       : bookings;
 
   const bankDetailsOk = hasBankDetails(settings);
-  // The confirm dialog's default deadline is the deposit deadline: days the
-  // guest gets after confirmation to pay (deposit_deadline_days, issue #162).
-  const deadlineDays = paymentScheduleSettings(settings).depositDeadlineDays;
+  const scheduleSettings = paymentScheduleSettings(settings);
+  const borg = securityDepositAmount(settings);
+  const today = toUtcDayString();
 
   return (
     <main className="min-h-screen p-8">
@@ -144,119 +158,171 @@ export default async function BookingsPage({ searchParams }: PageProps) {
           <p className="text-stone-400 text-sm">Geen boekingen gevonden.</p>
         ) : (
           <div className="space-y-4">
-            {filtered.map((booking) => (
-              <div
-                key={booking.id}
-                className="rounded-lg border border-stone-200 bg-white p-5 space-y-4"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{booking.name}</span>
-                      <span
-                        className={cn(
-                          "rounded-full px-2 py-0.5 text-xs font-medium",
-                          STATUS_COLORS[booking.displayStatus],
-                        )}
-                      >
-                        {STATUS_LABELS[booking.displayStatus]}
-                      </span>
-                    </div>
-                    <p className="text-sm text-stone-500">
-                      {booking.email}
-                      {booking.phone ? ` · ${booking.phone}` : ""}
-                    </p>
-                    <div className="text-sm text-stone-500">
-                      <p>{booking.address}</p>
-                      <p>
-                        {booking.postalCode} {booking.city}
-                      </p>
-                      <p>{getCountryName(booking.country, "nl")}</p>
-                    </div>
-                    <p className="text-sm text-stone-500">
-                      Prijs per nacht bij boeking: €
-                      {booking.shownPriceAtBooking}
-                    </p>
-                    {(() => {
-                      const nights = calculateTotalNights(
-                        booking.startDate,
-                        booking.endDate,
-                      );
-                      const { discount, totalPrice } = calculatePriceBreakdown(
-                        Number(booking.shownPriceAtBooking),
-                        nights,
-                        booking.guestCount,
-                      );
-                      return (
-                        <>
-                          {discount > 0 && (
-                            <p className="text-sm text-stone-500">
-                              10% korting (7+ nachten): −€
-                              {discount.toFixed(2)}
-                            </p>
+            {filtered.map((booking) => {
+              const nights = calculateTotalNights(
+                booking.startDate,
+                booking.endDate,
+              );
+              const { discount, totalPrice } = calculatePriceBreakdown(
+                Number(booking.shownPriceAtBooking),
+                nights,
+                booking.guestCount,
+              );
+              // Preview shown in the confirm dialog (requested bookings). The
+              // action re-derives the schedule at confirm time; this is
+              // informational. For already-confirmed bookings the frozen
+              // snapshot below is what actually applies.
+              const schedulePreview = {
+                schedule: computePaymentSchedule(
+                  totalPrice,
+                  borg,
+                  today,
+                  booking.startDate,
+                  scheduleSettings,
+                ),
+                securityDeposit: borg,
+              };
+              const frozenSchedule = bookingPaymentSchedule(booking);
+              return (
+                <div
+                  key={booking.id}
+                  className="rounded-lg border border-stone-200 bg-white p-5 space-y-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{booking.name}</span>
+                        <span
+                          className={cn(
+                            "rounded-full px-2 py-0.5 text-xs font-medium",
+                            STATUS_COLORS[booking.displayStatus],
                           )}
-                          <p className="text-sm text-stone-500">
-                            Totaalprijs bij boeking: €{totalPrice.toFixed(2)}
-                          </p>
-                        </>
-                      );
-                    })()}
-                  </div>
-                  <div className="text-right text-sm text-stone-500 shrink-0">
-                    <p>
-                      {booking.startDate} → {booking.endDate}
-                    </p>
-                    <p>
-                      {booking.guestCount} gast
-                      {booking.guestCount !== 1 ? "en" : ""}
-                    </p>
-                    {booking.paymentDeadline &&
-                      (booking.displayStatus === "on_hold" ||
-                        booking.displayStatus === "expired") && (
-                        <p className="text-orange-600">
-                          Vervaldatum: {booking.paymentDeadline}
+                        >
+                          {STATUS_LABELS[booking.displayStatus]}
+                        </span>
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        {booking.email}
+                        {booking.phone ? ` · ${booking.phone}` : ""}
+                      </p>
+                      <div className="text-sm text-stone-500">
+                        <p>{booking.address}</p>
+                        <p>
+                          {booking.postalCode} {booking.city}
+                        </p>
+                        <p>{getCountryName(booking.country, "nl")}</p>
+                      </div>
+                      <p className="text-sm text-stone-500">
+                        Prijs per nacht bij boeking: €
+                        {booking.shownPriceAtBooking}
+                      </p>
+                      {discount > 0 && (
+                        <p className="text-sm text-stone-500">
+                          10% korting (7+ nachten): −€{discount.toFixed(2)}
                         </p>
                       )}
+                      <p className="text-sm text-stone-500">
+                        Totaalprijs bij boeking: €{totalPrice.toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="text-right text-sm text-stone-500 shrink-0">
+                      <p>
+                        {booking.startDate} → {booking.endDate}
+                      </p>
+                      <p>
+                        {booking.guestCount} gast
+                        {booking.guestCount !== 1 ? "en" : ""}
+                      </p>
+                      {booking.paymentDeadline &&
+                        (booking.displayStatus === "on_hold" ||
+                          booking.displayStatus === "expired") && (
+                          <p className="text-orange-600">
+                            Vervaldatum: {booking.paymentDeadline}
+                          </p>
+                        )}
+                    </div>
+                  </div>
+
+                  {frozenSchedule && (
+                    <div className="rounded bg-stone-50 p-3 text-sm text-stone-600 space-y-1">
+                      <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
+                        Betalingsschema
+                      </p>
+                      {frozenSchedule.collapsed ? (
+                        <p>
+                          Volledige betaling:{" "}
+                          {eur.format(frozenSchedule.totalAmount)} — vóór{" "}
+                          {frozenSchedule.deadline}
+                        </p>
+                      ) : (
+                        <>
+                          <p>
+                            Aanbetaling:{" "}
+                            {eur.format(frozenSchedule.depositAmount)} — vóór{" "}
+                            {frozenSchedule.depositDeadline}
+                            {(booking.displayStatus === "deposit_paid" ||
+                              booking.displayStatus === "confirmed") &&
+                              " ✓ voldaan"}
+                          </p>
+                          <p>
+                            Restbetaling:{" "}
+                            {eur.format(frozenSchedule.balanceAmount)} — vóór{" "}
+                            {frozenSchedule.balanceDeadline}
+                            {booking.displayStatus === "confirmed" &&
+                              " ✓ voldaan"}
+                          </p>
+                        </>
+                      )}
+                      {booking.securityDepositAtBooking != null &&
+                        Number(booking.securityDepositAtBooking) > 0 && (
+                          <p className="text-xs text-stone-400">
+                            Incl. borg{" "}
+                            {eur.format(
+                              Number(booking.securityDepositAtBooking),
+                            )}
+                          </p>
+                        )}
+                    </div>
+                  )}
+
+                  {booking.message && (
+                    <p className="text-sm text-stone-600 bg-stone-50 rounded p-3">
+                      {booking.message}
+                    </p>
+                  )}
+
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
+                      Eigenaarnotities
+                    </p>
+                    <NotesEditor
+                      bookingId={booking.id}
+                      initialNotes={booking.ownerNotes}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-stone-400">
+                      {new Date(booking.createdAt).toLocaleDateString("nl-NL", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                      {" · "}
+                      locale: {booking.locale}
+                    </p>
+                    <BookingActions
+                      bookingId={booking.id}
+                      guestName={booking.name}
+                      displayStatus={booking.displayStatus}
+                      bankDetailsConfigured={bankDetailsOk}
+                      paymentCollapsed={booking.paymentCollapsed}
+                      schedulePreview={schedulePreview}
+                    />
                   </div>
                 </div>
-
-                {booking.message && (
-                  <p className="text-sm text-stone-600 bg-stone-50 rounded p-3">
-                    {booking.message}
-                  </p>
-                )}
-
-                <div className="space-y-1">
-                  <p className="text-xs font-medium text-stone-400 uppercase tracking-wide">
-                    Eigenaarnotities
-                  </p>
-                  <NotesEditor
-                    bookingId={booking.id}
-                    initialNotes={booking.ownerNotes}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-stone-400">
-                    {new Date(booking.createdAt).toLocaleDateString("nl-NL", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                    {" · "}
-                    locale: {booking.locale}
-                  </p>
-                  <BookingActions
-                    bookingId={booking.id}
-                    guestName={booking.name}
-                    displayStatus={booking.displayStatus}
-                    bankDetailsConfigured={bankDetailsOk}
-                    defaultDeadlineDays={deadlineDays}
-                    checkInDate={booking.startDate}
-                  />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

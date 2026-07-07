@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computePaymentSchedule } from "./payment-schedule";
+import {
+  computePaymentSchedule,
+  scheduleToSnapshot,
+  bookingPaymentSchedule,
+  type PaymentSchedule,
+} from "./payment-schedule";
 
 // Default settings per issue #162: 50% deposit due 3 days after confirm,
 // balance (incl. borg) due 7 days before arrival.
@@ -156,5 +161,78 @@ describe("computePaymentSchedule", () => {
       balanceAmount: 700, // 500 remainder + 200 borg
       balanceDeadline: "2026-07-25", // arrival − 7 days
     });
+  });
+});
+
+describe("scheduleToSnapshot ↔ bookingPaymentSchedule round-trip", () => {
+  const twoStage: PaymentSchedule = {
+    collapsed: false,
+    depositAmount: 500,
+    depositDeadline: "2026-07-10",
+    balanceAmount: 700,
+    balanceDeadline: "2026-07-25",
+  };
+  const collapsed: PaymentSchedule = {
+    collapsed: true,
+    totalAmount: 1200,
+    deadline: "2026-07-08",
+  };
+
+  it("maps a two-stage schedule to columns and back", () => {
+    const snapshot = scheduleToSnapshot(twoStage, 200);
+    expect(snapshot).toEqual({
+      paymentCollapsed: false,
+      depositAmount: "500",
+      paymentDeadline: "2026-07-10",
+      balanceAmount: "700",
+      balanceDeadline: "2026-07-25",
+      securityDepositAtBooking: "200",
+    });
+    expect(bookingPaymentSchedule(snapshot)).toEqual(twoStage);
+  });
+
+  it("stores a collapsed schedule's single amount in depositAmount, balance columns NULL", () => {
+    const snapshot = scheduleToSnapshot(collapsed, 200);
+    expect(snapshot).toEqual({
+      paymentCollapsed: true,
+      depositAmount: "1200",
+      paymentDeadline: "2026-07-08",
+      balanceAmount: null,
+      balanceDeadline: null,
+      securityDepositAtBooking: "200",
+    });
+    expect(bookingPaymentSchedule(snapshot)).toEqual(collapsed);
+  });
+
+  it("coerces numeric-as-string columns (drizzle) back to numbers", () => {
+    expect(
+      bookingPaymentSchedule({
+        paymentCollapsed: false,
+        depositAmount: "166.67",
+        balanceAmount: "366.66",
+        paymentDeadline: "2026-07-10",
+        balanceDeadline: "2026-07-25",
+        securityDepositAtBooking: "200",
+      }),
+    ).toEqual({
+      collapsed: false,
+      depositAmount: 166.67,
+      depositDeadline: "2026-07-10",
+      balanceAmount: 366.66,
+      balanceDeadline: "2026-07-25",
+    });
+  });
+
+  it("returns null for a booking with no snapshot yet (still requested / legacy)", () => {
+    expect(
+      bookingPaymentSchedule({
+        paymentCollapsed: null,
+        depositAmount: null,
+        balanceAmount: null,
+        paymentDeadline: null,
+        balanceDeadline: null,
+        securityDepositAtBooking: null,
+      }),
+    ).toBeNull();
   });
 });

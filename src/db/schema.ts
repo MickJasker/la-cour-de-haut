@@ -117,9 +117,15 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
+// `deposit_paid` sits between `on_hold` and `confirmed`: the deposit has been
+// received (dates stay blocked) but the balance + security deposit are still
+// due before arrival. `confirmed` keeps its meaning of "fully paid". See
+// ADR-0021. Enum value ordering is cosmetic — every consumer compares by
+// string equality, never by ordinal.
 export const bookingStatus = pgEnum("booking_status", [
   "requested",
   "on_hold",
+  "deposit_paid",
   "confirmed",
   "declined",
   "cancelled",
@@ -141,7 +147,24 @@ export const bookingRequest = pgTable("booking_request", {
   message: text("message"),
   status: bookingStatus("status").default("requested").notNull(),
   confirmedAt: timestamp("confirmed_at"),
+  // The two-stage payment schedule, frozen at confirm time via
+  // `computePaymentSchedule` so later settings edits never alter an in-flight
+  // booking (same snapshot philosophy as `shownPriceAtBooking`). See ADR-0021.
+  //
+  // `paymentDeadline` doubles as the deposit deadline (two-stage) or the
+  // single deadline (collapsed) — this is the date ADR-0004 lazy expiry
+  // reads, so reusing it keeps `isExpiredHold` unchanged.
+  // `paymentCollapsed` is the discriminator: NULL until confirm, then true
+  // (single payment of 100% + borg) or false (deposit + balance). When true,
+  // `depositAmount` holds the single total (100% + borg) due at
+  // `paymentDeadline`, and `balanceAmount` / `balanceDeadline` are NULL.
   paymentDeadline: date("payment_deadline"),
+  paymentCollapsed: boolean("payment_collapsed"),
+  depositAmount: numeric("deposit_amount"),
+  balanceAmount: numeric("balance_amount"),
+  balanceDeadline: date("balance_deadline"),
+  // The borg frozen at confirm time (0 when the owner charges no deposit).
+  securityDepositAtBooking: numeric("security_deposit_at_booking"),
   ownerNotes: text("owner_notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   shownPriceAtBooking: numeric("shown_price_at_booking").notNull(),

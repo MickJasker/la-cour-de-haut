@@ -22,9 +22,27 @@ describe("transition — valid paths", () => {
     expect(result.sideEffects).toEqual({});
   });
 
-  it("on_hold → confirmed on mark_paid", () => {
+  it("on_hold → deposit_paid on mark_deposit_paid (two-stage path)", () => {
+    const result = transition("on_hold", "mark_deposit_paid");
+    expect(result.nextStatus).toBe("deposit_paid");
+    expect(result.sideEffects).toEqual({});
+  });
+
+  it("on_hold → confirmed on mark_paid (collapse path)", () => {
     const result = transition("on_hold", "mark_paid");
     expect(result.nextStatus).toBe("confirmed");
+  });
+
+  it("deposit_paid → confirmed on mark_balance_paid", () => {
+    const result = transition("deposit_paid", "mark_balance_paid");
+    expect(result.nextStatus).toBe("confirmed");
+    expect(result.sideEffects).toEqual({});
+  });
+
+  it("deposit_paid → cancelled on cancel, with releaseFromFeed", () => {
+    const result = transition("deposit_paid", "cancel");
+    expect(result.nextStatus).toBe("cancelled");
+    expect(result.sideEffects.releaseFromFeed).toBe(true);
   });
 
   it("on_hold → cancelled on cancel, with releaseFromFeed", () => {
@@ -44,8 +62,15 @@ describe("transition — invalid paths", () => {
   const invalidCases: [DbBookingStatus, Parameters<typeof transition>[1]][] = [
     ["on_hold", "confirm"],
     ["on_hold", "decline"],
+    ["on_hold", "mark_balance_paid"],
+    ["deposit_paid", "confirm"],
+    ["deposit_paid", "decline"],
+    ["deposit_paid", "mark_deposit_paid"],
+    ["deposit_paid", "mark_paid"],
     ["confirmed", "confirm"],
     ["confirmed", "mark_paid"],
+    ["confirmed", "mark_deposit_paid"],
+    ["confirmed", "mark_balance_paid"],
     ["confirmed", "decline"],
     ["declined", "confirm"],
     ["declined", "cancel"],
@@ -104,9 +129,19 @@ describe("toDisplayStatus — lazy expiry", () => {
     ).toBe("confirmed");
   });
 
+  it("deposit_paid passes through unchanged (expiry only applies to on_hold)", () => {
+    expect(
+      toDisplayStatus({
+        status: "deposit_paid",
+        paymentDeadline: pastDeadline,
+      }),
+    ).toBe("deposit_paid");
+  });
+
   it("passes through all other statuses unchanged", () => {
     const statuses: DbBookingStatus[] = [
       "requested",
+      "deposit_paid",
       "confirmed",
       "declined",
       "cancelled",
@@ -151,7 +186,13 @@ describe("isExpiredHold — the single hold-expiry predicate (ADR-0004)", () => 
   });
 
   it("non on_hold statuses are never expired, even with a past deadline", () => {
-    const statuses = ["requested", "confirmed", "declined", "cancelled"];
+    const statuses = [
+      "requested",
+      "deposit_paid",
+      "confirmed",
+      "declined",
+      "cancelled",
+    ];
     for (const status of statuses) {
       expect(isExpiredHold({ status, paymentDeadline: YESTERDAY }, TODAY)).toBe(
         false,

@@ -98,6 +98,12 @@ export const productionAvailabilityStore: AvailabilityStore = {
         paymentDeadline: bookingRequest.paymentDeadline,
       })
       .from(bookingRequest)
-      .where(inArray(bookingRequest.status, ["on_hold", "confirmed"]));
+      .where(
+        inArray(bookingRequest.status, [
+          "on_hold",
+          "deposit_paid",
+          "confirmed",
+        ]),
+      );
   },
 };

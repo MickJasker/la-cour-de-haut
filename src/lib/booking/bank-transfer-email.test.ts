@@ -11,14 +11,23 @@ vi.mock("resend", () => ({ Resend: MockResend }));
 
 const { sendBankTransferEmail } = await import("./bank-transfer-email");
 
+const twoStageSchedule = {
+  collapsed: false as const,
+  depositAmount: 316.5,
+  depositDeadline: "2027-08-10",
+  balanceAmount: 516.5,
+  balanceDeadline: "2027-08-25",
+};
+
 const baseParams = {
   guest: { name: "Anna Schmidt", email: "anna@example.com" },
   startDate: "2027-09-01",
   endDate: "2027-09-07",
   guestCount: 2,
-  paymentDeadline: "2027-08-25",
   locale: "en",
   price: { nights: 6, discount: 0, totalPrice: 633 },
+  schedule: twoStageSchedule,
+  securityDeposit: 200,
   bankDetails: {
     iban: "NL91ABNA0417164300",
     bankName: "Test Bank",
@@ -85,6 +94,65 @@ describe("sendBankTransferEmail", () => {
 
     const call = mockSend.mock.calls[0]![0] as { subject: string };
     expect(call.subject).toBe("Your reservation at La Cour de Haut");
+  });
+
+  describe("two-stage schedule rendering", () => {
+    beforeEach(() => {
+      process.env.RESEND_API_KEY = "re_test_key";
+    });
+
+    it("renders both instalment amounts and distinct references", async () => {
+      await sendBankTransferEmail(baseParams);
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      // Deposit and balance amounts both appear.
+      expect(call.html).toContain("316.50");
+      expect(call.html).toContain("516.50");
+      // References distinguish the two transfers.
+      expect(call.html).toContain("Anna Schmidt - 2027-09-01 - deposit");
+      expect(call.html).toContain("Anna Schmidt - 2027-09-01 - balance");
+    });
+
+    it("notes the security deposit is included in the balance", async () => {
+      await sendBankTransferEmail(baseParams);
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      expect(call.html).toContain("200.00");
+      expect(call.html).toMatch(/refundable security deposit/i);
+    });
+
+    it("omits the borg note when the security deposit is zero", async () => {
+      await sendBankTransferEmail({ ...baseParams, securityDeposit: 0 });
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      expect(call.html).not.toMatch(/refundable security deposit/i);
+    });
+  });
+
+  describe("collapsed schedule rendering", () => {
+    const collapsedParams = {
+      ...baseParams,
+      schedule: {
+        collapsed: true as const,
+        totalAmount: 833,
+        deadline: "2027-08-28",
+      },
+    };
+
+    beforeEach(() => {
+      process.env.RESEND_API_KEY = "re_test_key";
+    });
+
+    it("renders a single payment with the full amount and one reference", async () => {
+      await sendBankTransferEmail(collapsedParams);
+
+      const call = mockSend.mock.calls[0]![0] as { html: string };
+      expect(call.html).toContain("833.00");
+      // A single reference, without the deposit/balance suffixes.
+      expect(call.html).toContain("Anna Schmidt - 2027-09-01");
+      expect(call.html).not.toContain("- deposit");
+      expect(call.html).not.toContain("- balance");
+    });
   });
 
   describe("terms link", () => {

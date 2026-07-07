@@ -26,6 +26,7 @@ function booking(overrides: Partial<BookingRow> = {}): BookingRow {
     guestCount: 2,
     status: "requested",
     paymentDeadline: null,
+    balanceDeadline: null,
     ...overrides,
   };
 }
@@ -259,6 +260,69 @@ describe("computeDashboard — overdue payments", () => {
       TODAY,
     );
     expect(result.overdue).toHaveLength(0);
+  });
+});
+
+describe("computeDashboard — deposit_paid balance deadlines (ADR-0021)", () => {
+  it("puts a deposit_paid booking past its balance deadline in overdue", () => {
+    const result = computeDashboard(
+      [
+        booking({
+          status: "deposit_paid",
+          paymentDeadline: "2026-06-01", // deposit deadline long gone, irrelevant
+          balanceDeadline: "2026-06-25", // before TODAY
+        }),
+      ],
+      [],
+      TODAY,
+    );
+    expect(result.overdue).toHaveLength(1);
+    expect(result.approaching).toHaveLength(0);
+  });
+
+  it("does not put a deposit_paid booking with a balance deadline exactly today in overdue (boundary)", () => {
+    const result = computeDashboard(
+      [booking({ status: "deposit_paid", balanceDeadline: TODAY })],
+      [],
+      TODAY,
+    );
+    expect(result.overdue).toHaveLength(0);
+    expect(result.approaching).toHaveLength(1);
+  });
+
+  it("puts a deposit_paid booking with a balance deadline in 2 days in approaching", () => {
+    const result = computeDashboard(
+      [booking({ status: "deposit_paid", balanceDeadline: "2026-06-28" })],
+      [],
+      TODAY,
+    );
+    expect(result.approaching).toHaveLength(1);
+    expect(result.overdue).toHaveLength(0);
+  });
+
+  it("does not surface a deposit_paid booking with a balance deadline 4 days out", () => {
+    const result = computeDashboard(
+      [booking({ status: "deposit_paid", balanceDeadline: "2026-06-30" })],
+      [],
+      TODAY,
+    );
+    expect(result.approaching).toHaveLength(0);
+    expect(result.overdue).toHaveLength(0);
+  });
+
+  it("keeps a deposit_paid booking out of upcoming (only confirmed stays list there)", () => {
+    const result = computeDashboard(
+      [
+        booking({
+          status: "deposit_paid",
+          startDate: "2026-07-10",
+          balanceDeadline: "2026-07-03",
+        }),
+      ],
+      [],
+      TODAY,
+    );
+    expect(result.upcoming).toHaveLength(0);
   });
 });
 

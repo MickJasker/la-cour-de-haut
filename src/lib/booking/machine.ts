@@ -1,11 +1,22 @@
 import { toUtcDayString } from "./calendar-day";
 
 export type DbBookingStatus =
-  "requested" | "on_hold" | "confirmed" | "declined" | "cancelled";
+  | "requested"
+  | "on_hold"
+  | "deposit_paid"
+  | "confirmed"
+  | "declined"
+  | "cancelled";
 
 export type DisplayStatus = DbBookingStatus | "expired";
 
-export type BookingAction = "confirm" | "decline" | "mark_paid" | "cancel";
+export type BookingAction =
+  | "confirm"
+  | "decline"
+  | "mark_deposit_paid"
+  | "mark_balance_paid"
+  | "mark_paid"
+  | "cancel";
 
 export interface TransitionResult {
   nextStatus: DbBookingStatus;
@@ -31,7 +42,26 @@ const TRANSITIONS: Record<
     },
   },
   on_hold: {
+    // Two-stage path: the deposit has landed, balance + borg still due.
+    mark_deposit_paid: {
+      nextStatus: "deposit_paid",
+      sideEffects: {},
+    },
+    // Collapse path (short notice, ADR-0021): the single 100% + borg payment
+    // has landed, so the hold goes straight to confirmed. The admin UI only
+    // offers this action for a collapsed snapshot; two-stage bookings use
+    // mark_deposit_paid instead.
     mark_paid: {
+      nextStatus: "confirmed",
+      sideEffects: {},
+    },
+    cancel: {
+      nextStatus: "cancelled",
+      sideEffects: { releaseFromFeed: true },
+    },
+  },
+  deposit_paid: {
+    mark_balance_paid: {
       nextStatus: "confirmed",
       sideEffects: {},
     },
