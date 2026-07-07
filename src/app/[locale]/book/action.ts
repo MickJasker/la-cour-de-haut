@@ -12,7 +12,7 @@ import {
   calculateTourismTax,
   createBookingFormSchema,
 } from "./shared";
-import { formOpts } from "./shared";
+import { formOpts, type BookingPaymentConfig } from "./shared";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { isRangeAvailable, getBookedDays } from "@/lib/booking/availability";
@@ -253,4 +253,20 @@ export async function getPricePerNightAction(): Promise<number> {
   const settings = await import("@/lib/settings/settings");
   const { price_per_night } = await settings.getSettings();
   return price_per_night ?? 0;
+}
+
+/**
+ * The knobs the booking form needs to preview the two-stage payment schedule
+ * (issue #167): the same percentage / deadline / borg settings the confirm
+ * transition feeds to `computePaymentSchedule`, read server-side like the
+ * nightly price. The form computes the live schedule client-side from these,
+ * so the preview can never contradict the eventual bank-transfer email.
+ */
+export async function getPaymentScheduleConfigAction(): Promise<BookingPaymentConfig> {
+  const settings = await import("@/lib/settings/settings");
+  const s = await settings.getSettings();
+  return {
+    settings: settings.paymentScheduleSettings(s),
+    securityDeposit: settings.securityDepositAmount(s),
+  };
 }

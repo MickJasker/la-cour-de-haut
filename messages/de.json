@@ -68,7 +68,16 @@
       "country": "Land",
       "countryPlaceholder": "Land auswählen",
       "countrySearchPlaceholder": "Land suchen...",
-      "countryEmpty": "Kein Land gefunden"
+      "countryEmpty": "Kein Land gefunden",
+      "paymentSchedule": {
+        "heading": "Zahlung in Raten",
+        "deposit": "Anzahlung ({percentage} %): <strong>{amount}</strong> — innerhalb von {days, plural, one {# Tag} other {# Tagen}} nach Bestätigung",
+        "balanceWithBorg": "Restzahlung inkl. Kaution: <strong>{amount}</strong> — spätestens {days, plural, one {# Tag} other {# Tagen}} vor Anreise ({date})",
+        "balance": "Restzahlung: <strong>{amount}</strong> — spätestens {days, plural, one {# Tag} other {# Tagen}} vor Anreise ({date})",
+        "totalWithBorg": "Gesamtbetrag inkl. Kaution: <strong>{amount}</strong> — fällig nach Bestätigung, vor Anreise",
+        "total": "Gesamtbetrag: <strong>{amount}</strong> — fällig nach Bestätigung, vor Anreise",
+        "borgNote": "Die Kaution von <strong>{amount}</strong> erhalten Sie nach dem Aufenthalt zurück."
+      }
     },
     "fieldErrors": {
       "required": "Dieses Feld ist erforderlich",

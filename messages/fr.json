@@ -68,7 +68,16 @@
       "country": "Pays",
       "countryPlaceholder": "Sélectionnez un pays",
       "countrySearchPlaceholder": "Rechercher un pays...",
-      "countryEmpty": "Aucun pays trouvé"
+      "countryEmpty": "Aucun pays trouvé",
+      "paymentSchedule": {
+        "heading": "Paiement en plusieurs fois",
+        "deposit": "Acompte ({percentage} %) : <strong>{amount}</strong> — sous {days, plural, one {# jour} other {# jours}} après confirmation",
+        "balanceWithBorg": "Solde caution comprise : <strong>{amount}</strong> — au plus tard {days, plural, one {# jour} other {# jours}} avant l’arrivée ({date})",
+        "balance": "Solde : <strong>{amount}</strong> — au plus tard {days, plural, one {# jour} other {# jours}} avant l’arrivée ({date})",
+        "totalWithBorg": "Montant total caution comprise : <strong>{amount}</strong> — à régler après confirmation, avant l’arrivée",
+        "total": "Montant total : <strong>{amount}</strong> — à régler après confirmation, avant l’arrivée",
+        "borgNote": "La caution de <strong>{amount}</strong> vous est restituée après le séjour."
+      }
     },
     "fieldErrors": {
       "required": "Ce champ est obligatoire",

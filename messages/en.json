@@ -68,7 +68,16 @@
       "country": "Country",
       "countryPlaceholder": "Select a country",
       "countrySearchPlaceholder": "Search for a country...",
-      "countryEmpty": "No country found"
+      "countryEmpty": "No country found",
+      "paymentSchedule": {
+        "heading": "Payment in instalments",
+        "deposit": "Deposit ({percentage}%): <strong>{amount}</strong> — within {days, plural, one {# day} other {# days}} of confirmation",
+        "balanceWithBorg": "Balance incl. security deposit: <strong>{amount}</strong> — no later than {days, plural, one {# day} other {# days}} before arrival ({date})",
+        "balance": "Balance: <strong>{amount}</strong> — no later than {days, plural, one {# day} other {# days}} before arrival ({date})",
+        "totalWithBorg": "Full amount incl. security deposit: <strong>{amount}</strong> — due after confirmation, before arrival",
+        "total": "Full amount: <strong>{amount}</strong> — due after confirmation, before arrival",
+        "borgNote": "The <strong>{amount}</strong> security deposit is refunded after your stay."
+      }
     },
     "fieldErrors": {
       "required": "This field is required",

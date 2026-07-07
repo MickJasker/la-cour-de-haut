@@ -6,6 +6,7 @@ import { BookModalClient } from "./book-modal-client";
 import {
   getBookedDatesAction,
   getPricePerNightAction,
+  getPaymentScheduleConfigAction,
 } from "../../book/action";
 
 export async function generateMetadata({
@@ -27,7 +28,12 @@ export async function generateMetadata({
 export default async function BookModalPage() {
   const bookedDates = getBookedDatesAction();
   const pricePerNight = getPricePerNightAction();
+  const paymentConfig = getPaymentScheduleConfigAction();
   return (
-    <BookModalClient bookedDates={bookedDates} pricePerNight={pricePerNight} />
+    <BookModalClient
+      bookedDates={bookedDates}
+      pricePerNight={pricePerNight}
+      paymentConfig={paymentConfig}
+    />
   );
 }

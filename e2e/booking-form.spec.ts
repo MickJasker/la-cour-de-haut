@@ -257,3 +257,142 @@ test.describe("booking form — modal", () => {
     await expect(dialog.getByRole("button", { name: "Boek nu" })).toBeVisible();
   });
 });
+
+test.describe("booking form — payment-schedule breakdown", () => {
+  // Mutates global settings (borg + nightly price) that other specs read;
+  // run this block's tests serially so the two presentations never race each
+  // other's seed state.
+  test.describe.configure({ mode: "serial" });
+
+  test.beforeAll(async () => {
+    const sql = neon(process.env.DATABASE_URL!);
+    // Deterministic schedule inputs: 50% deposit, 3 days after confirm, balance
+    // 7 days before arrival, €200 refundable borg, €150/night.
+    await sql`
+      INSERT INTO setting (key, value) VALUES
+        ('price_per_night', '150'),
+        ('deposit_percentage', '50'),
+        ('deposit_deadline_days', '3'),
+        ('balance_due_days_before_arrival', '7'),
+        ('security_deposit_amount', '200')
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+  });
+
+  test.afterAll(async () => {
+    // Restore the seed default so other specs see a borg-free schedule.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
+      ON CONFLICT (key) DO UPDATE SET value = '0'
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+  });
+
+  const dutchDays = [
+    "zondag",
+    "maandag",
+    "dinsdag",
+    "woensdag",
+    "donderdag",
+    "vrijdag",
+    "zaterdag",
+  ];
+  const dutchMonths = [
+    "januari",
+    "februari",
+    "maart",
+    "april",
+    "mei",
+    "juni",
+    "juli",
+    "augustus",
+    "september",
+    "oktober",
+    "november",
+    "december",
+  ];
+  const toAriaLabel = (d: Date) =>
+    `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]} ${d.getFullYear()}`;
+
+  // Clicks a day, navigating forward month-by-month until it is visible — robust
+  // to check-in/out falling outside the initially rendered month.
+  async function pickDay(
+    page: import("@playwright/test").Page,
+    d: Date,
+  ): Promise<void> {
+    const selector = `button[aria-label="${toAriaLabel(d)}"]`;
+    for (let i = 0; i < 12; i++) {
+      const btn = page.locator(selector).first();
+      if ((await btn.count()) > 0 && (await btn.isVisible())) {
+        await btn.click();
+        return;
+      }
+      await page.locator(".rdp-button_next").click();
+    }
+    throw new Error(`day not selectable: ${toAriaLabel(d)}`);
+  }
+
+  async function selectRange(
+    page: import("@playwright/test").Page,
+    checkinOffset: number,
+    nights: number,
+  ): Promise<void> {
+    const checkin = new Date();
+    checkin.setDate(checkin.getDate() + checkinOffset);
+    const checkout = new Date(checkin);
+    checkout.setDate(checkout.getDate() + nights);
+    await pickDay(page, checkin);
+    await pickDay(page, checkout);
+    await page.waitForFunction(() => {
+      const from = (
+        document.querySelector(
+          "input[name='stayDates.from']",
+        ) as HTMLInputElement | null
+      )?.value;
+      const to = (
+        document.querySelector(
+          "input[name='stayDates.to']",
+        ) as HTMLInputElement | null
+      )?.value;
+      return !!from && !!to && from !== to;
+    });
+  }
+
+  test("split presentation: deposit + balance-with-borg rows for a stay well in advance", async ({
+    page,
+  }) => {
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    // Arrival 30 days out → balance deadline (arrival − 7) is far past the
+    // deposit deadline (today + 3), so the schedule splits in two.
+    await selectRange(page, 30, 4);
+
+    await expect(page.getByText("Betaling in termijnen")).toBeVisible();
+    await expect(page.getByText("Aanbetaling (50%)")).toBeVisible();
+    await expect(page.getByText("Restbetaling incl. borg")).toBeVisible();
+    await expect(page.getByText("ontvangt u na afloop")).toBeVisible();
+    // The collapsed single-payment line must NOT appear for a split schedule.
+    await expect(page.getByText("Volledig bedrag incl. borg")).toHaveCount(0);
+  });
+
+  test("collapsed presentation: single full-amount row for a short-notice stay", async ({
+    page,
+  }) => {
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    // Arrival 2 days out → balance deadline (arrival − 7) is on/before the
+    // deposit deadline (today + 3), so the schedule collapses to one payment.
+    await selectRange(page, 2, 3);
+
+    await expect(page.getByText("Volledig bedrag incl. borg")).toBeVisible();
+    await expect(page.getByText("ontvangt u na afloop")).toBeVisible();
+    // The 50/50 split must NOT appear for a short-notice schedule.
+    await expect(page.getByText("Aanbetaling (50%)")).toHaveCount(0);
+  });
+});
