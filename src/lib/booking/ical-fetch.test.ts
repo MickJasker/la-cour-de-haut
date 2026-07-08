@@ -163,6 +163,29 @@ UID:airbnb-block-1@airbnb.com
 END:VEVENT
 END:VCALENDAR`;
 
+// Natuurhuisje-shaped feed: a real booking ("Boeking natuurhuisje (id)")
+// plus a "Blokkade <id> natuurhuisje" block — the summary Natuurhuisje gives
+// both manual blocks and dates it re-exports after importing our other
+// calendars (Airbnb, our own export feed). Only the booking may be imported.
+const ICAL_NATUURHUISJE_REEXPORT = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:Natuurhuisje.nl
+BEGIN:VEVENT
+UID:NH-93140-1139084-booking-block@natuurhuisje.nl
+SUMMARY:Boeking natuurhuisje (1139084)
+DTSTART:20260723T000000Z
+DTEND:20260730T000000Z
+STATUS:CONFIRMED
+END:VEVENT
+BEGIN:VEVENT
+UID:NH-93140-83938854-block@natuurhuisje.nl
+SUMMARY:Blokkade 83938854 natuurhuisje
+DTSTART:20260704T000000Z
+DTEND:20260707T000000Z
+STATUS:CONFIRMED
+END:VEVENT
+END:VCALENDAR`;
+
 function makeFetch(body: string, status = 200): typeof fetch {
   return vi.fn().mockResolvedValue({
     ok: status >= 200 && status < 300,
@@ -206,6 +229,18 @@ describe("fetchIcalFeed", () => {
     if (!result.ok) return;
     expect(result.intervals).toEqual([
       { start: "2026-07-04", end: "2026-07-07" },
+    ]);
+  });
+
+  it('skips Natuurhuisje "Blokkade" blocks but keeps Boeking bookings', async () => {
+    const result = await fetchIcalFeed(
+      "https://example.com/feed.ics",
+      makeFetch(ICAL_NATUURHUISJE_REEXPORT),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.intervals).toEqual([
+      { start: "2026-07-23", end: "2026-07-30" },
     ]);
   });
 
