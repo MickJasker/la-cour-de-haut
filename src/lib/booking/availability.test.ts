@@ -23,6 +23,7 @@ import type {
   AvailabilityStore,
   IcalSourceRow,
   DirectBookingRow,
+  OwnerBlockRow,
 } from "./availability-store";
 import type { AvailabilityDeps, FetchFeed } from "./availability";
 import {
@@ -219,12 +220,14 @@ type SyncErrorCall = { id: string; error: string; erroredAt: Date };
 function createFakeStore(opts: {
   sources?: IcalSourceRow[];
   bookings?: DirectBookingRow[];
+  blocks?: OwnerBlockRow[];
 }): AvailabilityStore & {
   syncSuccessCalls: SyncSuccessCall[];
   syncErrorCalls: SyncErrorCall[];
 } {
   const sources = opts.sources ?? [];
   const bookings = opts.bookings ?? [];
+  const blocks = opts.blocks ?? [];
   const syncSuccessCalls: SyncSuccessCall[] = [];
   const syncErrorCalls: SyncErrorCall[] = [];
 
@@ -248,6 +251,9 @@ function createFakeStore(opts: {
     async listDirectBookings() {
       return bookings;
     },
+    async listOwnerBlocks() {
+      return blocks;
+    },
   };
 }
 
@@ -258,6 +264,7 @@ function fixedClock(now: Date): () => Date {
 function makeDeps(opts: {
   sources?: IcalSourceRow[];
   bookings?: DirectBookingRow[];
+  blocks?: OwnerBlockRow[];
   fetchFeed?: FetchFeed;
   now?: Date;
 }): AvailabilityDeps & {
@@ -268,6 +275,7 @@ function makeDeps(opts: {
   const store = createFakeStore({
     sources: opts.sources,
     bookings: opts.bookings,
+    blocks: opts.blocks,
   });
   const fetchFeed = vi.fn(
     opts.fetchFeed ??
@@ -387,6 +395,72 @@ describe("isRangeAvailable / getBookedDays / getBusyIntervals — the public ava
       ],
     });
     await expect(getBookedDays(deps)).resolves.toEqual([]);
+  });
+
+  it("a range overlapping an owner block is unavailable", async () => {
+    const deps = makeDeps({
+      blocks: [{ id: "blk1", startDate: "2027-05-10", endDate: "2027-05-15" }],
+    });
+    await expect(
+      isRangeAvailable("2027-05-12", "2027-05-14", deps),
+    ).resolves.toBe(false);
+  });
+
+  it("getBookedDays includes owner-block days", async () => {
+    const deps = makeDeps({
+      blocks: [{ id: "blk1", startDate: "2027-05-10", endDate: "2027-05-13" }],
+    });
+    await expect(getBookedDays(deps)).resolves.toEqual([
+      "2027-05-10",
+      "2027-05-11",
+      "2027-05-12",
+    ]);
+  });
+
+  it("owner blocks merge with booking and iCal busy intervals", async () => {
+    const deps = makeDeps({
+      bookings: [
+        {
+          id: "b1",
+          startDate: "2027-06-01",
+          endDate: "2027-06-03",
+          status: "confirmed",
+          paymentDeadline: null,
+        },
+      ],
+      blocks: [{ id: "blk1", startDate: "2027-06-10", endDate: "2027-06-12" }],
+      sources: [
+        {
+          id: "s1",
+          url: "https://example.com/s1.ics",
+          cachedIntervals: null,
+          lastSyncedAt: null,
+        },
+      ],
+      fetchFeed: async () => ({
+        ok: true,
+        intervals: [{ start: "2027-06-20", end: "2027-06-22" }],
+      }),
+    });
+    const days = await getBookedDays(deps);
+    expect([...days].sort()).toEqual([
+      "2027-06-01",
+      "2027-06-02",
+      "2027-06-10",
+      "2027-06-11",
+      "2027-06-20",
+      "2027-06-21",
+    ]);
+  });
+
+  it("an owner block's end date is exclusive — the day after the last blocked day is available", async () => {
+    const deps = makeDeps({
+      blocks: [{ id: "blk1", startDate: "2027-05-10", endDate: "2027-05-15" }],
+    });
+    // 2027-05-15 is the exclusive DTEND — check-in that day is free.
+    await expect(
+      isRangeAvailable("2027-05-15", "2027-05-18", deps),
+    ).resolves.toBe(true);
   });
 });
 

@@ -1,6 +1,6 @@
 import { verifySession } from "@/lib/auth/session";
 import { getDb } from "@/db";
-import { bookingRequest, icalSource } from "@/db/schema";
+import { bookingRequest, icalSource, ownerBlock } from "@/db/schema";
 import { notInArray, eq } from "drizzle-orm";
 import {
   computeDashboard,
@@ -183,12 +183,13 @@ export default async function AdminPage() {
   // single place that applies the shared isExpiredHold predicate to decide
   // what counts as active/upcoming vs. overdue — this query only excludes
   // the terminal statuses that can never need a guest action.
-  const [bookings, sources] = await Promise.all([
+  const [bookings, sources, blocks] = await Promise.all([
     db
       .select()
       .from(bookingRequest)
       .where(notInArray(bookingRequest.status, ["declined", "cancelled"])),
     db.select().from(icalSource).where(eq(icalSource.enabled, true)),
+    db.select().from(ownerBlock),
   ]);
 
   const { newRequests, overdue, approaching, brokenFeeds, upcoming } =
@@ -204,8 +205,20 @@ export default async function AdminPage() {
   const occupancyEntries = computeOccupancyEntries(
     bookings as BookingRow[],
     sources as IcalSourceRow[],
+    blocks,
     today,
   );
+
+  // Pending inquiries, for the create-block overlap warning (ADR-0022): a new
+  // block over a `requested` range means the confirm guard can never clear it.
+  const pendingRequests = (bookings as BookingRow[])
+    .filter((b) => b.status === "requested")
+    .map((b) => ({
+      id: b.id,
+      name: b.name,
+      start: b.startDate,
+      end: b.endDate,
+    }));
 
   const hasGuestActions =
     newRequests.length > 0 || overdue.length > 0 || approaching.length > 0;
@@ -224,6 +237,7 @@ export default async function AdminPage() {
           <OccupancyCalendar
             entries={occupancyEntries}
             initialMonth={today.slice(0, 7)}
+            pendingRequests={pendingRequests}
           />
         </section>
 

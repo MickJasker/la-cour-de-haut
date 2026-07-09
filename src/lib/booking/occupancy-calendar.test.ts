@@ -38,6 +38,7 @@ describe("computeOccupancyEntries", () => {
     const entries = computeOccupancyEntries(
       [booking({ id: "b1", status: "confirmed" })],
       [],
+      [],
       TODAY,
     );
     expect(entries).toEqual([
@@ -56,6 +57,7 @@ describe("computeOccupancyEntries", () => {
     const entries = computeOccupancyEntries(
       [booking({ id: "b2", status: "on_hold", paymentDeadline: "2026-07-09" })],
       [],
+      [],
       TODAY,
     );
     expect(entries).toHaveLength(1);
@@ -73,6 +75,7 @@ describe("computeOccupancyEntries", () => {
         }),
       ],
       [],
+      [],
       TODAY,
     );
     expect(entries).toHaveLength(1);
@@ -89,6 +92,7 @@ describe("computeOccupancyEntries", () => {
     const entries = computeOccupancyEntries(
       [booking({ id: "b3", status: "on_hold", paymentDeadline: "2026-07-06" })],
       [],
+      [],
       TODAY,
     );
     expect(entries).toEqual([]);
@@ -101,6 +105,7 @@ describe("computeOccupancyEntries", () => {
         booking({ id: "b5", status: "declined" }),
         booking({ id: "b6", status: "cancelled" }),
       ],
+      [],
       [],
       TODAY,
     );
@@ -119,6 +124,7 @@ describe("computeOccupancyEntries", () => {
           ],
         }),
       ],
+      [],
       TODAY,
     );
     expect(entries).toEqual([
@@ -141,9 +147,56 @@ describe("computeOccupancyEntries", () => {
     const entries = computeOccupancyEntries(
       [],
       [icalSource({ cachedIntervals: null })],
+      [],
       TODAY,
     );
     expect(entries).toEqual([]);
+  });
+
+  it("maps owner blocks 1:1 to block entries (no lifecycle filtering)", () => {
+    const entries = computeOccupancyEntries(
+      [],
+      [],
+      [
+        {
+          id: "blk1",
+          startDate: "2026-07-30",
+          endDate: "2026-08-14",
+          label: "eigen verblijf",
+        },
+      ],
+      TODAY,
+    );
+    expect(entries).toEqual([
+      {
+        kind: "block",
+        id: "blk1",
+        label: "eigen verblijf",
+        start: "2026-07-30",
+        end: "2026-08-14",
+      },
+    ]);
+  });
+
+  it("carries a null label through unchanged", () => {
+    const entries = computeOccupancyEntries(
+      [],
+      [],
+      [
+        {
+          id: "blk2",
+          startDate: "2027-06-13",
+          endDate: "2027-06-20",
+          label: null,
+        },
+      ],
+      TODAY,
+    );
+    expect(entries[0]).toMatchObject({
+      kind: "block",
+      id: "blk2",
+      label: null,
+    });
   });
 });
 
@@ -269,6 +322,28 @@ describe("buildCalendarMonth", () => {
       const kinds = byDate.get(date)!.segments.map((s) => s.entry.kind);
       expect(kinds).toEqual(["booking", "ical"]);
     }
+  });
+
+  it("lays out an owner block onto every day it covers", () => {
+    const entry = {
+      kind: "block",
+      id: "blk1",
+      label: "eigen verblijf",
+      start: "2026-07-10",
+      end: "2026-07-13",
+    } as const;
+    const weeks = buildCalendarMonth("2026-07", [entry]);
+    const byDate = new Map(weeks.flat().map((d) => [d.date, d]));
+
+    expect(byDate.get("2026-07-09")!.segments).toEqual([]);
+    // Exclusive end → the 13th is not blocked.
+    expect(byDate.get("2026-07-13")!.segments).toEqual([]);
+
+    const start = byDate.get("2026-07-10")!.segments[0];
+    expect(start).toMatchObject({ isStart: true, isEnd: false });
+    expect(start.key).toBe("block-blk1");
+    const last = byDate.get("2026-07-12")!.segments[0];
+    expect(last).toMatchObject({ isStart: false, isEnd: true });
   });
 
   it("starts and ends exactly on week boundaries when the month does", () => {

@@ -1,6 +1,11 @@
 import "server-only";
 import { getDb } from "@/db";
-import { icalSource, bookingRequest, type BusyInterval } from "@/db/schema";
+import {
+  icalSource,
+  bookingRequest,
+  ownerBlock,
+  type BusyInterval,
+} from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
 /**
@@ -21,6 +26,17 @@ export type IcalSourceRow = Pick<
 export type DirectBookingRow = Pick<
   typeof bookingRequest.$inferSelect,
   "id" | "startDate" | "endDate" | "status" | "paymentDeadline"
+>;
+
+/**
+ * The subset of an `owner_block` row the availability module needs. Owner
+ * blocks have no lifecycle (they exist or they don't), so unlike a booking
+ * there is no status/deadline to carry — just the dates. The private `label`
+ * is never read here; it's admin-only and never exported.
+ */
+export type OwnerBlockRow = Pick<
+  typeof ownerBlock.$inferSelect,
+  "id" | "startDate" | "endDate"
 >;
 
 /**
@@ -47,6 +63,7 @@ export interface AvailabilityStore {
     erroredAt: Date,
   ): Promise<void>;
   listDirectBookings(): Promise<DirectBookingRow[]>;
+  listOwnerBlocks(): Promise<OwnerBlockRow[]>;
 }
 
 export const productionAvailabilityStore: AvailabilityStore = {
@@ -105,5 +122,17 @@ export const productionAvailabilityStore: AvailabilityStore = {
           "confirmed",
         ]),
       );
+  },
+
+  async listOwnerBlocks() {
+    const db = getDb();
+    // No filtering — blocks have no lifecycle; past blocks are harmless.
+    return db
+      .select({
+        id: ownerBlock.id,
+        startDate: ownerBlock.startDate,
+        endDate: ownerBlock.endDate,
+      })
+      .from(ownerBlock);
   },
 };

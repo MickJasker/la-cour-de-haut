@@ -170,6 +170,21 @@ export const bookingRequest = pgTable("booking_request", {
   shownPriceAtBooking: numeric("shown_price_at_booking").notNull(),
 });
 
+// A date range the owner marks unavailable in the app (own stay, maintenance,
+// …). The app is the *only* place owner blocks are made — platform block
+// events are filtered as echoes of our own export, so blocking inside Airbnb/
+// Natuurhuisje no longer reaches the site (see ADR-0022). `endDate` is
+// exclusive (RFC 5545), like every interval in the codebase. Owner blocks
+// have no lifecycle: they exist or they don't.
+export const ownerBlock = pgTable("owner_block", {
+  id: text("id").primaryKey(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  // Optional admin-private note (e.g. "eigen verblijf") — never exported.
+  label: text("label"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const setting = pgTable("setting", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),

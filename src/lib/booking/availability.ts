@@ -115,8 +115,29 @@ export async function getDirectBookings(
 }
 
 /**
+ * Returns all owner blocks — manual date blocks the owner set (issue #179).
+ * Blocks have no lifecycle, so there's nothing to filter: every row counts.
+ *
+ * Stays exported for the same reason as `getDirectBookings`: the outbound
+ * iCal export feed (`/api/ical/[token]`) needs the underlying block ids to
+ * build stable VEVENT UIDs, not just an availability answer.
+ */
+export async function getOwnerBlocks(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<{ id: string; startDate: string; endDate: string }[]> {
+  await connection();
+  return deps.store.listOwnerBlocks();
+}
+
+/**
  * Returns the merged busy intervals from all enabled iCal sources plus live
- * DB holds. Stale sources (>5 minutes) are lazily re-fetched; failures retain
+ * DB holds and owner blocks. A block only ever ADDS busyness, so wiring it in
+ * here automatically covers every consumer of this seam — the public
+ * calendar's disabled days (`getBookedDays`), the submit-time re-check
+ * (`isRangeAvailable` in book/action.ts), and the admin confirm guard
+ * (lifecycle.ts) — with no caller changes.
+ *
+ * Stale sources (>5 minutes) are lazily re-fetched; failures retain
  * last-known-good intervals (ADR-0005). A never-synced source that fails
  * contributes no intervals (fail-open).
  *
@@ -131,14 +152,15 @@ export async function getDirectBookings(
 export async function getBusyIntervals(
   deps: AvailabilityDeps = defaultDeps,
 ): Promise<BusyInterval[]> {
-  const [sources, holds] = await Promise.all([
+  const [sources, holds, blocks] = await Promise.all([
     deps.store.listEnabledIcalSources(),
     getDirectBookings(deps),
+    getOwnerBlocks(deps),
   ]);
 
-  const intervals: BusyInterval[] = holds.map((h) => ({
-    start: h.startDate,
-    end: h.endDate,
+  const intervals: BusyInterval[] = [...holds, ...blocks].map((i) => ({
+    start: i.startDate,
+    end: i.endDate,
   }));
 
   const sourceIntervals = await Promise.all(
