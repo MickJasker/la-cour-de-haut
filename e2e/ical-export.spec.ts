@@ -22,9 +22,19 @@ async function clearTestBookings() {
   await sql`DELETE FROM booking_request WHERE id LIKE 'ical-test-%'`;
 }
 
+async function clearTestBlocks() {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`DELETE FROM owner_block WHERE id LIKE 'ical-test-%'`;
+}
+
 async function clearAllBookings() {
   const sql = neon(process.env.DATABASE_URL!);
   await sql`TRUNCATE booking_request`;
+}
+
+async function clearAllBlocks() {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`DELETE FROM owner_block`;
 }
 
 test.describe("iCal export feed", () => {
@@ -34,11 +44,13 @@ test.describe("iCal export feed", () => {
     await clearTokens();
     await seedToken();
     await clearTestBookings();
+    await clearTestBlocks();
   });
 
   test.afterEach(async () => {
     await clearTokens();
     await clearTestBookings();
+    await clearTestBlocks();
   });
 
   test("unknown token returns 404", async ({ request }) => {
@@ -55,9 +67,12 @@ test.describe("iCal export feed", () => {
   test("empty feed is a valid VCALENDAR with no VEVENTs", async ({
     request,
   }) => {
-    // Truncate all bookings immediately before this check — prefix-based
-    // cleanup misses rows seeded by parallel booking-lifecycle workers.
+    // Clear all bookings AND owner blocks immediately before this check —
+    // prefix-based cleanup misses rows seeded by parallel workers (bookings
+    // from booking-lifecycle, blocks from owner-blocks.spec), and both now
+    // produce VEVENTs.
     await clearAllBookings();
+    await clearAllBlocks();
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
     expect(body).toContain("BEGIN:VCALENDAR");
@@ -158,6 +173,26 @@ test.describe("iCal export feed", () => {
     expect(body).toContain("DTSTART;VALUE=DATE:20290401");
     expect(body).toContain("DTSTART;VALUE=DATE:20290501");
     expect((body.match(/BEGIN:VEVENT/g) ?? []).length).toBe(3);
+  });
+
+  test("owner block appears as a 'Not available' VEVENT without leaking its label", async ({
+    request,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO owner_block (id, start_date, end_date, label, created_at)
+      VALUES ('ical-test-block-1', '2028-11-01', '2028-11-08', 'eigen verblijf', now())
+    `;
+
+    const res = await request.get(`/api/ical/${TOKEN}.ics`);
+    const body = await res.text();
+
+    expect(body).toContain("UID:block-ical-test-block-1@lacourdehaut.fr");
+    expect(body).toContain("DTSTART;VALUE=DATE:20281101");
+    expect(body).toContain("DTEND;VALUE=DATE:20281108");
+    expect(body).toContain("SUMMARY:Not available");
+    // The private label is never exported.
+    expect(body).not.toContain("eigen verblijf");
   });
 
   test("successful request writes lastAccessedAt to the token row", async ({

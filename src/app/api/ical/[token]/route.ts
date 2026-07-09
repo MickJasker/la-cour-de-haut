@@ -1,7 +1,7 @@
 import { getDb } from "@/db";
 import { icalExportToken } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { getDirectBookings } from "@/lib/booking/availability";
+import { getDirectBookings, getOwnerBlocks } from "@/lib/booking/availability";
 
 export async function GET(
   _req: Request,
@@ -26,7 +26,10 @@ export async function GET(
     .where(eq(icalExportToken.id, row.id))
     .catch(console.error);
 
-  const bookings = await getDirectBookings();
+  const [bookings, blocks] = await Promise.all([
+    getDirectBookings(),
+    getOwnerBlocks(),
+  ]);
 
   // RFC 5545 §3.3.5 — basic date-time stamp: YYYYMMDDTHHmmssZ
   const dtstamp = new Date()
@@ -36,19 +39,35 @@ export async function GET(
 
   const toDate = (s: string) => s.replace(/-/g, "");
 
-  const vevents = bookings
-    .map((b) =>
-      [
-        "BEGIN:VEVENT",
-        `UID:booking-${b.id}@lacourdehaut.fr`,
-        `DTSTAMP:${dtstamp}`,
-        `DTSTART;VALUE=DATE:${toDate(b.startDate)}`,
-        `DTEND;VALUE=DATE:${toDate(b.endDate)}`,
-        "SUMMARY:Booked",
-        "END:VEVENT",
-      ].join("\r\n"),
-    )
-    .join("\r\n");
+  const bookingVevents = bookings.map((b) =>
+    [
+      "BEGIN:VEVENT",
+      `UID:booking-${b.id}@lacourdehaut.fr`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART;VALUE=DATE:${toDate(b.startDate)}`,
+      `DTEND;VALUE=DATE:${toDate(b.endDate)}`,
+      "SUMMARY:Booked",
+      "END:VEVENT",
+    ].join("\r\n"),
+  );
+
+  // The private `label` is never exported. `SUMMARY:Not available` is
+  // deliberate: it matches the inbound echo filter (/not available|blokkade/i
+  // in ical-fetch.ts), so a verbatim re-export by a future platform can never
+  // re-import as a block — self-filtering by construction.
+  const blockVevents = blocks.map((b) =>
+    [
+      "BEGIN:VEVENT",
+      `UID:block-${b.id}@lacourdehaut.fr`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART;VALUE=DATE:${toDate(b.startDate)}`,
+      `DTEND;VALUE=DATE:${toDate(b.endDate)}`,
+      "SUMMARY:Not available",
+      "END:VEVENT",
+    ].join("\r\n"),
+  );
+
+  const vevents = [...bookingVevents, ...blockVevents];
 
   const ics = [
     "BEGIN:VCALENDAR",
@@ -56,7 +75,7 @@ export async function GET(
     "PRODID:-//La Cour de Haut//Booking Feed//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
-    ...(bookings.length > 0 ? [vevents] : []),
+    ...vevents,
     "END:VCALENDAR",
   ].join("\r\n");
 

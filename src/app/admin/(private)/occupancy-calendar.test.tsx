@@ -34,11 +34,29 @@ const ENTRIES: OccupancyEntry[] = [
     start: "2026-07-20",
     end: "2026-07-24",
   },
+  {
+    kind: "block",
+    id: "blk-labeled",
+    label: "eigen verblijf",
+    start: "2026-07-25",
+    end: "2026-07-28",
+  },
+  {
+    kind: "block",
+    id: "blk-bare",
+    label: null,
+    start: "2026-07-29",
+    end: "2026-07-31",
+  },
 ];
 
 function render(month = "2026-07") {
   return renderToStaticMarkup(
-    <OccupancyCalendar entries={ENTRIES} initialMonth={month} />,
+    <OccupancyCalendar
+      entries={ENTRIES}
+      initialMonth={month}
+      pendingRequests={[]}
+    />,
   );
 }
 
@@ -83,6 +101,30 @@ describe("OccupancyCalendar", () => {
     expect(html).toContain("Airbnb");
     expect(html).toContain("bg-stone-200");
     expect(html).not.toContain('href="/admin/bookings#booking-ical');
+  });
+
+  it("renders a labeled owner block with its private label", () => {
+    const html = render();
+    expect(html).toContain("eigen verblijf");
+  });
+
+  it("renders an unlabeled owner block as 'Geblokkeerd'", () => {
+    const html = render();
+    expect(html).toContain("Geblokkeerd");
+  });
+
+  it("renders owner block bars as buttons, not links", () => {
+    const html = render();
+    // The labeled block's bar is a <button> carrying the label as its name…
+    expect(html).toContain('aria-label="eigen verblijf"');
+    // …and never a booking link.
+    expect(html).not.toContain('href="/admin/bookings#booking-blk-labeled"');
+  });
+
+  it("tags every day cell with its date for range selection", () => {
+    const html = render();
+    expect(html).toContain('data-date="2026-07-10"');
+    expect(html).toContain('data-date="2026-07-31"');
   });
 
   it("renders nothing for entries outside the shown month", () => {

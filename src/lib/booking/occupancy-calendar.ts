@@ -1,6 +1,17 @@
 import { isActiveDirectBooking } from "./availability-utils";
 import { toUtcDayString } from "./calendar-day";
 import type { BookingRow, IcalSourceRow } from "./dashboard";
+import type { ownerBlock } from "@/db/schema";
+
+/**
+ * The subset of an `owner_block` row the occupancy grid needs. Owner blocks
+ * have no lifecycle (ADR-0022): they map 1:1 onto occupancy entries, no
+ * filtering. `endDate` is exclusive (RFC 5545), like every interval here.
+ */
+export type OwnerBlockRow = Pick<
+  typeof ownerBlock.$inferSelect,
+  "id" | "startDate" | "endDate" | "label"
+>;
 
 /**
  * The booking statuses that occupy dates on the admin occupancy calendar —
@@ -26,6 +37,13 @@ export type OccupancyEntry =
       sourceName: string;
       start: string;
       end: string;
+    }
+  | {
+      kind: "block";
+      id: string;
+      label: string | null;
+      start: string;
+      end: string;
     };
 
 function toOccupyingStatus(status: string): OccupyingBookingStatus | null {
@@ -39,11 +57,13 @@ function toOccupyingStatus(status: string): OccupyingBookingStatus | null {
  * dates: active direct bookings (on_hold non-expired + deposit_paid +
  * confirmed, via the shared `isActiveDirectBooking` predicate so this can't
  * drift from the busy-interval logic) and every cached interval of every
- * enabled iCal source.
+ * enabled iCal source, plus every owner block (which has no lifecycle, so it
+ * maps 1:1 onto an entry).
  */
 export function computeOccupancyEntries(
   bookings: BookingRow[],
   icalSources: IcalSourceRow[],
+  blocks: OwnerBlockRow[],
   today: string,
 ): OccupancyEntry[] {
   const bookingEntries = bookings.flatMap((b): OccupancyEntry[] => {
@@ -70,7 +90,15 @@ export function computeOccupancyEntries(
     })),
   );
 
-  return [...bookingEntries, ...icalEntries];
+  const blockEntries = blocks.map((block): OccupancyEntry => ({
+    kind: "block",
+    id: block.id,
+    label: block.label,
+    start: block.startDate,
+    end: block.endDate,
+  }));
+
+  return [...bookingEntries, ...icalEntries, ...blockEntries];
 }
 
 /** One rendered slice of an entry on a single day cell. */
@@ -100,9 +128,14 @@ export function addMonths(month: string, delta: number): string {
 }
 
 function entryKey(entry: OccupancyEntry): string {
-  return entry.kind === "booking"
-    ? `booking-${entry.id}`
-    : `ical-${entry.sourceName}-${entry.start}-${entry.end}`;
+  switch (entry.kind) {
+    case "booking":
+      return `booking-${entry.id}`;
+    case "ical":
+      return `ical-${entry.sourceName}-${entry.start}-${entry.end}`;
+    case "block":
+      return `block-${entry.id}`;
+  }
 }
 
 /** The day after `date`, as a YYYY-MM-DD string. */
