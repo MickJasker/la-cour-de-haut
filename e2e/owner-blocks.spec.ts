@@ -42,6 +42,23 @@ const day26 = `${currentMonth}-26`;
 // so it's cleaned up by its fixed start_date instead.
 const unlabeledStart = day20;
 
+/**
+ * Post-action assertions (create/save/delete → calendar reflects it) wait on
+ * a server-action round-trip plus the RSC refresh, which under CI's parallel
+ * workers can exceed the 5s default — the same slow-refresh class the
+ * booking-lifecycle admin tests hit. The action itself is confirmed fast via
+ * the popover closing; only the refreshed calendar gets the long timeout.
+ */
+const REFRESH_TIMEOUT = 15_000;
+
+/** The popover form is gone once the action round-trip succeeded — if the
+ * action failed, it stays open showing the error, failing this fast. */
+async function expectPopoverClosed(page: import("@playwright/test").Page) {
+  await expect(
+    page.getByRole("textbox", { name: "Label (optioneel)" }),
+  ).toBeHidden({ timeout: REFRESH_TIMEOUT });
+}
+
 test.describe("owner blocks", () => {
   // clearBookings truncates booking_request, which would race the other
   // booking-seeding specs' all-clear assumptions if interleaved.
@@ -70,10 +87,11 @@ test.describe("owner blocks", () => {
       .getByRole("textbox", { name: "Label (optioneel)" })
       .fill("E2E eigen verblijf");
     await page.getByRole("button", { name: "Blokkeren" }).click();
+    await expectPopoverClosed(page);
 
     await expect(
       calendar.getByRole("button", { name: "E2E eigen verblijf" }).first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: REFRESH_TIMEOUT });
 
     // Inclusive selection (day10..day13) stores as exclusive end = day14
     // (last blocked day + 1, ADR-0022 decision 4).
@@ -98,10 +116,11 @@ test.describe("owner blocks", () => {
     await calendar.locator(`[data-date="${day21}"]`).click();
 
     await page.getByRole("button", { name: "Blokkeren" }).click();
+    await expectPopoverClosed(page);
 
     await expect(
       calendar.getByRole("button", { name: "Geblokkeerd" }).first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: REFRESH_TIMEOUT });
   });
 
   test("selecting a range overlapping a pending request warns but still allows blocking", async ({
@@ -131,10 +150,11 @@ test.describe("owner blocks", () => {
       .getByRole("textbox", { name: "Label (optioneel)" })
       .fill("E2E overlap");
     await page.getByRole("button", { name: "Blokkeren" }).click();
+    await expectPopoverClosed(page);
 
     await expect(
       calendar.getByRole("button", { name: "E2E overlap" }).first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: REFRESH_TIMEOUT });
   });
 
   test("editing a block's label via its popover", async ({ page }) => {
@@ -155,10 +175,11 @@ test.describe("owner blocks", () => {
     const input = page.getByRole("textbox", { name: "Label (optioneel)" });
     await input.fill("E2E nieuw label");
     await page.getByRole("button", { name: "Opslaan" }).click();
+    await expectPopoverClosed(page);
 
     await expect(
       calendar.getByRole("button", { name: "E2E nieuw label" }).first(),
-    ).toBeVisible();
+    ).toBeVisible({ timeout: REFRESH_TIMEOUT });
     await expect(
       calendar.getByRole("button", { name: "E2E oud label" }),
     ).toHaveCount(0);
@@ -176,9 +197,11 @@ test.describe("owner blocks", () => {
     await calendar.getByRole("button", { name: "E2E weg" }).first().click();
 
     await page.getByRole("button", { name: "Deblokkeren" }).click();
+    await expectPopoverClosed(page);
 
     await expect(calendar.getByRole("button", { name: "E2E weg" })).toHaveCount(
       0,
+      { timeout: REFRESH_TIMEOUT },
     );
 
     const rows = await sql`
