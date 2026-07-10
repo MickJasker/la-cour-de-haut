@@ -71,19 +71,31 @@ export function pendingArrival(
 /**
  * The selection-state-aware `disabled` matcher for the booking calendar:
  * arrival semantics when no arrival is pending, departure semantics while one
- * is.
+ * is. Takes the raw range selection (empty string = unset, the booking form's
+ * field-state convention) and derives the role internally.
  *
  * The pending arrival day itself must stay ENABLED: react-day-picker's
  * `excludeDisabled` runs the disabled matcher over a completed range
  * including its own `from` day, so reporting it disabled would reset every
  * completion. Clicking it again simply clears the selection.
+ *
+ * A completed range's endpoints must also stay ENABLED: once the range is
+ * full the matcher reverts to arrival semantics, under which a changeover
+ * departure day is busy — without this carve-out the day the guest just
+ * picked would render greyed out and aria-disabled. Clicking an endpoint
+ * simply reshapes or clears the selection.
  */
 export function isCalendarDayDisabled(
   bookedNights: ReadonlySet<string>,
   day: string,
-  pendingFrom: string | undefined,
+  from: string | undefined,
+  to: string | undefined,
 ): boolean {
-  if (!pendingFrom) return isArrivalBlocked(bookedNights, day);
-  if (day === pendingFrom) return false;
-  return isDepartureBlocked(bookedNights, day, pendingFrom);
+  const pendingFrom = pendingArrival(from, to);
+  if (pendingFrom) {
+    if (day === pendingFrom) return false;
+    return isDepartureBlocked(bookedNights, day, pendingFrom);
+  }
+  if (from && to && (day === from || day === to)) return false;
+  return isArrivalBlocked(bookedNights, day);
 }

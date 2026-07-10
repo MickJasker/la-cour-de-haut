@@ -110,33 +110,54 @@ describe("pendingArrival", () => {
 });
 
 describe("isCalendarDayDisabled", () => {
-  it("uses arrival semantics when no arrival is pending", () => {
+  it("uses arrival semantics when nothing is selected", () => {
     expect(
-      isCalendarDayDisabled(bookingStarting15th, "2026-08-15", undefined),
+      isCalendarDayDisabled(bookingStarting15th, "2026-08-15", "", ""),
     ).toBe(true);
     expect(
-      isCalendarDayDisabled(bookingStarting15th, "2026-08-13", undefined),
+      isCalendarDayDisabled(bookingStarting15th, "2026-08-13", "", ""),
     ).toBe(false);
   });
 
   it("uses departure semantics while an arrival is pending: the changeover day becomes selectable", () => {
     expect(
-      isCalendarDayDisabled(bookingStarting15th, "2026-08-15", "2026-08-13"),
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-15",
+        "2026-08-13",
+        "",
+      ),
+    ).toBe(false);
+  });
+
+  it("treats react-day-picker's single-day first click ({from: d, to: d}) as a pending arrival", () => {
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-15",
+        "2026-08-13",
+        "2026-08-13",
+      ),
     ).toBe(false);
   });
 
   it("keeps a day inside a booking disabled in both roles", () => {
+    expect(isCalendarDayDisabled(bookingEnding13th, "2026-08-11", "", "")).toBe(
+      true,
+    );
     expect(
-      isCalendarDayDisabled(bookingEnding13th, "2026-08-11", undefined),
-    ).toBe(true);
-    expect(
-      isCalendarDayDisabled(bookingEnding13th, "2026-08-11", "2026-08-08"),
+      isCalendarDayDisabled(bookingEnding13th, "2026-08-11", "2026-08-08", ""),
     ).toBe(true);
   });
 
   it("blocks days before the pending arrival", () => {
     expect(
-      isCalendarDayDisabled(bookingStarting15th, "2026-08-12", "2026-08-13"),
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-12",
+        "2026-08-13",
+        "",
+      ),
     ).toBe(true);
   });
 
@@ -146,7 +167,45 @@ describe("isCalendarDayDisabled", () => {
     // arrival day reported itself disabled, every completion would reset.
     // Clicking it again simply clears the selection.
     expect(
-      isCalendarDayDisabled(bookingStarting15th, "2026-08-13", "2026-08-13"),
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-13",
+        "2026-08-13",
+        "2026-08-13",
+      ),
     ).toBe(false);
+  });
+
+  it("keeps a completed range's changeover departure day enabled (not greyed/aria-disabled)", () => {
+    // After the range 13 → 15 completes, the matcher reverts to arrival
+    // semantics under which the 15th (busy night) is disabled — but the day
+    // the guest just picked must not render as unavailable.
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-15",
+        "2026-08-13",
+        "2026-08-15",
+      ),
+    ).toBe(false);
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-13",
+        "2026-08-13",
+        "2026-08-15",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps other busy days disabled while a full range is selected", () => {
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-16",
+        "2026-08-13",
+        "2026-08-15",
+      ),
+    ).toBe(true);
   });
 });

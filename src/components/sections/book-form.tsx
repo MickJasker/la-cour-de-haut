@@ -26,10 +26,7 @@ import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { FORWARD_HORIZON_MONTHS } from "@/lib/booking/calendar-day";
-import {
-  isCalendarDayDisabled,
-  pendingArrival,
-} from "@/lib/booking/calendar-disabled";
+import { isCalendarDayDisabled } from "@/lib/booking/calendar-disabled";
 
 const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
@@ -346,10 +343,8 @@ export function BookForm({
                         isCalendarDayDisabled(
                           bookedNights,
                           format(date, "yyyy-MM-dd"),
-                          pendingArrival(
-                            field.state.value?.from,
-                            field.state.value?.to,
-                          ),
+                          field.state.value?.from,
+                          field.state.value?.to,
                         ),
                       ...Array.from({ length: 31 }, (_, i) =>
                         addDays(new Date(), -i),
