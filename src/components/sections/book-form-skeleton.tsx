@@ -64,6 +64,10 @@ export function BookFormSkeleton() {
         <div className="grid gap-6 md:grid-cols-2">
           <div className="flex flex-col gap-1">
             <FieldLabelBar />
+            <Skeleton className="min-h-100 w-full" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <FieldLabelBar />
             <div className="mt-2 grid gap-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="size-4 rounded-full" />
@@ -75,22 +79,9 @@ export function BookFormSkeleton() {
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <FieldLabelBar />
-            <Skeleton className="min-h-100 w-full" />
-          </div>
         </div>
 
-        {/* Price breakdown: three flush `text-sm` lines (the middle breakdown
-            line is `invisible` in the real form but still holds its row) = 60px,
-            no gap between them. */}
-        <div>
-          <TextLine lineClass="text-md" width="w-48" />
-          <TextLine lineClass="text-md" width="w-40" />
-          <TextLine lineClass="text-md" width="w-56" />
-          <TextLine lineClass="text-md" width="w-48" />
-          <TextLine lineClass="text-md" width="w-64" />
-        </div>
+        <TextLine lineClass="text-md" width="w-64" />
 
         <Separator />
 

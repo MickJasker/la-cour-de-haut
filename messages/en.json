@@ -69,6 +69,7 @@
       "countryPlaceholder": "Select a country",
       "countrySearchPlaceholder": "Search for a country...",
       "countryEmpty": "No country found",
+      "price": "Price",
       "paymentSchedule": {
         "heading": "Payment in instalments",
         "deposit": "Deposit ({percentage}%): <strong>{amount}</strong> — within {days, plural, one {# day} other {# days}} of confirmation",

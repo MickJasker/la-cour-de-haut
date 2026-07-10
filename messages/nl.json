@@ -69,6 +69,7 @@
       "countryPlaceholder": "Selecteer een land",
       "countrySearchPlaceholder": "Zoek een land...",
       "countryEmpty": "Geen land gevonden",
+      "price": "Prijs",
       "paymentSchedule": {
         "heading": "Betaling in termijnen",
         "deposit": "Aanbetaling ({percentage}%): <strong>{amount}</strong> — binnen {days, plural, one {# dag} other {# dagen}} na bevestiging",

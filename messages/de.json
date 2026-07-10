@@ -69,6 +69,7 @@
       "countryPlaceholder": "Land auswählen",
       "countrySearchPlaceholder": "Land suchen...",
       "countryEmpty": "Kein Land gefunden",
+      "price": "Preis",
       "paymentSchedule": {
         "heading": "Zahlung in Raten",
         "deposit": "Anzahlung ({percentage} %): <strong>{amount}</strong> — innerhalb von {days, plural, one {# Tag} other {# Tagen}} nach Bestätigung",

@@ -126,37 +126,7 @@ export function BookForm({
         }}
       >
         <FieldGroup>
-          <FieldSet className="md:grid md:grid-cols-2">
-            <form.Field name="guestCount">
-              {(field) => (
-                <Field>
-                  <FieldLabel>{t("form.guestCount")}</FieldLabel>
-                  <RadioGroup
-                    name={field.name}
-                    value={field.state.value}
-                    onValueChange={(value) =>
-                      field.handleChange(value as "1" | "2")
-                    }
-                    onBlur={field.handleBlur}
-                    className="mt-2"
-                  >
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="1" id={`${id}-1`} />
-                      <Label htmlFor={`${id}-1`}>
-                        {t("form.guestCountOption", { count: 1 })}
-                      </Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RadioGroupItem value="2" id={`${id}-2`} />
-                      <Label htmlFor={`${id}-2`}>
-                        {t("form.guestCountOption", { count: 2 })}
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
+          <FieldSet className="md:grid md:grid-cols-2 gap-4 md:gap-6">
             <form.Field name="stayDates">
               {(field) => (
                 <Field>
@@ -216,164 +186,206 @@ export function BookForm({
                 </Field>
               )}
             </form.Field>
-          </FieldSet>
 
-          <div>
-            <p className="text-md">
-              {t.rich("form.pricePerNight", {
-                price: currency.format(pricePerNight),
-              })}
-            </p>
-
-            <form.Subscribe>
-              {(formState) => {
-                const totalNights = calculateTotalNights(
-                  formState.values.stayDates?.from ?? "",
-                  formState.values.stayDates?.to ?? "",
-                );
-
-                const { rentalSubtotal, discount, tourismTax, totalPrice } =
-                  calculatePriceBreakdown(
-                    pricePerNight,
-                    totalNights,
-                    Number(formState.values.guestCount),
-                  );
-
-                // "Today" plays the confirm-date role for the preview: the
-                // owner hasn't confirmed yet, so the schedule is computed as if
-                // confirmation happened now. Read client-side (like the calendar
-                // and min-nights validation) — the rows only appear after a
-                // date selection, a post-hydration interaction, so there is no
-                // server/client "today" to disagree on.
-                const arrival = formState.values.stayDates?.from ?? "";
-                const scheduleRows =
-                  totalNights && arrival
-                    ? paymentScheduleRows(
-                        computePaymentSchedule(
-                          totalPrice,
-                          paymentConfig.securityDeposit,
-                          format(new Date(), "yyyy-MM-dd"),
-                          arrival,
-                          paymentConfig.settings,
-                        ),
-                        paymentConfig.settings,
-                        paymentConfig.securityDeposit,
-                      )
-                    : [];
-
-                return (
-                  <>
-                    <div
-                      className={cn(
-                        "text-md space-y-0.5",
-                        !totalNights && "invisible",
-                      )}
+            <div className="space-y-4">
+              <form.Field name="guestCount">
+                {(field) => (
+                  <Field>
+                    <FieldLabel>{t("form.guestCount")}</FieldLabel>
+                    <RadioGroup
+                      name={field.name}
+                      value={field.state.value}
+                      onValueChange={(value) =>
+                        field.handleChange(value as "1" | "2")
+                      }
+                      onBlur={field.handleBlur}
+                      className="mt-2"
                     >
-                      <p>
-                        {t.rich("form.rentalSubtotalLine", {
-                          pricePerNight: currency.format(pricePerNight),
-                          totalNights,
-                          rentalSubtotal: currency.format(rentalSubtotal),
-                          strong: renderStrong,
-                        })}
-                      </p>
-                      {discount > 0 && (
-                        <p className="text-positive">
-                          {t.rich("form.longStayDiscount", {
-                            discount: currency.format(discount),
-                            strong: renderStrong,
-                          })}
-                        </p>
-                      )}
-                      <p>
-                        {t.rich("form.tourismTaxLine", {
-                          tourismTax: currency.format(tourismTax),
-                          strong: renderStrong,
-                        })}
-                      </p>
-                      {/* In sticky mode the total lives in the CTA bar below;
-                          repeating it here reads as a duplicate at rest. */}
-                      {!stickyCta && (
-                        <p className="font-medium">
-                          {t.rich("form.totalLine", {
-                            totalPrice: currency.format(totalPrice),
-                            strong: renderStrong,
-                          })}
-                        </p>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="1" id={`${id}-1`} />
+                        <Label htmlFor={`${id}-1`}>
+                          {t("form.guestCountOption", { count: 1 })}
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <RadioGroupItem value="2" id={`${id}-2`} />
+                        <Label htmlFor={`${id}-2`}>
+                          {t("form.guestCountOption", { count: 2 })}
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                )}
+              </form.Field>
 
-                      {scheduleRows.length > 0 && (
-                        <div className="mt-3 space-y-0.5 border-t border-border pt-3">
-                          <p className="font-medium">
-                            {t("form.paymentSchedule.heading")}
+              <div>
+                <h3 className="text-style-eyebrow-small">{t("form.price")}</h3>
+                <p className="text-md text-pretty">
+                  {t.rich("form.pricePerNight", {
+                    price: currency.format(pricePerNight),
+                  })}
+                </p>
+
+                <form.Subscribe>
+                  {(formState) => {
+                    const totalNights = calculateTotalNights(
+                      formState.values.stayDates?.from ?? "",
+                      formState.values.stayDates?.to ?? "",
+                    );
+
+                    const { rentalSubtotal, discount, tourismTax, totalPrice } =
+                      calculatePriceBreakdown(
+                        pricePerNight,
+                        totalNights,
+                        Number(formState.values.guestCount),
+                      );
+
+                    // "Today" plays the confirm-date role for the preview: the
+                    // owner hasn't confirmed yet, so the schedule is computed as if
+                    // confirmation happened now. Read client-side (like the calendar
+                    // and min-nights validation) — the rows only appear after a
+                    // date selection, a post-hydration interaction, so there is no
+                    // server/client "today" to disagree on.
+                    const arrival = formState.values.stayDates?.from ?? "";
+                    const scheduleRows =
+                      totalNights && arrival
+                        ? paymentScheduleRows(
+                            computePaymentSchedule(
+                              totalPrice,
+                              paymentConfig.securityDeposit,
+                              format(new Date(), "yyyy-MM-dd"),
+                              arrival,
+                              paymentConfig.settings,
+                            ),
+                            paymentConfig.settings,
+                            paymentConfig.securityDeposit,
+                          )
+                        : [];
+
+                    if (!totalNights) return null;
+
+                    return (
+                      <>
+                        <div className={cn("text-md space-y-0.5")}>
+                          <p>
+                            {t.rich("form.rentalSubtotalLine", {
+                              pricePerNight: currency.format(pricePerNight),
+                              totalNights,
+                              rentalSubtotal: currency.format(rentalSubtotal),
+                              strong: renderStrong,
+                            })}
                           </p>
-                          {scheduleRows.map((row) => {
-                            if (row.kind === "deposit") {
-                              return (
-                                <p key="deposit">
-                                  {t.rich("form.paymentSchedule.deposit", {
-                                    percentage: row.percentage,
-                                    amount: currency.format(row.amount),
-                                    days: row.dueWithinDays,
-                                    strong: renderStrong,
-                                  })}
-                                </p>
-                              );
-                            }
-                            if (row.kind === "balance") {
-                              return (
-                                <p key="balance">
-                                  {t.rich(
-                                    row.includesBorg
-                                      ? "form.paymentSchedule.balanceWithBorg"
-                                      : "form.paymentSchedule.balance",
-                                    {
-                                      amount: currency.format(row.amount),
-                                      days: row.dueDaysBeforeArrival,
-                                      date: dateFormatter.format(
-                                        new Date(row.deadline + "T00:00:00"),
-                                      ),
-                                      strong: renderStrong,
-                                    },
-                                  )}
-                                </p>
-                              );
-                            }
-                            return (
-                              <p key="total">
-                                {t.rich(
-                                  row.includesBorg
-                                    ? "form.paymentSchedule.totalWithBorg"
-                                    : "form.paymentSchedule.total",
-                                  {
-                                    amount: currency.format(row.amount),
-                                    strong: renderStrong,
-                                  },
-                                )}
-                              </p>
-                            );
-                          })}
-                          {paymentConfig.securityDeposit > 0 && (
-                            <p className="text-sm text-muted-foreground">
-                              {t.rich("form.paymentSchedule.borgNote", {
-                                amount: currency.format(
-                                  paymentConfig.securityDeposit,
-                                ),
+                          {discount > 0 && (
+                            <p className="text-positive text-pretty">
+                              {t.rich("form.longStayDiscount", {
+                                discount: currency.format(discount),
                                 strong: renderStrong,
                               })}
                             </p>
                           )}
+                          <p className="text-pretty">
+                            {t.rich("form.tourismTaxLine", {
+                              tourismTax: currency.format(tourismTax),
+                              strong: renderStrong,
+                            })}
+                          </p>
+                          {/* In sticky mode the total lives in the CTA bar below;
+                          repeating it here reads as a duplicate at rest. */}
+                          {!stickyCta && (
+                            <p className="font-medium text-pretty">
+                              {t.rich("form.totalLine", {
+                                totalPrice: currency.format(totalPrice),
+                                strong: renderStrong,
+                              })}
+                            </p>
+                          )}
+
+                          {scheduleRows.length > 0 && (
+                            <div className="mt-3 space-y-1 border-t border-border pt-3">
+                              <p className="font-medium text-pretty">
+                                {t("form.paymentSchedule.heading")}
+                              </p>
+                              {scheduleRows.map((row) => {
+                                if (row.kind === "deposit") {
+                                  return (
+                                    <p
+                                      key="deposit"
+                                      className="text-pretty text-sm"
+                                    >
+                                      {t.rich("form.paymentSchedule.deposit", {
+                                        percentage: row.percentage,
+                                        amount: currency.format(row.amount),
+                                        days: row.dueWithinDays,
+                                        strong: renderStrong,
+                                      })}
+                                    </p>
+                                  );
+                                }
+                                if (row.kind === "balance") {
+                                  return (
+                                    <p
+                                      key="balance"
+                                      className="text-pretty text-sm"
+                                    >
+                                      {t.rich(
+                                        row.includesBorg
+                                          ? "form.paymentSchedule.balanceWithBorg"
+                                          : "form.paymentSchedule.balance",
+                                        {
+                                          amount: currency.format(row.amount),
+                                          days: row.dueDaysBeforeArrival,
+                                          date: dateFormatter.format(
+                                            new Date(
+                                              row.deadline + "T00:00:00",
+                                            ),
+                                          ),
+                                          strong: renderStrong,
+                                        },
+                                      )}
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p
+                                    key="total"
+                                    className="text-pretty text-sm"
+                                  >
+                                    {t.rich(
+                                      row.includesBorg
+                                        ? "form.paymentSchedule.totalWithBorg"
+                                        : "form.paymentSchedule.total",
+                                      {
+                                        amount: currency.format(row.amount),
+                                        strong: renderStrong,
+                                      },
+                                    )}
+                                  </p>
+                                );
+                              })}
+                              {paymentConfig.securityDeposit > 0 && (
+                                <p className="text-sm text-muted-foreground text-pretty">
+                                  {t.rich("form.paymentSchedule.borgNote", {
+                                    amount: currency.format(
+                                      paymentConfig.securityDeposit,
+                                    ),
+                                    strong: renderStrong,
+                                  })}
+                                </p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  </>
-                );
-              }}
-            </form.Subscribe>
-            <p className="text-sm text-muted-foreground">
-              {t("form.price_includes")}
-            </p>
-          </div>
+                      </>
+                    );
+                  }}
+                </form.Subscribe>
+              </div>
+            </div>
+          </FieldSet>
+          <p className="text-sm text-muted-foreground">
+            {t("form.price_includes")}
+          </p>
 
           <Separator />
 

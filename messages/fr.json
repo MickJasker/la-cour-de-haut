@@ -69,6 +69,7 @@
       "countryPlaceholder": "Sélectionnez un pays",
       "countrySearchPlaceholder": "Rechercher un pays...",
       "countryEmpty": "Aucun pays trouvé",
+      "price": "Prix",
       "paymentSchedule": {
         "heading": "Paiement en plusieurs fois",
         "deposit": "Acompte ({percentage} %) : <strong>{amount}</strong> — sous {days, plural, one {# jour} other {# jours}} après confirmation",
