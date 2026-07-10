@@ -11,7 +11,7 @@
   },
   "sections": {
     "header": {
-      "bookNow": "Book now",
+      "bookNow": "Check availability",
       "bookDescription": "Fill in the form to send a request for your stay."
     },
     "poi": {
@@ -36,7 +36,7 @@
     },
     "hero": {
       "description": "A captivating introduction to the website, featuring a visually striking image and a compelling headline that immediately grabs the visitor's attention.",
-      "callToAction": "Book your stay now"
+      "callToAction": "Check availability"
     }
   },
   "booking": {

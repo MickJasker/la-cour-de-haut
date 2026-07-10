@@ -11,7 +11,7 @@
   },
   "sections": {
     "header": {
-      "bookNow": "Jetzt buchen",
+      "bookNow": "Verfügbarkeit prüfen",
       "bookDescription": "Füllen Sie das Formular aus, um eine Anfrage für Ihren Aufenthalt zu senden."
     },
     "poi": {
@@ -36,7 +36,7 @@
     },
     "hero": {
       "description": "Eine fesselnde Einführung in die Website, mit einem visuell beeindruckenden Bild und einer überzeugenden Überschrift, die die Aufmerksamkeit des Besuchers sofort auf sich zieht.",
-      "callToAction": "Jetzt Ihren Aufenthalt buchen"
+      "callToAction": "Verfügbarkeit prüfen"
     }
   },
   "booking": {

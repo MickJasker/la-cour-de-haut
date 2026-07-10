@@ -11,7 +11,7 @@
   },
   "sections": {
     "header": {
-      "bookNow": "Reserveer nu",
+      "bookNow": "Bekijk beschikbaarheid",
       "bookDescription": "Vul het formulier in om een aanvraag voor je verblijf te versturen."
     },
     "gite": {
@@ -36,7 +36,7 @@
     },
     "hero": {
       "description": "Een boeiende introductie op de website, met een visueel opvallend beeld en een pakkende kop die direct de aandacht van de bezoeker trekt.",
-      "callToAction": "Boek je verblijf nu"
+      "callToAction": "Bekijk beschikbaarheid"
     }
   },
   "booking": {
