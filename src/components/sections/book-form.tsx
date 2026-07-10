@@ -333,12 +333,12 @@ export function BookForm({
                     startMonth={addDays(new Date(), 1)}
                     endMonth={addMonths(new Date(), FORWARD_HORIZON_MONTHS)}
                     disabled={[
-                      // Half-day role model (issue #183): which days are
-                      // disabled depends on what the NEXT click selects —
-                      // an arrival (no pending selection, or a full range
-                      // that the click restarts) or a departure (arrival
-                      // picked, departure not yet). A changeover day is
-                      // selectable as departure only.
+                      // Half-day availability (issue #183): idle, only days
+                      // interior to a booking are greyed out — changeover
+                      // days always render open. With a pending day, any day
+                      // whose stay to/from it would span a busy night is
+                      // disabled (both directions: react-day-picker extends
+                      // a range backwards too).
                       (date: Date) =>
                         isCalendarDayDisabled(
                           bookedNights,

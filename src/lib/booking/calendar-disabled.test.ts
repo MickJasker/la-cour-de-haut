@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  isArrivalBlocked,
-  isDepartureBlocked,
+  isFullyBooked,
+  isStayBlocked,
   isCalendarDayDisabled,
   pendingArrival,
 } from "./calendar-disabled";
@@ -15,78 +15,76 @@ const bookingStarting15th = new Set(["2026-08-15", "2026-08-16"]);
 // its checkout day (night of the 13th is free).
 const bookingEnding13th = new Set(["2026-08-10", "2026-08-11", "2026-08-12"]);
 
-describe("isArrivalBlocked", () => {
-  it("blocks the first day of an existing booking as an arrival (its night is busy)", () => {
-    expect(isArrivalBlocked(bookingStarting15th, "2026-08-15")).toBe(true);
+describe("isFullyBooked", () => {
+  it("keeps a changeover day open: the first day of a booking can still be a departure", () => {
+    expect(isFullyBooked(bookingStarting15th, "2026-08-15")).toBe(false);
   });
 
-  it("blocks a day inside an existing booking", () => {
-    expect(isArrivalBlocked(bookingEnding13th, "2026-08-11")).toBe(true);
+  it("blocks a day inside a booking (neither check-in nor check-out possible)", () => {
+    expect(isFullyBooked(bookingStarting15th, "2026-08-16")).toBe(true);
+    expect(isFullyBooked(bookingEnding13th, "2026-08-11")).toBe(true);
   });
 
-  it("keeps an existing booking's checkout day selectable as an arrival (no regression)", () => {
-    expect(isArrivalBlocked(bookingEnding13th, "2026-08-13")).toBe(false);
+  it("keeps a booking's checkout day open (it can be a new arrival)", () => {
+    expect(isFullyBooked(bookingEnding13th, "2026-08-13")).toBe(false);
   });
 
-  it("keeps a fully free day selectable as an arrival", () => {
-    expect(isArrivalBlocked(bookingStarting15th, "2026-08-13")).toBe(false);
+  it("blocks the seam of two back-to-back bookings (checkout day that is also an arrival day)", () => {
+    const both = new Set([...bookingEnding13th, ...bookingStarting15th]);
+    // 13 August: night 12 busy (first booking) — if night 13 were busy too it
+    // would be interior. Here nights 13/14 are free, so it stays open …
+    expect(isFullyBooked(both, "2026-08-13")).toBe(false);
+    // … but with a booking 13 → 15 filling the gap, the 15th becomes interior.
+    const gapFilled = new Set([...both, "2026-08-13", "2026-08-14"]);
+    expect(isFullyBooked(gapFilled, "2026-08-15")).toBe(true);
+  });
+
+  it("keeps a fully free day open", () => {
+    expect(isFullyBooked(bookingStarting15th, "2026-08-13")).toBe(false);
+  });
+
+  it("handles month boundaries when checking the preceding night", () => {
+    // Busy night 31 July → 1 August is interior only if night 1 August is
+    // also busy.
+    const julyBlock = new Set(["2026-07-31"]);
+    expect(isFullyBooked(julyBlock, "2026-08-01")).toBe(false);
+    const spanning = new Set(["2026-07-31", "2026-08-01"]);
+    expect(isFullyBooked(spanning, "2026-08-01")).toBe(true);
   });
 });
 
-describe("isDepartureBlocked", () => {
-  it("allows the 13 → 15 August stay: departure on the changeover day another booking starts on", () => {
-    expect(
-      isDepartureBlocked(bookingStarting15th, "2026-08-15", "2026-08-13"),
-    ).toBe(false);
-  });
-
-  it("blocks a day inside an existing booking as a departure (preceding night busy)", () => {
-    expect(
-      isDepartureBlocked(bookingEnding13th, "2026-08-11", "2026-08-08"),
-    ).toBe(true);
-  });
-
-  it("blocks any departure whose stay would span busy nights", () => {
-    expect(
-      isDepartureBlocked(bookingEnding13th, "2026-08-20", "2026-08-08"),
-    ).toBe(true);
-    // Even one day past the changeover day spans the busy night of the 15th.
-    expect(
-      isDepartureBlocked(bookingStarting15th, "2026-08-16", "2026-08-13"),
-    ).toBe(true);
-  });
-
-  it("blocks a departure equal to the pending arrival (zero-night stay)", () => {
-    expect(
-      isDepartureBlocked(bookingStarting15th, "2026-08-13", "2026-08-13"),
-    ).toBe(true);
-  });
-
-  it("blocks a departure before the pending arrival", () => {
-    expect(
-      isDepartureBlocked(bookingStarting15th, "2026-08-12", "2026-08-13"),
-    ).toBe(true);
-  });
-
-  it("allows a one-night stay departing the day after arrival when that night is free", () => {
-    expect(
-      isDepartureBlocked(bookingStarting15th, "2026-08-14", "2026-08-13"),
-    ).toBe(false);
-  });
-
-  it("allows a back-to-back turnaround: arrive on one booking's checkout day, depart on the next booking's start day", () => {
-    const both = new Set([...bookingEnding13th, ...bookingStarting15th]);
-    // Arrival 13 August (checkout day of the first booking) …
-    expect(isArrivalBlocked(both, "2026-08-13")).toBe(false);
-    // … departing 15 August (start day of the second booking): nights 13 and
-    // 14 are free, so the stay fits exactly in the gap.
-    expect(isDepartureBlocked(both, "2026-08-15", "2026-08-13")).toBe(false);
-  });
-
-  it("blocks nothing after the arrival when no nights are booked", () => {
-    expect(isDepartureBlocked(new Set(), "2026-09-01", "2026-08-13")).toBe(
+describe("isStayBlocked", () => {
+  it("allows the 13 → 15 August stay ending on the changeover day another booking starts on", () => {
+    expect(isStayBlocked(bookingStarting15th, "2026-08-13", "2026-08-15")).toBe(
       false,
     );
+  });
+
+  it("blocks any stay spanning a busy night", () => {
+    expect(isStayBlocked(bookingStarting15th, "2026-08-13", "2026-08-16")).toBe(
+      true,
+    );
+    expect(isStayBlocked(bookingEnding13th, "2026-08-08", "2026-08-20")).toBe(
+      true,
+    );
+  });
+
+  it("is direction-agnostic: completing a range backwards checks the same nights", () => {
+    expect(isStayBlocked(bookingStarting15th, "2026-08-15", "2026-08-13")).toBe(
+      false,
+    );
+    expect(isStayBlocked(bookingStarting15th, "2026-08-16", "2026-08-13")).toBe(
+      true,
+    );
+  });
+
+  it("allows a stay that fits exactly between two bookings (back-to-back turnaround)", () => {
+    const both = new Set([...bookingEnding13th, ...bookingStarting15th]);
+    expect(isStayBlocked(both, "2026-08-13", "2026-08-15")).toBe(false);
+  });
+
+  it("blocks nothing when no nights are booked", () => {
+    expect(isStayBlocked(new Set(), "2026-08-13", "2026-09-01")).toBe(false);
   });
 });
 
@@ -110,16 +108,22 @@ describe("pendingArrival", () => {
 });
 
 describe("isCalendarDayDisabled", () => {
-  it("uses arrival semantics when nothing is selected", () => {
+  it("with nothing selected, only days inside bookings are disabled — changeover and checkout days stay open", () => {
     expect(
       isCalendarDayDisabled(bookingStarting15th, "2026-08-15", "", ""),
+    ).toBe(false);
+    expect(
+      isCalendarDayDisabled(bookingStarting15th, "2026-08-16", "", ""),
     ).toBe(true);
+    expect(isCalendarDayDisabled(bookingEnding13th, "2026-08-13", "", "")).toBe(
+      false,
+    );
     expect(
       isCalendarDayDisabled(bookingStarting15th, "2026-08-13", "", ""),
     ).toBe(false);
   });
 
-  it("uses departure semantics while an arrival is pending: the changeover day becomes selectable", () => {
+  it("while an arrival is pending, days whose stay would span busy nights are disabled", () => {
     expect(
       isCalendarDayDisabled(
         bookingStarting15th,
@@ -128,6 +132,44 @@ describe("isCalendarDayDisabled", () => {
         "",
       ),
     ).toBe(false);
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-16",
+        "2026-08-13",
+        "",
+      ),
+    ).toBe(true);
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-18",
+        "2026-08-13",
+        "",
+      ),
+    ).toBe(true);
+  });
+
+  it("allows completing a range backwards from a changeover day: click 15 first, then 13", () => {
+    // The 15th is open in idle mode; picking it leaves no valid later
+    // departure (its own night is busy) but earlier free days complete the
+    // range as 13 → 15 via react-day-picker's backwards extension.
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-13",
+        "2026-08-15",
+        "2026-08-15",
+      ),
+    ).toBe(false);
+    expect(
+      isCalendarDayDisabled(
+        bookingStarting15th,
+        "2026-08-16",
+        "2026-08-15",
+        "2026-08-15",
+      ),
+    ).toBe(true);
   });
 
   it("treats react-day-picker's single-day first click ({from: d, to: d}) as a pending arrival", () => {
@@ -141,23 +183,12 @@ describe("isCalendarDayDisabled", () => {
     ).toBe(false);
   });
 
-  it("keeps a day inside a booking disabled in both roles", () => {
+  it("keeps a day inside a booking disabled in both modes", () => {
     expect(isCalendarDayDisabled(bookingEnding13th, "2026-08-11", "", "")).toBe(
       true,
     );
     expect(
       isCalendarDayDisabled(bookingEnding13th, "2026-08-11", "2026-08-08", ""),
-    ).toBe(true);
-  });
-
-  it("blocks days before the pending arrival", () => {
-    expect(
-      isCalendarDayDisabled(
-        bookingStarting15th,
-        "2026-08-12",
-        "2026-08-13",
-        "",
-      ),
     ).toBe(true);
   });
 
@@ -176,10 +207,7 @@ describe("isCalendarDayDisabled", () => {
     ).toBe(false);
   });
 
-  it("keeps a completed range's changeover departure day enabled (not greyed/aria-disabled)", () => {
-    // After the range 13 → 15 completes, the matcher reverts to arrival
-    // semantics under which the 15th (busy night) is disabled — but the day
-    // the guest just picked must not render as unavailable.
+  it("renders a completed range without disabling its endpoints (idle rule keeps them open)", () => {
     expect(
       isCalendarDayDisabled(
         bookingStarting15th,
@@ -196,16 +224,5 @@ describe("isCalendarDayDisabled", () => {
         "2026-08-15",
       ),
     ).toBe(false);
-  });
-
-  it("keeps other busy days disabled while a full range is selected", () => {
-    expect(
-      isCalendarDayDisabled(
-        bookingStarting15th,
-        "2026-08-16",
-        "2026-08-13",
-        "2026-08-15",
-      ),
-    ).toBe(true);
   });
 });

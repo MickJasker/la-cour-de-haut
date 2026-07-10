@@ -1,50 +1,58 @@
 /**
- * Half-day role model for the public availability calendar (issue #183).
+ * Availability semantics for the public booking calendar (issue #183).
  *
  * All busy intervals are end-exclusive (RFC 5545) and `getBookedDays()`
  * returns the busy NIGHTS as `yyyy-MM-dd` strings — for a booking 13 → 15
- * August it returns the 13th and 14th only. A calendar day therefore has two
- * independent half-day roles:
+ * August it returns the 13th and 14th only. A calendar day has two
+ * independent half-day roles: it can host a check-in (its own night must be
+ * free) or a check-out (the preceding night must be free).
  *
- * - blocked as CHECK-IN when the night starting that day is busy
- * - blocked as CHECK-OUT when the preceding night is busy
- *
- * A changeover day (wisseldag: its own night busy, preceding night free) is
- * selectable as check-out only — a guest departing that morning leaves before
- * the next guests arrive, matching the server-side `hasConflict` semantics
- * which already accept a stay ending on another booking's start day.
+ * The calendar only greys out days that can serve NEITHER role — days
+ * interior to a booking. A changeover day (wisseldag: its own night busy,
+ * preceding night free) always renders open, like every mainstream booking
+ * calendar: a stay can end there, and a stay can never start there simply
+ * because no valid departure exists after it. While a selection is pending,
+ * a day is disabled only if the stay between it and the pending day would
+ * span a busy night — in either direction, since react-day-picker extends a
+ * range backwards when a day before the pending arrival is clicked.
  *
  * Everything here is pure and string-based (lexicographic comparison of
  * `yyyy-MM-dd` is date order), so there are no timezone pitfalls to test
  * around and the component wiring stays a one-liner.
  */
 
-/**
- * Whether `day` is blocked in the CHECK-IN role: the night starting that day
- * is busy.
- */
-export function isArrivalBlocked(
-  bookedNights: ReadonlySet<string>,
-  day: string,
-): boolean {
-  return bookedNights.has(day);
+const DAY_MS = 86_400_000;
+
+function previousDay(day: string): string {
+  const d = new Date(day + "T00:00:00Z");
+  return new Date(d.getTime() - DAY_MS).toISOString().slice(0, 10);
 }
 
 /**
- * Whether `day` is blocked in the CHECK-OUT role for a stay arriving on
- * `pendingFrom`. A valid departure must be strictly after the arrival and
- * every night in [pendingFrom, day) must be free — this both blocks days
- * whose preceding night is busy and prevents ranges spanning a fully-booked
- * day, independently of react-day-picker's `excludeDisabled` reset.
+ * Whether `day` is interior to a booking: both its own night and the
+ * preceding night are busy, so it can be neither a check-in nor a check-out.
  */
-export function isDepartureBlocked(
+export function isFullyBooked(
   bookedNights: ReadonlySet<string>,
   day: string,
-  pendingFrom: string,
 ): boolean {
-  if (day <= pendingFrom) return true;
+  return bookedNights.has(day) && bookedNights.has(previousDay(day));
+}
+
+/**
+ * Whether the stay between `dayA` and `dayB` (in either order) would span a
+ * busy night. The nights slept are [earlier, later) — end-exclusive, so a
+ * stay ending on another booking's start day does not conflict, matching the
+ * server-side `hasConflict` semantics.
+ */
+export function isStayBlocked(
+  bookedNights: ReadonlySet<string>,
+  dayA: string,
+  dayB: string,
+): boolean {
+  const [start, end] = dayA < dayB ? [dayA, dayB] : [dayB, dayA];
   for (const night of bookedNights) {
-    if (pendingFrom <= night && night < day) return true;
+    if (start <= night && night < end) return true;
   }
   return false;
 }
@@ -69,21 +77,15 @@ export function pendingArrival(
 }
 
 /**
- * The selection-state-aware `disabled` matcher for the booking calendar:
- * arrival semantics when no arrival is pending, departure semantics while one
- * is. Takes the raw range selection (empty string = unset, the booking form's
- * field-state convention) and derives the role internally.
+ * The selection-state-aware `disabled` matcher for the booking calendar.
+ * Takes the raw range selection (empty string = unset) and derives the mode
+ * internally: with no pending day, only interior days are disabled; with a
+ * pending day, every day whose stay to/from it would span a busy night is.
  *
- * The pending arrival day itself must stay ENABLED: react-day-picker's
+ * The pending day itself must stay ENABLED: react-day-picker's
  * `excludeDisabled` runs the disabled matcher over a completed range
  * including its own `from` day, so reporting it disabled would reset every
  * completion. Clicking it again simply clears the selection.
- *
- * A completed range's endpoints must also stay ENABLED: once the range is
- * full the matcher reverts to arrival semantics, under which a changeover
- * departure day is busy — without this carve-out the day the guest just
- * picked would render greyed out and aria-disabled. Clicking an endpoint
- * simply reshapes or clears the selection.
  */
 export function isCalendarDayDisabled(
   bookedNights: ReadonlySet<string>,
@@ -94,8 +96,7 @@ export function isCalendarDayDisabled(
   const pendingFrom = pendingArrival(from, to);
   if (pendingFrom) {
     if (day === pendingFrom) return false;
-    return isDepartureBlocked(bookedNights, day, pendingFrom);
+    return isStayBlocked(bookedNights, pendingFrom, day);
   }
-  if (from && to && (day === from || day === to)) return false;
-  return isArrivalBlocked(bookedNights, day);
+  return isFullyBooked(bookedNights, day);
 }
