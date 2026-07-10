@@ -46,8 +46,18 @@ test.describe("availability — iCal source busy dates block the calendar", () =
     // month boundary — its visibility is verified in the dedicated checkout test.
   });
 
-  test("blocked iCal dates are disabled in the calendar", async ({ page }) => {
-    for (const date of blockedDates) {
+  test("days inside a blocked iCal interval are disabled; its first day stays open as a changeover day", async ({
+    page,
+  }) => {
+    // The interval's first day is a changeover day (its night is busy but the
+    // preceding night is free): guests can still depart that morning, so it
+    // renders enabled (issue #183). A stay can never START there — no valid
+    // departure follows it, and the server-side conflict check is the hard
+    // guard. Only days interior to the interval are greyed out.
+    const [changeoverDay, ...interiorDates] = blockedDates;
+    await navigateToDate(page, changeoverDay!);
+    await expect(dayButtonForDate(page, changeoverDay!)).not.toBeDisabled();
+    for (const date of interiorDates) {
       await navigateToDate(page, date);
       await expect(dayButtonForDate(page, date)).toBeDisabled();
     }
