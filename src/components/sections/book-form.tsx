@@ -26,6 +26,10 @@ import { Link } from "@/i18n/navigation";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { FORWARD_HORIZON_MONTHS } from "@/lib/booking/calendar-day";
+import {
+  isCalendarDayDisabled,
+  pendingArrival,
+} from "@/lib/booking/calendar-disabled";
 
 const renderStrong = (chunks: ReactNode) => <strong>{chunks}</strong>;
 import { Separator } from "../ui/separator";
@@ -63,7 +67,9 @@ export function BookForm({
   const t = useTranslations("booking");
   const locale = useLocale();
 
-  const booked = use(bookedDates);
+  // Busy NIGHTS as yyyy-MM-dd strings (end-exclusive intervals): for a
+  // booking 13 → 15 Aug this contains the 13th and 14th only.
+  const bookedNights = new Set(use(bookedDates));
   const pricePerNight = use(pricePerNightPromise);
   const paymentConfig = use(paymentConfigPromise);
 
@@ -330,7 +336,21 @@ export function BookForm({
                     startMonth={addDays(new Date(), 1)}
                     endMonth={addMonths(new Date(), FORWARD_HORIZON_MONTHS)}
                     disabled={[
-                      booked.map((date) => new Date(date + "T00:00:00")),
+                      // Half-day role model (issue #183): which days are
+                      // disabled depends on what the NEXT click selects —
+                      // an arrival (no pending selection, or a full range
+                      // that the click restarts) or a departure (arrival
+                      // picked, departure not yet). A changeover day is
+                      // selectable as departure only.
+                      (date: Date) =>
+                        isCalendarDayDisabled(
+                          bookedNights,
+                          format(date, "yyyy-MM-dd"),
+                          pendingArrival(
+                            field.state.value?.from,
+                            field.state.value?.to,
+                          ),
+                        ),
                       ...Array.from({ length: 31 }, (_, i) =>
                         addDays(new Date(), -i),
                       ),
