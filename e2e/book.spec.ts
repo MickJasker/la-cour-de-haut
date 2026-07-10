@@ -5,7 +5,7 @@ test.describe("booking dialog — intercepting route", () => {
     await page.goto("/nl");
   });
 
-  test("clicking 'Book now' in the header opens the dialog without leaving the page", async ({
+  test("clicking 'Check availability' in the header opens the dialog without leaving the page", async ({
     page,
   }) => {
     await page.getByRole("banner").locator("a[href$='/book']").click();
@@ -19,11 +19,12 @@ test.describe("booking dialog — intercepting route", () => {
     await expect(page.locator("h1")).toBeAttached();
   });
 
-  test("clicking 'Book now' in the hero opens the dialog", async ({ page }) => {
-    // Exact name: /boek/i substring-matches POI cards containing "bezoek"
+  test("clicking 'Check availability' in the hero opens the dialog", async ({
+    page,
+  }) => {
     await page
       .getByRole("main")
-      .getByRole("link", { name: "Boek je verblijf nu" })
+      .getByRole("link", { name: "Bekijk beschikbaarheid" })
       .click();
 
     await expect(page).toHaveURL(/\/nl\/book/);
@@ -115,8 +116,8 @@ test.describe("booking dialog — locale variants", () => {
     test(`dialog opens correctly on /${locale}`, async ({ page }) => {
       await page.goto(`/${locale}`);
       // Locate the header CTA by its /book href, not its per-locale label
-      // (nl "Reserveer nu", en "Book now", etc.) — the href is stable across
-      // locales and copy edits.
+      // (nl "Bekijk beschikbaarheid", en "Check availability", etc.) — the
+      // href is stable across locales and copy edits.
       await page.getByRole("banner").locator("a[href$='/book']").click();
 
       await expect(page).toHaveURL(new RegExp(`\\/${locale}\\/book`));

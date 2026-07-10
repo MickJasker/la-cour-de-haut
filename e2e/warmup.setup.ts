@@ -9,8 +9,9 @@ setup("warm up the booking intercepting route", async ({ page }) => {
   await page.goto("/nl");
   // Match the header's booking CTA by its /book href, not its label. The label
   // (sections.header `bookNow`) is intentionally reworded over time — it changed
-  // from "Boek je verblijf nu" to "Reserveer nu", which silently broke the
-  // previous /boek/-based name match. The href is stable across copy edits.
+  // from "Boek je verblijf nu" to "Reserveer nu" to "Bekijk beschikbaarheid",
+  // which silently broke the previous /boek/-based name match. The href is
+  // stable across copy edits.
   await page.getByRole("banner").locator("a[href$='/book']").click();
   await expect(page.getByRole("dialog")).toBeVisible({ timeout: 60_000 });
 });
