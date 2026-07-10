@@ -123,161 +123,6 @@ export function BookForm({
         }}
       >
         <FieldGroup>
-          <FieldSet>
-            <form.Field name="name">
-              {(field) => (
-                <Field>
-                  <Label htmlFor="name">{t("form.name")}</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldSet>
-
-          <FieldSet className="md:grid md:grid-cols-2">
-            <form.Field name="email">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="email">{t("form.email")}</FieldLabel>
-                  <Input
-                    id="email"
-                    type="email"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-
-            <form.Field name="phone">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="phone">{t("form.phone")}</FieldLabel>
-                  {/* Hidden input carries the composed E.164 value into FormData
-                      for the server action, mirroring the country field. */}
-                  <input
-                    type="hidden"
-                    name={field.name}
-                    value={field.state.value}
-                  />
-                  <PhoneInput
-                    id="phone"
-                    locale={locale}
-                    defaultCountry={LOCALE_DEFAULT_COUNTRY[locale] ?? "FR"}
-                    value={field.state.value}
-                    onChange={(value) => field.handleChange(value)}
-                    onBlur={field.handleBlur}
-                    countryLabel={t("form.phoneCountryLabel")}
-                    searchPlaceholder={t("form.countrySearchPlaceholder")}
-                    emptyText={t("form.countryEmpty")}
-                    aria-invalid={field.state.meta.errors.length > 0}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldSet>
-
-          <FieldSet>
-            <form.Field name="address">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="address">{t("form.address")}</FieldLabel>
-                  <Input
-                    id="address"
-                    type="text"
-                    autoComplete="street-address"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldSet>
-
-          <FieldSet className="md:grid md:grid-cols-2">
-            <form.Field name="postalCode">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="postalCode">
-                    {t("form.postalCode")}
-                  </FieldLabel>
-                  <Input
-                    id="postalCode"
-                    type="text"
-                    autoComplete="postal-code"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-
-            <form.Field name="city">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="city">{t("form.city")}</FieldLabel>
-                  <Input
-                    id="city"
-                    type="text"
-                    autoComplete="address-level2"
-                    name={field.name}
-                    value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value)}
-                    onBlur={field.handleBlur}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldSet>
-
-          <FieldSet>
-            <form.Field name="country">
-              {(field) => (
-                <Field>
-                  <FieldLabel htmlFor="country">{t("form.country")}</FieldLabel>
-                  {/* Hidden input carries the ISO code into FormData for the
-                      server action, mirroring the stayDates pattern above. */}
-                  <input
-                    type="hidden"
-                    name={field.name}
-                    value={field.state.value}
-                  />
-                  <CountryCombobox
-                    id="country"
-                    locale={locale}
-                    value={field.state.value}
-                    onChange={(code) => field.handleChange(code)}
-                    onBlur={field.handleBlur}
-                    placeholder={t("form.countryPlaceholder")}
-                    searchPlaceholder={t("form.countrySearchPlaceholder")}
-                    emptyText={t("form.countryEmpty")}
-                    aria-invalid={field.state.meta.errors.length > 0}
-                  />
-                  <FieldError errors={field.state.meta.errors} />
-                </Field>
-              )}
-            </form.Field>
-          </FieldSet>
-
           <FieldSet className="md:grid md:grid-cols-2">
             <form.Field name="guestCount">
               {(field) => (
@@ -357,8 +202,6 @@ export function BookForm({
               )}
             </form.Field>
           </FieldSet>
-
-          <Separator />
 
           <div>
             <p className="text-md">
@@ -516,6 +359,163 @@ export function BookForm({
               {t("form.price_includes")}
             </p>
           </div>
+
+          <Separator />
+
+          <FieldSet>
+            <form.Field name="name">
+              {(field) => (
+                <Field>
+                  <Label htmlFor="name">{t("form.name")}</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet className="md:grid md:grid-cols-2">
+            <form.Field name="email">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="email">{t("form.email")}</FieldLabel>
+                  <Input
+                    id="email"
+                    type="email"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+
+            <form.Field name="phone">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="phone">{t("form.phone")}</FieldLabel>
+                  {/* Hidden input carries the composed E.164 value into FormData
+                      for the server action, mirroring the country field. */}
+                  <input
+                    type="hidden"
+                    name={field.name}
+                    value={field.state.value}
+                  />
+                  <PhoneInput
+                    id="phone"
+                    locale={locale}
+                    defaultCountry={LOCALE_DEFAULT_COUNTRY[locale] ?? "FR"}
+                    value={field.state.value}
+                    onChange={(value) => field.handleChange(value)}
+                    onBlur={field.handleBlur}
+                    countryLabel={t("form.phoneCountryLabel")}
+                    searchPlaceholder={t("form.countrySearchPlaceholder")}
+                    emptyText={t("form.countryEmpty")}
+                    aria-invalid={field.state.meta.errors.length > 0}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet>
+            <form.Field name="address">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="address">{t("form.address")}</FieldLabel>
+                  <Input
+                    id="address"
+                    type="text"
+                    autoComplete="street-address"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet className="md:grid md:grid-cols-2">
+            <form.Field name="postalCode">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="postalCode">
+                    {t("form.postalCode")}
+                  </FieldLabel>
+                  <Input
+                    id="postalCode"
+                    type="text"
+                    autoComplete="postal-code"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+
+            <form.Field name="city">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="city">{t("form.city")}</FieldLabel>
+                  <Input
+                    id="city"
+                    type="text"
+                    autoComplete="address-level2"
+                    name={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
+
+          <FieldSet>
+            <form.Field name="country">
+              {(field) => (
+                <Field>
+                  <FieldLabel htmlFor="country">{t("form.country")}</FieldLabel>
+                  {/* Hidden input carries the ISO code into FormData for the
+                      server action, mirroring the stayDates pattern above. */}
+                  <input
+                    type="hidden"
+                    name={field.name}
+                    value={field.state.value}
+                  />
+                  <CountryCombobox
+                    id="country"
+                    locale={locale}
+                    value={field.state.value}
+                    onChange={(code) => field.handleChange(code)}
+                    onBlur={field.handleBlur}
+                    placeholder={t("form.countryPlaceholder")}
+                    searchPlaceholder={t("form.countrySearchPlaceholder")}
+                    emptyText={t("form.countryEmpty")}
+                    aria-invalid={field.state.meta.errors.length > 0}
+                  />
+                  <FieldError errors={field.state.meta.errors} />
+                </Field>
+              )}
+            </form.Field>
+          </FieldSet>
 
           {/* -bottom-10 cancels the dialog scroll container's pb-10: sticky
               offsets resolve against the scrollport's content box, so without
