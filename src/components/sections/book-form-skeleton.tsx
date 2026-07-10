@@ -58,28 +58,6 @@ export function BookFormSkeleton() {
   return (
     <div className="w-full max-w-2xl space-y-6" aria-hidden>
       <div className="flex flex-col gap-7">
-        {/* Name — uses a plain <Label> (leading-normal), so it's ~2px taller
-            than the FieldLabel rows below. */}
-        <FieldSkeleton labelLeading="leading-normal" />
-
-        {/* Email + Phone */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <FieldSkeleton />
-          <FieldSkeleton />
-        </div>
-
-        {/* Address */}
-        <FieldSkeleton />
-
-        {/* Postal code + City */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <FieldSkeleton />
-          <FieldSkeleton />
-        </div>
-
-        {/* Country */}
-        <FieldSkeleton />
-
         {/* Guest count (radio) + Stay dates (calendar). The calendar
             (min-h-100 = 400px) sets this row's height, so the radio placeholder
             sizes don't affect the vertical rhythm. */}
@@ -103,8 +81,6 @@ export function BookFormSkeleton() {
           </div>
         </div>
 
-        <Separator />
-
         {/* Price breakdown: three flush `text-sm` lines (the middle breakdown
             line is `invisible` in the real form but still holds its row) = 60px,
             no gap between them. */}
@@ -115,6 +91,30 @@ export function BookFormSkeleton() {
           <TextLine lineClass="text-md" width="w-48" />
           <TextLine lineClass="text-md" width="w-64" />
         </div>
+
+        <Separator />
+
+        {/* Name — uses a plain <Label> (leading-normal), so it's ~2px taller
+            than the FieldLabel rows below. */}
+        <FieldSkeleton labelLeading="leading-normal" />
+
+        {/* Email + Phone */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <FieldSkeleton />
+          <FieldSkeleton />
+        </div>
+
+        {/* Address */}
+        <FieldSkeleton />
+
+        {/* Postal code + City */}
+        <div className="grid gap-6 md:grid-cols-2">
+          <FieldSkeleton />
+          <FieldSkeleton />
+        </div>
+
+        {/* Country */}
+        <FieldSkeleton />
 
         {/* Submit block: the invisible Turnstile reserves ~24px above the
             button (h-10), then `gap-6` to the one-line privacy notice. */}
