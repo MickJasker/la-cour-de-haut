@@ -6,7 +6,8 @@ import {
   useForm,
   useTransform,
 } from "@tanstack/react-form-nextjs";
-import { use, useActionState, useRef, useState } from "react";
+import { use, useActionState, useEffect, useRef, useState } from "react";
+import { track } from "@vercel/analytics";
 import { Button } from "../ui/button";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -19,7 +20,7 @@ import {
 } from "../ui/field";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import { useId } from "react";
-import { addDays, addMonths, format } from "date-fns";
+import { addDays, addMonths, differenceInCalendarDays, format } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { useLocale, useTranslations } from "@/i18n/provider";
 import { Link } from "@/i18n/navigation";
@@ -115,14 +116,60 @@ export function BookForm({
 
   const isSuccessful = state.success;
 
+  // Funnel analytics (ADR-0023). Each event fires once per mount / per outcome.
+  // `track()` no-ops when the analytics script isn't mounted (i.e. outside
+  // production), so no environment guard is needed at the call sites.
+  const calendarEngagedRef = useRef(false);
+  const quoteShownRef = useRef(false);
+  // `useActionState` returns a fresh state object on every action result;
+  // remembering the last one we handled keeps the effect below firing once per
+  // server outcome rather than on every re-render. Seeded with the initial
+  // state so mount is a no-op.
+  const handledActionStateRef = useRef(state);
+
+  // Server-driven outcomes arrive asynchronously via `useActionState`, so — per
+  // ADR-0023 — an effect synchronizing to the analytics system is acceptable here.
+  useEffect(() => {
+    if (state === handledActionStateRef.current) return;
+    handledActionStateRef.current = state;
+
+    if (state.success) {
+      const from = form.state.values.stayDates?.from ?? "";
+      const to = form.state.values.stayDates?.to ?? "";
+      const nights = calculateTotalNights(from, to);
+      const { totalPrice } = calculatePriceBreakdown(
+        pricePerNight,
+        nights,
+        Number(form.state.values.guestCount),
+      );
+      // Numbers and enums only — never name/email/phone/address (ADR-0023).
+      track("booking_request_submitted", {
+        nights,
+        guests: Number(form.state.values.guestCount),
+        lead_time_days: differenceInCalendarDays(
+          new Date(from + "T00:00:00"),
+          new Date(),
+        ),
+        total_price: totalPrice,
+      });
+    } else if (state.formError) {
+      track("booking_submit_failed", { reason: "server" });
+    }
+  }, [state, form, pricePerNight]);
+
   return (
     <div className="relative">
       <form
         action={formAction}
         noValidate
         className="w-full max-w-2xl space-y-6"
-        onSubmit={() => {
-          void form.handleSubmit();
+        onSubmit={async () => {
+          await form.handleSubmit();
+          // Client-side Zod validation blocked the submit (ADR-0023). This is
+          // an event handler, so it already fires once per attempt — no ref.
+          if (!form.state.isValid) {
+            track("booking_submit_failed", { reason: "validation" });
+          }
         }}
       >
         <FieldGroup>
@@ -174,12 +221,35 @@ export function BookForm({
                         : undefined,
                     }}
                     onSelect={(range) => {
-                      field.handleChange({
-                        from: range?.from
-                          ? format(range.from, "yyyy-MM-dd")
-                          : "",
-                        to: range?.to ? format(range.to, "yyyy-MM-dd") : "",
-                      });
+                      const from = range?.from
+                        ? format(range.from, "yyyy-MM-dd")
+                        : "";
+                      const to = range?.to
+                        ? format(range.to, "yyyy-MM-dd")
+                        : "";
+                      field.handleChange({ from, to });
+
+                      // calendar_engaged: first date selected this mount (ADR-0023).
+                      if (range?.from && !calendarEngagedRef.current) {
+                        calendarEngagedRef.current = true;
+                        track("calendar_engaged");
+                      }
+
+                      // quote_shown: first moment a complete valid range exists —
+                      // when the price breakdown appears (totalNights > 0).
+                      if (!quoteShownRef.current && from && to) {
+                        const nights = calculateTotalNights(from, to);
+                        if (nights > 0) {
+                          quoteShownRef.current = true;
+                          track("quote_shown", {
+                            nights,
+                            lead_time_days: differenceInCalendarDays(
+                              new Date(from + "T00:00:00"),
+                              new Date(),
+                            ),
+                          });
+                        }
+                      }
                     }}
                   />
                   <FieldError errors={field.state.meta.errors} />
