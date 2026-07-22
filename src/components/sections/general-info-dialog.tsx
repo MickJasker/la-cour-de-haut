@@ -2,6 +2,7 @@
 
 import { ComponentProps, useState } from "react";
 import type { SerializedEditorState } from "lexical";
+import { track } from "@vercel/analytics";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { RichTextRenderer } from "../rich-text-renderer";
@@ -21,12 +22,21 @@ export function GeneralInfoDialog({
 } & ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
+  const handleOpenChange = (next: boolean) => {
+    if (next) track("info_dialog_opened", { dialog: "general_info" });
+    setOpen(next);
+  };
+
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)} {...props}>
+      <Button
+        variant="secondary"
+        onClick={() => handleOpenChange(true)}
+        {...props}
+      >
         {children}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-2xl" aria-describedby={undefined}>
           <DialogTitle className="text-style-display-medium mb-4">
             {title}

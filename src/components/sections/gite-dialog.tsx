@@ -2,6 +2,7 @@
 
 import { ComponentProps, useState } from "react";
 import Image from "next/image";
+import { track } from "@vercel/analytics";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
@@ -21,12 +22,21 @@ export function GiteDialog({
 } & ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
 
+  const handleOpenChange = (next: boolean) => {
+    if (next) track("info_dialog_opened", { dialog: "gite" });
+    setOpen(next);
+  };
+
   return (
     <>
-      <Button variant="secondary" onClick={() => setOpen(true)} {...props}>
+      <Button
+        variant="secondary"
+        onClick={() => handleOpenChange(true)}
+        {...props}
+      >
         {children}
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-w-400" aria-describedby={undefined}>
           <DialogTitle className="sr-only">{children}</DialogTitle>
           {/* CSS multi-column (not grid) packs mixed portrait/landscape/square

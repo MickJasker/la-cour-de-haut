@@ -10,6 +10,7 @@ import "../globals.css";
 import { Footer } from "@/components/sections/footer";
 import { ModalSlot } from "./modal-slot";
 import { getBaseUrl } from "@/lib/base-url";
+import { AnalyticsGate } from "@/components/analytics-gate";
 
 const OG_LOCALE: Record<string, string> = {
   nl: "nl_NL",
@@ -91,6 +92,7 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
           <Footer locale={locale} />
           <ModalSlot>{modal}</ModalSlot>
         </I18nProvider>
+        {process.env.VERCEL_ENV === "production" && <AnalyticsGate />}
       </body>
     </html>
   );
