@@ -142,16 +142,20 @@ export function BookForm({
         nights,
         Number(form.state.values.guestCount),
       );
-      // Numbers and enums only — never name/email/phone/address (ADR-0023).
-      track("booking_request_submitted", {
-        nights,
-        guests: Number(form.state.values.guestCount),
-        lead_time_days: differenceInCalendarDays(
-          new Date(from + "T00:00:00"),
-          new Date(),
-        ),
-        total_price: totalPrice,
-      });
+      // The honeypot path also returns success (with empty date values, so
+      // NaN nights) — the guard keeps bots out of the conversion count.
+      if (Number.isFinite(nights) && nights > 0) {
+        // Numbers and enums only — never name/email/phone/address (ADR-0023).
+        track("booking_request_submitted", {
+          nights,
+          guests: Number(form.state.values.guestCount),
+          lead_time_days: differenceInCalendarDays(
+            new Date(from + "T00:00:00"),
+            new Date(),
+          ),
+          total_price: totalPrice,
+        });
+      }
     } else if (state.formError) {
       track("booking_submit_failed", { reason: "server" });
     }
