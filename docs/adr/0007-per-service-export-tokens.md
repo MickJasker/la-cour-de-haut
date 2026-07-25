@@ -1,6 +1,6 @@
 # ADR-0007: Per-service export tokens in a dedicated table, not a single `setting` key
 
-**Status:** Accepted
+**Status:** Accepted — superseded in part by [ADR-0024](./0024-cached-ical-export-feed.md): the feed is now served from a cache, so `lastAccessedAt` is written on **origin fetch** (cache miss), not on every request, and revocation's 404 takes effect via tag invalidation on token delete rather than on the very next poll unconditionally. The table design and per-service revocation model below stand unchanged.
 
 ## Context
 
