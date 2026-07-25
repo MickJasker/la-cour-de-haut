@@ -106,6 +106,23 @@ export async function getDirectBookings(
   deps: AvailabilityDeps = defaultDeps,
 ): Promise<{ id: string; startDate: string; endDate: string }[]> {
   await connection();
+  return readDirectBookings(deps);
+}
+
+/**
+ * The `connection()`-free body of `getDirectBookings` — the store read plus
+ * the `isActiveDirectBooking` filter (ADR-0004), without opting the caller
+ * into dynamic rendering.
+ *
+ * `getDirectBookings` above wraps this behind `await connection()` for its
+ * request-time callers; the export feed's `"use cache"` helper
+ * (`/api/ical/[token]`) calls this one directly, because `connection()` is
+ * illegal inside a cache scope (ADR-0024). Same store + same predicate, so
+ * both paths report identical busy-ness.
+ */
+export async function readDirectBookings(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<{ id: string; startDate: string; endDate: string }[]> {
   const rows = await deps.store.listDirectBookings();
 
   const today = toUtcDayString(deps.clock());
@@ -126,6 +143,18 @@ export async function getOwnerBlocks(
   deps: AvailabilityDeps = defaultDeps,
 ): Promise<{ id: string; startDate: string; endDate: string }[]> {
   await connection();
+  return readOwnerBlocks(deps);
+}
+
+/**
+ * The `connection()`-free body of `getOwnerBlocks`, mirroring
+ * `readDirectBookings`: a bare store read the export feed's `"use cache"`
+ * helper can call without tripping the "no `connection()` in a cache scope"
+ * rule (ADR-0024).
+ */
+export async function readOwnerBlocks(
+  deps: AvailabilityDeps = defaultDeps,
+): Promise<{ id: string; startDate: string; endDate: string }[]> {
   return deps.store.listOwnerBlocks();
 }
 

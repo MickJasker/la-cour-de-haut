@@ -1,7 +1,14 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 import { neon } from "@neondatabase/serverless";
 
 const TOKEN = "a".repeat(64); // fixed known value for seeding
+
+// The export feed is served from a "use cache" function (ADR-0024); tests
+// seed via raw SQL, bypassing the updateTag-calling server actions, so the
+// tag must be expired manually before each feed fetch.
+async function revalidateExportFeed(request: APIRequestContext) {
+  await request.post("/api/dev/revalidate/ical-export");
+}
 
 async function clearTokens() {
   const sql = neon(process.env.DATABASE_URL!);
@@ -54,11 +61,13 @@ test.describe("iCal export feed", () => {
   });
 
   test("unknown token returns 404", async ({ request }) => {
+    await revalidateExportFeed(request);
     const res = await request.get("/api/ical/unknowntoken.ics");
     expect(res.status()).toBe(404);
   });
 
   test("valid token returns text/calendar response", async ({ request }) => {
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("text/calendar");
@@ -73,6 +82,7 @@ test.describe("iCal export feed", () => {
     // produce VEVENTs.
     await clearAllBookings();
     await clearAllBlocks();
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
     expect(body).toContain("BEGIN:VCALENDAR");
@@ -89,6 +99,7 @@ test.describe("iCal export feed", () => {
       VALUES ('ical-test-confirmed', 'Anna Schmidt', 'anna@example.com', 2, 'de', '2028-06-01', '2028-06-08', 'confirmed', now(), now()::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -112,6 +123,7 @@ test.describe("iCal export feed", () => {
       VALUES ('ical-test-hold-live', 'Marie Dupont', 'marie@example.com', 2, 'fr', '2028-07-01', '2028-07-08', 'on_hold', now(), ${deadline}::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -128,6 +140,7 @@ test.describe("iCal export feed", () => {
       VALUES ('ical-test-hold-expired', 'Luca Rossi', 'luca@example.com', 2, 'it', '2028-08-01', '2028-08-08', 'on_hold', now() - interval '10 days', (now() - interval '2 days')::date, now() - interval '10 days', 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -145,6 +158,7 @@ test.describe("iCal export feed", () => {
         ('ical-test-cancelled',  'Guest B', 'b@example.com', 1, 'nl', '2028-10-01', '2028-10-08', 'cancelled',  now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -166,6 +180,7 @@ test.describe("iCal export feed", () => {
         ('ical-test-multi-3', 'Guest Three', 'three@example.com', 2, 'nl', '2029-05-01', '2029-05-08', 'confirmed', now(), now()::date, now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -184,6 +199,7 @@ test.describe("iCal export feed", () => {
       VALUES ('ical-test-block-1', '2028-11-01', '2028-11-08', 'eigen verblijf', now())
     `;
 
+    await revalidateExportFeed(request);
     const res = await request.get(`/api/ical/${TOKEN}.ics`);
     const body = await res.text();
 
@@ -198,10 +214,8 @@ test.describe("iCal export feed", () => {
   test("successful request writes lastAccessedAt to the token row", async ({
     request,
   }) => {
+    await revalidateExportFeed(request);
     await request.get(`/api/ical/${TOKEN}.ics`);
-
-    // Allow a moment for the fire-and-forget write to land
-    await new Promise((r) => setTimeout(r, 500));
 
     const sql = neon(process.env.DATABASE_URL!);
     // Verify the write happened by checking the row was updated within the last minute

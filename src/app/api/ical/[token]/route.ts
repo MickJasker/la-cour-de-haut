@@ -1,14 +1,39 @@
+import { cacheLife, cacheTag } from "next/cache";
+import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { icalExportToken } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getDirectBookings, getOwnerBlocks } from "@/lib/booking/availability";
+import { CACHE_TAGS } from "@/lib/cache-tags";
+import {
+  readDirectBookings,
+  readOwnerBlocks,
+} from "@/lib/booking/availability";
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ token: string }> },
-) {
-  const { token: rawToken } = await params;
-  const token = rawToken.replace(/\.ics$/, "");
+/**
+ * Serializable result of a cache fill: `found` drives the 404-vs-200 split in
+ * the handler, `body` carries the `.ics` payload on a hit. Unknown tokens
+ * return `{ found: false }` from *inside* the cache (negative caching,
+ * ADR-0024) so a revoked platform polling its dead URL never wakes the DB.
+ */
+type FeedResult = { found: boolean; body?: string };
+
+/**
+ * The `"use cache"` seam for the export feed (ADR-0024). The directive cannot
+ * sit in a route-handler body, so it lives here; the handler just wraps the
+ * result in a Response.
+ *
+ * Everything with a database cost lives inside this function, so a cache hit
+ * touches the DB zero times and Neon actually sleeps: the token lookup, the
+ * `lastAccessedAt` health write, and the bookings/blocks reads. `connection()`
+ * is illegal here, so the reads go through the `connection()`-free
+ * `readDirectBookings` / `readOwnerBlocks` seam.
+ */
+async function buildFeed(token: string): Promise<FeedResult> {
+  "use cache";
+  // `hours` = 1-hour server revalidate: the backstop for time-driven
+  // transitions no mutation announces (lazy hold expiry, bookings aging into
+  // the past). Event-driven changes invalidate immediately via updateTag.
+  cacheLife("hours");
+  cacheTag(CACHE_TAGS.icalExport);
 
   const db = getDb();
   const [row] = await db
@@ -17,21 +42,27 @@ export async function GET(
     .where(eq(icalExportToken.token, token));
 
   if (!row) {
-    return new Response("Not found", { status: 404 });
+    return { found: false };
   }
 
-  void db
+  // The ADR-0007 health signal, amended by ADR-0024: its meaning changes from
+  // "last poll" to "last origin fetch". It's awaited (not fire-and-forget) and
+  // lives inside the cached function on purpose — it runs at cache-fill time
+  // only, so it's frozen while the cache is warm and bumped when a poll reaches
+  // the origin.
+  await db
     .update(icalExportToken)
     .set({ lastAccessedAt: new Date() })
-    .where(eq(icalExportToken.id, row.id))
-    .catch(console.error);
+    .where(eq(icalExportToken.id, row.id));
 
   const [bookings, blocks] = await Promise.all([
-    getDirectBookings(),
-    getOwnerBlocks(),
+    readDirectBookings(),
+    readOwnerBlocks(),
   ]);
 
-  // RFC 5545 §3.3.5 — basic date-time stamp: YYYYMMDDTHHmmssZ
+  // RFC 5545 §3.3.5 — basic date-time stamp: YYYYMMDDTHHmmssZ. This reflects
+  // cache-fill time, not serve time — cosmetically stale, semantically fine
+  // (platforms key on UID).
   const dtstamp = new Date()
     .toISOString()
     .replace(/[-:]/g, "")
@@ -79,7 +110,26 @@ export async function GET(
     "END:VCALENDAR",
   ].join("\r\n");
 
-  return new Response(ics, {
+  return { found: true, body: ics };
+}
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ token: string }> },
+) {
+  const { token: rawToken } = await params;
+  const token = rawToken.replace(/\.ics$/, "");
+
+  const result = await buildFeed(token);
+
+  if (!result.found) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  // `no-store` toward platforms is deliberate: the cache is ours (the
+  // `"use cache"` layer), and letting platform HTTP caches stack on top would
+  // add uncontrolled staleness (ADR-0024).
+  return new Response(result.body, {
     headers: {
       "Content-Type": "text/calendar; charset=utf-8",
       "Cache-Control": "no-store",

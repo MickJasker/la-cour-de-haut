@@ -1,10 +1,11 @@
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/db";
 import { ownerBlock } from "@/db/schema";
 import { verifySession } from "@/lib/auth/session";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 
 /**
  * The house admin-mutation state shape: actions return validation failures so
@@ -53,6 +54,8 @@ export async function createOwnerBlockAction(input: {
     label: normalizeLabel(result.data.label),
   });
   revalidatePath("/admin");
+  // A new block adds busy-ness to the exported feed (ADR-0024).
+  updateTag(CACHE_TAGS.icalExport);
   return { success: true, error: null };
 }
 
@@ -77,5 +80,7 @@ export async function deleteOwnerBlockAction(
   const db = getDb();
   await db.delete(ownerBlock).where(eq(ownerBlock.id, id));
   revalidatePath("/admin");
+  // Removing a block frees dates in the exported feed (ADR-0024).
+  updateTag(CACHE_TAGS.icalExport);
   return { success: true, error: null };
 }
