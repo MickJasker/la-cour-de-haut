@@ -18,6 +18,12 @@ export const CACHE_TAGS = {
   gallery: "gallery",
   reviews: "reviews",
   pages: "pages",
+  // Read once in the `"use cache"` export-feed helper (`/api/ical/[token]`);
+  // written by every mutation that changes exported busy-ness — booking status
+  // transitions, owner block create/delete, and export token create/delete
+  // (revocation). One tag for all token URLs, since every data change affects
+  // every subscriber (ADR-0024).
+  icalExport: "ical-export",
 } as const;
 
 export type CacheTag = (typeof CACHE_TAGS)[keyof typeof CACHE_TAGS];

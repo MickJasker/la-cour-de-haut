@@ -35,11 +35,20 @@ function TokenRow({ token, appUrl }: { token: Token; appUrl: string }) {
           <p className="font-medium text-sm">{token.name}</p>
           <p className="text-xs text-stone-500 font-mono truncate">{feedUrl}</p>
           {token.lastAccessedAt ? (
-            <p className="text-xs text-stone-500">
-              Laatste toegang: {token.lastAccessedAt.toLocaleString("nl-NL")}
+            <p
+              className="text-xs text-stone-500"
+              title="Wordt alleen bijgewerkt wanneer een poll de origin bereikt (cache-miss); bij een cache-hit blijft deze waarde staan."
+            >
+              Laatst opgehaald door platform (cache-miss):{" "}
+              {token.lastAccessedAt.toLocaleString("nl-NL")}
             </p>
           ) : (
-            <p className="text-xs text-stone-400">Nooit gebruikt</p>
+            <p
+              className="text-xs text-stone-400"
+              title="Nog geen enkele poll heeft de origin bereikt."
+            >
+              Nog niet opgehaald
+            </p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">

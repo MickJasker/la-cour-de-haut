@@ -19,6 +19,7 @@ const KNOWN_TAGS = new Set([
   "poi",
   "content",
   "pages",
+  "ical-export",
 ]);
 
 export async function POST(

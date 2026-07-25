@@ -31,6 +31,8 @@ import {
   getBookedDays,
   getBusyIntervals,
   refreshIcalSourcesIfStale,
+  readDirectBookings,
+  readOwnerBlocks,
 } from "./availability";
 
 function expandIntervals(intervals: BusyInterval[]): string[] {
@@ -669,6 +671,74 @@ describe("lazy iCal source refresh (ADR-0005), exercised through getBusyInterval
     expect(deps.fetchFeed).not.toHaveBeenCalled();
     expect(deps.store.syncSuccessCalls).toEqual([]);
     expect(deps.store.syncErrorCalls).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The connection()-free read seam the cached export feed (/api/ical/[token])
+// consumes (ADR-0024). `connection()` is illegal inside a `"use cache"` scope,
+// so `readDirectBookings` / `readOwnerBlocks` skip it while preserving the
+// exact filtering the `getDirectBookings` / `getOwnerBlocks` wrappers apply.
+// ---------------------------------------------------------------------------
+
+describe("readDirectBookings / readOwnerBlocks — the connection()-free export seam", () => {
+  const NOW = new Date("2027-06-15T12:00:00.000Z");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("readDirectBookings applies the active-booking filter (expired hold excluded, confirmed kept)", async () => {
+    const deps = makeDeps({
+      now: NOW,
+      bookings: [
+        {
+          id: "confirmed-1",
+          startDate: "2027-07-01",
+          endDate: "2027-07-05",
+          status: "confirmed",
+          paymentDeadline: null,
+        },
+        {
+          id: "expired-hold",
+          startDate: "2027-08-01",
+          endDate: "2027-08-05",
+          status: "on_hold",
+          paymentDeadline: "2000-01-01", // long past → expired
+        },
+        {
+          id: "live-hold",
+          startDate: "2027-09-01",
+          endDate: "2027-09-05",
+          status: "on_hold",
+          paymentDeadline: "2099-01-01",
+        },
+      ],
+    });
+
+    const rows = await readDirectBookings(deps);
+
+    expect(rows.map((r) => r.id).sort()).toEqual(["confirmed-1", "live-hold"]);
+    // Only the id/date projection is exposed — no status/deadline leak.
+    expect(rows[0]).toEqual({
+      id: "confirmed-1",
+      startDate: "2027-07-01",
+      endDate: "2027-07-05",
+    });
+  });
+
+  it("readOwnerBlocks returns every block row unfiltered (blocks have no lifecycle)", async () => {
+    const deps = makeDeps({
+      now: NOW,
+      blocks: [
+        { id: "blk-past", startDate: "2000-01-01", endDate: "2000-01-03" },
+        { id: "blk-future", startDate: "2027-05-10", endDate: "2027-05-15" },
+      ],
+    });
+
+    const rows = await readOwnerBlocks(deps);
+
+    expect(rows.map((r) => r.id).sort()).toEqual(["blk-future", "blk-past"]);
   });
 });
 
