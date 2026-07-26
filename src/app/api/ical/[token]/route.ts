@@ -17,9 +17,16 @@ import {
 type FeedResult = { found: boolean; body?: string };
 
 /**
- * The `"use cache"` seam for the export feed (ADR-0024). The directive cannot
- * sit in a route-handler body, so it lives here; the handler just wraps the
- * result in a Response.
+ * The `"use cache: remote"` seam for the export feed (ADR-0024, amended). The
+ * directive cannot sit in a route-handler body, so it lives here; the handler
+ * just wraps the result in a Response.
+ *
+ * Plain `"use cache"` stores entries in-memory per Lambda instance: polls
+ * arrive minutes apart, so each one almost always lands on a cold instance
+ * with an empty cache, and the DB got hit on every single poll despite the
+ * directive. `: remote` backs the same cacheTag/cacheLife/updateTag API with
+ * Vercel's Runtime Cache, which is shared across instances, so this is the
+ * only variant that actually delivers the zero-DB-touch cache hit.
  *
  * Everything with a database cost lives inside this function, so a cache hit
  * touches the DB zero times and Neon actually sleeps: the token lookup, the
@@ -28,7 +35,7 @@ type FeedResult = { found: boolean; body?: string };
  * `readDirectBookings` / `readOwnerBlocks` seam.
  */
 async function buildFeed(token: string): Promise<FeedResult> {
-  "use cache";
+  "use cache: remote";
   // `hours` = 1-hour server revalidate: the backstop for time-driven
   // transitions no mutation announces (lazy hold expiry, bookings aging into
   // the past). Event-driven changes invalidate immediately via updateTag.
