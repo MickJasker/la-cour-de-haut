@@ -5,6 +5,7 @@ import {
   canTransition,
   toDisplayStatus,
   isExpiredHold,
+  isPastCheckout,
   type DbBookingStatus,
 } from "./machine";
 
@@ -108,28 +109,49 @@ describe("toDisplayStatus — lazy expiry", () => {
   const futureDeadline = formatISO(addDays(new Date(), 1), {
     representation: "date",
   });
+  // Every row in this block is about hold expiry, so its stay is kept well in
+  // the future — otherwise a `confirmed` row would also trip the `past` rule.
+  const futureEnd = formatISO(addDays(new Date(), 30), {
+    representation: "date",
+  });
 
   it("on_hold with past deadline → expired", () => {
     expect(
-      toDisplayStatus({ status: "on_hold", paymentDeadline: pastDeadline }),
+      toDisplayStatus({
+        status: "on_hold",
+        paymentDeadline: pastDeadline,
+        endDate: futureEnd,
+      }),
     ).toBe("expired");
   });
 
   it("on_hold with future deadline → on_hold", () => {
     expect(
-      toDisplayStatus({ status: "on_hold", paymentDeadline: futureDeadline }),
+      toDisplayStatus({
+        status: "on_hold",
+        paymentDeadline: futureDeadline,
+        endDate: futureEnd,
+      }),
     ).toBe("on_hold");
   });
 
   it("on_hold with null deadline → on_hold (no deadline set yet)", () => {
-    expect(toDisplayStatus({ status: "on_hold", paymentDeadline: null })).toBe(
-      "on_hold",
-    );
+    expect(
+      toDisplayStatus({
+        status: "on_hold",
+        paymentDeadline: null,
+        endDate: futureEnd,
+      }),
+    ).toBe("on_hold");
   });
 
   it("confirmed with past deadline → confirmed (expiry only applies to on_hold)", () => {
     expect(
-      toDisplayStatus({ status: "confirmed", paymentDeadline: pastDeadline }),
+      toDisplayStatus({
+        status: "confirmed",
+        paymentDeadline: pastDeadline,
+        endDate: futureEnd,
+      }),
     ).toBe("confirmed");
   });
 
@@ -138,6 +160,7 @@ describe("toDisplayStatus — lazy expiry", () => {
       toDisplayStatus({
         status: "deposit_paid",
         paymentDeadline: pastDeadline,
+        endDate: futureEnd,
       }),
     ).toBe("deposit_paid");
   });
@@ -152,7 +175,11 @@ describe("toDisplayStatus — lazy expiry", () => {
     ];
     for (const s of statuses) {
       expect(
-        toDisplayStatus({ status: s, paymentDeadline: pastDeadline }),
+        toDisplayStatus({
+          status: s,
+          paymentDeadline: pastDeadline,
+          endDate: futureEnd,
+        }),
       ).toBe(s);
     }
   });
@@ -215,10 +242,223 @@ describe("isExpiredHold — the single hold-expiry predicate (ADR-0004)", () => 
 
   it("toDisplayStatus accepts an explicit `today` and agrees with isExpiredHold", () => {
     expect(
-      toDisplayStatus({ status: "on_hold", paymentDeadline: YESTERDAY }, TODAY),
+      toDisplayStatus(
+        {
+          status: "on_hold",
+          paymentDeadline: YESTERDAY,
+          endDate: "2026-07-05",
+        },
+        TODAY,
+      ),
     ).toBe("expired");
     expect(
-      toDisplayStatus({ status: "on_hold", paymentDeadline: TODAY }, TODAY),
+      toDisplayStatus(
+        { status: "on_hold", paymentDeadline: TODAY, endDate: "2026-07-05" },
+        TODAY,
+      ),
     ).toBe("on_hold");
+  });
+});
+
+describe("isPastCheckout — midday Europe/Paris on the checkout day", () => {
+  // Summer: Paris runs on CEST (UTC+2), so 12:00 local is 10:00 UTC.
+  describe("during CEST (UTC+2)", () => {
+    const END_DATE = "2026-07-15";
+
+    it("is false one minute before midday Paris (09:59 UTC = 11:59 Paris)", () => {
+      expect(isPastCheckout(END_DATE, new Date("2026-07-15T09:59:00Z"))).toBe(
+        false,
+      );
+    });
+
+    it("is true exactly at midday Paris (10:00 UTC = 12:00 Paris)", () => {
+      expect(isPastCheckout(END_DATE, new Date("2026-07-15T10:00:00Z"))).toBe(
+        true,
+      );
+    });
+
+    it("is true one minute after midday Paris (10:01 UTC = 12:01 Paris)", () => {
+      expect(isPastCheckout(END_DATE, new Date("2026-07-15T10:01:00Z"))).toBe(
+        true,
+      );
+    });
+  });
+
+  // Winter: Paris runs on CET (UTC+1), so 12:00 local is 11:00 UTC — an hour
+  // later in absolute terms than the summer case above. A hard-coded offset
+  // would get exactly one of these two blocks wrong.
+  describe("during CET (UTC+1)", () => {
+    const END_DATE = "2026-01-15";
+
+    it("is false one minute before midday Paris (10:59 UTC = 11:59 Paris)", () => {
+      expect(isPastCheckout(END_DATE, new Date("2026-01-15T10:59:00Z"))).toBe(
+        false,
+      );
+    });
+
+    it("is true exactly at midday Paris (11:00 UTC = 12:00 Paris)", () => {
+      expect(isPastCheckout(END_DATE, new Date("2026-01-15T11:00:00Z"))).toBe(
+        true,
+      );
+    });
+  });
+
+  // The EU switches at 01:00 UTC on the last Sunday of March/October, i.e.
+  // long before midday, so the transition day itself already runs on the new
+  // offset by checkout time. 10:00 UTC is therefore *past* checkout on
+  // 2026-03-29 (already CEST) but *before* it on 2026-10-25 (back on CET).
+  describe("across the DST transitions", () => {
+    it("treats 10:00 UTC as midday on the spring-forward day (2026-03-29, CEST)", () => {
+      expect(
+        isPastCheckout("2026-03-29", new Date("2026-03-29T09:59:00Z")),
+      ).toBe(false);
+      expect(
+        isPastCheckout("2026-03-29", new Date("2026-03-29T10:00:00Z")),
+      ).toBe(true);
+    });
+
+    it("still needs 11:00 UTC on the fall-back day (2026-10-25, CET)", () => {
+      expect(
+        isPastCheckout("2026-10-25", new Date("2026-10-25T10:00:00Z")),
+      ).toBe(false);
+      expect(
+        isPastCheckout("2026-10-25", new Date("2026-10-25T11:00:00Z")),
+      ).toBe(true);
+    });
+  });
+
+  it("is false on the morning of the checkout day and true that afternoon", () => {
+    expect(isPastCheckout("2026-07-15", new Date("2026-07-15T06:00:00Z"))).toBe(
+      false,
+    );
+    expect(isPastCheckout("2026-07-15", new Date("2026-07-15T16:00:00Z"))).toBe(
+      true,
+    );
+  });
+
+  it("is false for any instant before the checkout day", () => {
+    // 22:00 UTC on the 14th is already the 15th in Paris (00:00 CEST) — but
+    // still midnight, not midday, so checkout has not happened.
+    expect(isPastCheckout("2026-07-15", new Date("2026-07-14T22:00:00Z"))).toBe(
+      false,
+    );
+    expect(isPastCheckout("2026-07-15", new Date("2026-07-10T12:00:00Z"))).toBe(
+      false,
+    );
+  });
+
+  it("is true for any instant well after the checkout day", () => {
+    expect(isPastCheckout("2026-07-15", new Date("2026-08-01T00:00:00Z"))).toBe(
+      true,
+    );
+  });
+
+  it("defaults `now` to the real current instant when omitted", () => {
+    const longPast = formatISO(subDays(new Date(), 30), {
+      representation: "date",
+    });
+    const farFuture = formatISO(addDays(new Date(), 30), {
+      representation: "date",
+    });
+    expect(isPastCheckout(longPast)).toBe(true);
+    expect(isPastCheckout(farFuture)).toBe(false);
+  });
+});
+
+describe("toDisplayStatus — lazy 'past' for ended stays", () => {
+  const END_DATE = "2026-07-15";
+  const BEFORE_CHECKOUT = new Date("2026-07-15T09:59:00Z"); // 11:59 Paris
+  const AT_CHECKOUT = new Date("2026-07-15T10:00:00Z"); // 12:00 Paris
+  const LONG_AFTER = new Date("2027-01-01T00:00:00Z");
+  // Keeps hold expiry out of the picture: these rows are about `past` only.
+  const NO_DEADLINE = null;
+
+  it("confirmed before midday Paris on endDate → confirmed", () => {
+    expect(
+      toDisplayStatus(
+        {
+          status: "confirmed",
+          paymentDeadline: NO_DEADLINE,
+          endDate: END_DATE,
+        },
+        undefined,
+        BEFORE_CHECKOUT,
+      ),
+    ).toBe("confirmed");
+  });
+
+  it("confirmed at midday Paris on endDate → past", () => {
+    expect(
+      toDisplayStatus(
+        {
+          status: "confirmed",
+          paymentDeadline: NO_DEADLINE,
+          endDate: END_DATE,
+        },
+        undefined,
+        AT_CHECKOUT,
+      ),
+    ).toBe("past");
+  });
+
+  it("confirmed long after checkout → past", () => {
+    expect(
+      toDisplayStatus(
+        {
+          status: "confirmed",
+          paymentDeadline: NO_DEADLINE,
+          endDate: END_DATE,
+        },
+        undefined,
+        LONG_AFTER,
+      ),
+    ).toBe("past");
+  });
+
+  it("deposit_paid stays deposit_paid long after checkout (an unpaid balance must not be hidden)", () => {
+    expect(
+      toDisplayStatus(
+        {
+          status: "deposit_paid",
+          paymentDeadline: NO_DEADLINE,
+          endDate: END_DATE,
+        },
+        undefined,
+        LONG_AFTER,
+      ),
+    ).toBe("deposit_paid");
+  });
+
+  it("no other status ages into past either", () => {
+    const statuses: DbBookingStatus[] = [
+      "requested",
+      "on_hold",
+      "deposit_paid",
+      "declined",
+      "cancelled",
+    ];
+    for (const status of statuses) {
+      expect(
+        toDisplayStatus(
+          { status, paymentDeadline: NO_DEADLINE, endDate: END_DATE },
+          undefined,
+          LONG_AFTER,
+        ),
+      ).toBe(status);
+    }
+  });
+
+  it("expiry wins over past: an expired hold whose dates have also gone by stays expired", () => {
+    expect(
+      toDisplayStatus(
+        {
+          status: "on_hold",
+          paymentDeadline: "2026-07-01",
+          endDate: END_DATE,
+        },
+        "2026-07-20",
+        LONG_AFTER,
+      ),
+    ).toBe("expired");
   });
 });
