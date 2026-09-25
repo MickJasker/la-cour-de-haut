@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<DisplayStatus, string> = {
   on_hold: "In afwachting",
   deposit_paid: "Aanbetaling voldaan",
   confirmed: "Bevestigd",
+  past: "Afgerond",
   declined: "Afgewezen",
   cancelled: "Geannuleerd",
   expired: "Verlopen",
@@ -45,6 +46,9 @@ const STATUS_COLORS: Record<DisplayStatus, string> = {
   on_hold: "bg-yellow-100 text-yellow-800",
   deposit_paid: "bg-teal-100 text-teal-800",
   confirmed: "bg-green-100 text-green-800",
+  // Neutral, like `declined` — a finished stay is simply nothing to act on,
+  // not a problem the way `expired` (orange) or `cancelled` (red) are.
+  past: "bg-stone-100 text-stone-500",
   declined: "bg-stone-100 text-stone-500",
   cancelled: "bg-red-100 text-red-700",
   expired: "bg-orange-100 text-orange-700",
@@ -56,6 +60,7 @@ const ALL_STATUSES: DisplayStatus[] = [
   "deposit_paid",
   "expired",
   "confirmed",
+  "past",
   "declined",
   "cancelled",
 ];
@@ -89,6 +94,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
     displayStatus: toDisplayStatus({
       status: r.status as DbBookingStatus,
       paymentDeadline: r.paymentDeadline,
+      endDate: r.endDate,
     }),
   }));
 
@@ -183,6 +189,12 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                 securityDeposit: borg,
               };
               const frozenSchedule = bookingPaymentSchedule(booking);
+              // `past` is a fully-paid `confirmed` booking that has aged out,
+              // so its schedule keeps the paid ticks — dropping them would
+              // read as an unpaid stay.
+              const balancePaid =
+                booking.displayStatus === "confirmed" ||
+                booking.displayStatus === "past";
               return (
                 <div
                   key={booking.id}
@@ -262,15 +274,14 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                             {eur.format(frozenSchedule.depositAmount)} — vóór{" "}
                             {frozenSchedule.depositDeadline}
                             {(booking.displayStatus === "deposit_paid" ||
-                              booking.displayStatus === "confirmed") &&
+                              balancePaid) &&
                               " ✓ voldaan"}
                           </p>
                           <p>
                             Restbetaling:{" "}
                             {eur.format(frozenSchedule.balanceAmount)} — vóór{" "}
                             {frozenSchedule.balanceDeadline}
-                            {booking.displayStatus === "confirmed" &&
-                              " ✓ voldaan"}
+                            {balancePaid && " ✓ voldaan"}
                           </p>
                         </>
                       )}
