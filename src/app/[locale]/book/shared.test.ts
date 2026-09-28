@@ -29,6 +29,7 @@ const validBooking = {
   postalCode: "14000",
   city: "Caen",
   country: "FR",
+  iban: "",
 };
 
 describe("createBookingFormSchema — phone", () => {
@@ -51,6 +52,53 @@ describe("createBookingFormSchema — phone", () => {
     expect(result.success).toBe(false);
     const phoneIssue = result.error?.issues.find((i) => i.path[0] === "phone");
     expect(phoneIssue?.message).toBe("fieldErrors.phone");
+  });
+});
+
+describe("createBookingFormSchema — iban", () => {
+  const schema = createBookingFormSchema(t, { requireIban: true });
+
+  it("accepts a valid IBAN", () => {
+    const result = schema.safeParse({
+      ...validBooking,
+      iban: "NL91ABNA0417164300",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a valid IBAN typed with spaces", () => {
+    const result = schema.safeParse({
+      ...validBooking,
+      iban: "NL91 ABNA 0417 1643 00",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty IBAN with the 'required' message", () => {
+    const result = schema.safeParse({ ...validBooking, iban: "" });
+    expect(result.success).toBe(false);
+    const ibanIssue = result.error?.issues.find((i) => i.path[0] === "iban");
+    expect(ibanIssue?.message).toBe("fieldErrors.required");
+  });
+
+  it("rejects a malformed IBAN with the 'invalid' message", () => {
+    const result = schema.safeParse({
+      ...validBooking,
+      iban: "NL00ABNA0417164300",
+    });
+    expect(result.success).toBe(false);
+    const ibanIssue = result.error?.issues.find((i) => i.path[0] === "iban");
+    expect(ibanIssue?.message).toBe("fieldErrors.iban");
+  });
+
+  it("does not require iban when requireIban is false", () => {
+    // The schema requires the `iban` key to be present (an empty string is
+    // fine) — the form always submits it via a hidden input when the visible
+    // field isn't rendered (see book-form.tsx), so the key is never actually
+    // missing from real submissions.
+    const laxSchema = createBookingFormSchema(t);
+    const result = laxSchema.safeParse(validBooking);
+    expect(result.success).toBe(true);
   });
 });
 

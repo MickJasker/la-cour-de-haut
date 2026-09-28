@@ -13,6 +13,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -47,6 +48,7 @@ import { createBookingFormSchema } from "@/app/[locale]/book/shared";
 import { computePaymentSchedule } from "@/lib/booking/payment-schedule";
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { friendlyFormatIBAN } from "ibantools";
 import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 
 export function BookForm({
@@ -86,7 +88,9 @@ export function BookForm({
       country: LOCALE_DEFAULT_COUNTRY[locale] ?? "",
     },
     validators: {
-      onDynamic: createBookingFormSchema(t),
+      onDynamic: createBookingFormSchema(t, {
+        requireIban: paymentConfig.securityDeposit > 0,
+      }),
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -617,6 +621,56 @@ export function BookForm({
               )}
             </form.Field>
           </FieldSet>
+
+          <form.Field name="iban">
+            {(field) =>
+              paymentConfig.securityDeposit > 0 ? (
+                <FieldSet>
+                  <Field>
+                    <FieldLabel htmlFor="iban">{t("form.iban")}</FieldLabel>
+                    <Input
+                      id="iban"
+                      type="text"
+                      name={field.name}
+                      value={field.state.value}
+                      onChange={(e) => {
+                        const input = e.target;
+                        const upper = input.value.toUpperCase();
+                        // Only re-group into "XX00 0000 ..." while typing at
+                        // the end — regrouping mid-edit would shift the
+                        // spaces out from under the cursor. A mid-string edit
+                        // is cleaned up on blur instead (below), or as soon
+                        // as the guest resumes typing at the end.
+                        const atEnd =
+                          input.selectionStart === input.value.length;
+                        field.handleChange(
+                          atEnd ? (friendlyFormatIBAN(upper) ?? upper) : upper,
+                        );
+                      }}
+                      onBlur={(e) => {
+                        field.handleChange(
+                          friendlyFormatIBAN(e.target.value) ?? e.target.value,
+                        );
+                        field.handleBlur();
+                      }}
+                    />
+                    <FieldDescription>{t("form.ibanHelper")}</FieldDescription>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                </FieldSet>
+              ) : (
+                // No security deposit configured: the field isn't shown, but a
+                // hidden input still submits its (empty) value so the server
+                // action always receives an `iban` key — createBookingFormSchema
+                // requires the key to be present even when it isn't required.
+                <input
+                  type="hidden"
+                  name={field.name}
+                  value={field.state.value}
+                />
+              )
+            }
+          </form.Field>
 
           {/* -bottom-10 cancels the dialog scroll container's pb-10: sticky
               offsets resolve against the scrollport's content box, so without

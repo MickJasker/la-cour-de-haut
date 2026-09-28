@@ -56,6 +56,7 @@
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
     "happy-dom": "^20.10.6",
+    "ibantools": "^4.5.4",
     "intl-messageformat": "^11.2.9",
     "lexical": "^0.46.0",
     "libphonenumber-js": "^1.13.8",

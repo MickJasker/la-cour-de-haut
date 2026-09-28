@@ -224,6 +224,7 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                           {booking.postalCode} {booking.city}
                         </p>
                         <p>{getCountryName(booking.country, "nl")}</p>
+                        {booking.iban && <p>IBAN: {booking.iban}</p>}
                       </div>
                       <p className="text-sm text-stone-500">
                         Prijs per nacht bij boeking: €

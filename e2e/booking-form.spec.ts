@@ -6,6 +6,21 @@ async function deleteTestSubmissions() {
   await sql`DELETE FROM booking_request WHERE email = 'test@example.com'`;
 }
 
+// security_deposit_amount is a *global* setting other spec files (and this
+// file's own "payment-schedule breakdown" block) mutate concurrently in other
+// workers — a leaked non-zero value makes IBAN required (issue #195). Fill it
+// defensively whenever it happens to be present, so tests that don't care
+// about the borg-or-not precondition stay robust to that cross-file race
+// rather than asserting on an ambient global they don't control.
+async function fillIbanIfPresent(
+  page: import("@playwright/test").Page,
+): Promise<void> {
+  const iban = page.getByLabel("IBAN");
+  if (await iban.isVisible().catch(() => false)) {
+    await iban.fill("NL91ABNA0417164300");
+  }
+}
+
 test.describe("booking form — standalone page (/nl/book)", () => {
   // "valid submission" test creates a real booking_request row — clean it up so
   // parallel workers don't see a stray requested booking on /admin/bookings.
@@ -62,6 +77,7 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     // defaults to NL on /nl → +31) so only the email is invalid below.
     await page.getByLabel("Telefoonnummer").fill("0612345678");
     await page.getByLabel("E-mailadres").fill("notanemail");
+    await fillIbanIfPresent(page);
     await page.getByRole("button", { name: "Boek nu" }).click();
 
     await expect(
@@ -83,6 +99,7 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
     await page.getByLabel("Postcode").fill("1234 AB");
     await page.getByLabel("Woonplaats").fill("Testdorp");
+    await fillIbanIfPresent(page);
 
     // Use aria-label selectors for unambiguous date targeting — nth() is fragile
     // after re-renders because react-day-picker may shift indices.
@@ -240,6 +257,39 @@ test.describe("booking form — long-stay discount", () => {
   });
 });
 
+test.describe("booking form — IBAN field (issue #195)", () => {
+  // Explicitly controls security_deposit_amount rather than relying on the
+  // ambient post-TRUNCATE default — that global setting is also mutated by
+  // this file's own "payment-schedule breakdown" block and by
+  // booking-lifecycle.spec.ts in other workers, so a test asserting the
+  // field is *absent* needs its own deterministic precondition.
+  test.afterEach(async () => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
+      ON CONFLICT (key) DO UPDATE SET value = '0'
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+  });
+
+  test("hidden when no security deposit is configured", async ({ page }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
+      ON CONFLICT (key) DO UPDATE SET value = '0'
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    await expect(page.getByLabel("IBAN")).not.toBeVisible();
+  });
+});
+
 test.describe("booking form — modal", () => {
   test("form fields are present inside the booking dialog", async ({
     page,
@@ -280,6 +330,13 @@ test.describe("booking form — payment-schedule breakdown", () => {
     await fetch("http://localhost:3000/api/dev/revalidate/settings", {
       method: "POST",
     });
+  });
+
+  test.afterEach(async () => {
+    // Unconditional (not inline after the assertions) so a stray row can't
+    // leak into other specs' /admin/bookings view if the test fails partway.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`DELETE FROM booking_request WHERE email = 'test-iban@example.com'`;
   });
 
   test.afterAll(async () => {
@@ -394,5 +451,35 @@ test.describe("booking form — payment-schedule breakdown", () => {
     await expect(page.getByText("ontvangt u na afloop")).toBeVisible();
     // The 50/50 split must NOT appear for a short-notice schedule.
     await expect(page.getByText("Aanbetaling (50%)")).toHaveCount(0);
+  });
+
+  test("IBAN field is shown and a valid submission (incl. IBAN) succeeds when a security deposit applies (issue #195)", async ({
+    page,
+  }) => {
+    await page.goto("/nl/book");
+    await expect(page.getByRole("grid")).toBeVisible();
+    await expect(page.getByLabel("IBAN")).toBeVisible();
+
+    await page.getByLabel("Voor- en achternaam").fill("Test Gebruiker");
+    await page.getByLabel("E-mailadres").fill("test-iban@example.com");
+    await page.getByLabel("Telefoonnummer").fill("0612345678");
+    await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
+    await page.getByLabel("Postcode").fill("1234 AB");
+    await page.getByLabel("Woonplaats").fill("Testdorp");
+    // Typed lowercase/with spaces — validated and normalized regardless.
+    await page.getByLabel("IBAN").fill("nl91 abna 0417 1643 00");
+
+    await selectRange(page, 30, 4);
+    await page.getByRole("button", { name: "Boek nu" }).click();
+
+    await expect(page.getByText("Bedankt voor uw boeking")).toBeVisible({
+      timeout: 15000,
+    });
+
+    const sql = neon(process.env.DATABASE_URL!);
+    const [row] = await sql`
+      SELECT iban FROM booking_request WHERE email = 'test-iban@example.com'
+    `;
+    expect(row?.iban).toBe("NL91ABNA0417164300");
   });
 });

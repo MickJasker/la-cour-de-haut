@@ -69,6 +69,8 @@
       "countryPlaceholder": "Selecteer een land",
       "countrySearchPlaceholder": "Zoek een land...",
       "countryEmpty": "Geen land gevonden",
+      "iban": "IBAN",
+      "ibanHelper": "Wordt uitsluitend gebruikt om de borg na afloop van je verblijf terug te storten.",
       "price": "Prijs",
       "paymentSchedule": {
         "heading": "Betaling in termijnen",
@@ -84,6 +86,7 @@
       "required": "Dit veld is verplicht",
       "email": "Voer een geldig e-mailadres in",
       "phone": "Voer een geldig telefoonnummer in",
+      "iban": "Voer een geldig IBAN-nummer in",
       "dateRange": "De uitcheckdatum moet na de incheckdatum liggen",
       "guestCount": "Aantal gasten moet 1 of 2 zijn",
       "minNights": "Selecteer minimaal 2 data voor een minimumverblijf van 1 nacht",

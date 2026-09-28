@@ -104,6 +104,9 @@ importers:
       happy-dom:
         specifier: ^20.10.6
         version: 20.10.6
+      ibantools:
+        specifier: ^4.5.4
+        version: 4.5.4
       intl-messageformat:
         specifier: ^11.2.9
         version: 11.2.9
@@ -3787,6 +3790,7 @@ packages:
   eslint@9.39.4:
     resolution: {integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -4083,6 +4087,9 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  ibantools@4.5.4:
+    resolution: {integrity: sha512-6jX1gh4aH6XH+o0ey+wtkMTzkcvsEta7DakIOZSng9voZYpMw3U+gK1+tZChk3aRcPcloEt0NOzksjaRZiqXbw==}
 
   iconv-lite@0.4.24:
     resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
@@ -9139,6 +9146,8 @@ snapshots:
       - supports-color
 
   human-signals@2.1.0: {}
+
+  ibantools@4.5.4: {}
 
   iconv-lite@0.4.24:
     dependencies:

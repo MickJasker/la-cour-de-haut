@@ -2,6 +2,7 @@ import { formOptions } from "@tanstack/react-form-nextjs";
 import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js/min";
 import { isValidCountryCode } from "@/lib/countries";
+import { isValidIBAN, electronicFormatIBAN } from "ibantools";
 import {
   type PaymentSchedule,
   type PaymentScheduleSettings,
@@ -21,9 +22,13 @@ export const formOpts = formOptions({
     postalCode: "",
     city: "",
     country: "",
+    iban: "",
   },
 });
-export function createBookingFormSchema(t: (key: string) => string) {
+export function createBookingFormSchema(
+  t: (key: string) => string,
+  { requireIban = false }: { requireIban?: boolean } = {},
+) {
   return z.object({
     name: z.string().min(2, t("fieldErrors.required")),
     email: z.email(t("fieldErrors.email")),
@@ -86,6 +91,15 @@ export function createBookingFormSchema(t: (key: string) => string) {
       .string()
       .min(1, t("fieldErrors.required"))
       .refine(isValidCountryCode, t("fieldErrors.required")),
+    iban: requireIban
+      ? z
+          .string()
+          .min(1, t("fieldErrors.required"))
+          .refine(
+            (value) => isValidIBAN(electronicFormatIBAN(value) ?? ""),
+            t("fieldErrors.iban"),
+          )
+      : z.string(),
   });
 }
 

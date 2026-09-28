@@ -53,6 +53,26 @@ test.describe("booking lifecycle — full admin funnel", () => {
     });
   });
 
+  test.afterEach(async () => {
+    // seedBankDetails() sets security_deposit_amount to '200' (this block's own
+    // tests rely on a non-zero borg), which is a *global* setting other spec
+    // files' booking-form submissions read concurrently in other workers —
+    // e.g. booking-form.spec.ts's default-state tests expect no IBAN field
+    // (issue #195). Reset it here so a leaked '200' doesn't outlive this
+    // block's own test run, mirroring the restore-the-seed-default pattern in
+    // booking-form.spec.ts's payment-schedule-breakdown block. This narrows
+    // the cross-file race window but can't eliminate it outright — the two
+    // files can still run concurrently mid-test.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
+      ON CONFLICT (key) DO UPDATE SET value = '0'
+    `;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+  });
+
   test("guest submits form → request appears in inbox with status 'requested'", async ({
     page,
   }) => {
@@ -66,6 +86,9 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await page.getByLabel("Straat en huisnummer").fill("Teststraat 1");
     await page.getByLabel("Postcode").fill("1234 AB");
     await page.getByLabel("Woonplaats").fill("Testdorp");
+    // seedBankDetails() sets security_deposit_amount to '200', so the IBAN
+    // field is required (issue #195).
+    await page.getByLabel("IBAN").fill("NL91ABNA0417164300");
 
     const dutchDays = [
       "zondag",

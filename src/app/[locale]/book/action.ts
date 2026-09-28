@@ -7,6 +7,7 @@ import {
 import { getTranslations } from "@/i18n/server";
 import { waitUntil } from "@vercel/functions";
 import { Resend } from "resend";
+import { electronicFormatIBAN } from "ibantools";
 import {
   calculateTotalNights,
   calculateTourismTax,
@@ -28,8 +29,12 @@ const serverValidate = createServerValidate({
     const rawLocale = (value as { _locale?: string })._locale;
     const locale = hasLocale(rawLocale) ? rawLocale : defaultLocale;
     const t = await getTranslations({ locale, namespace: "booking" });
-    const schema = createBookingFormSchema((key) =>
-      t(key as Parameters<typeof t>[0]),
+    const settings = await import("@/lib/settings/settings");
+    const s = await settings.getSettings();
+    const requireIban = settings.securityDepositAmount(s) > 0;
+    const schema = createBookingFormSchema(
+      (key) => t(key as Parameters<typeof t>[0]),
+      { requireIban },
     );
     const result = schema.safeParse(value);
     if (!result.success) {
@@ -210,6 +215,7 @@ export async function submitBookingAction(
       postalCode: data.postalCode,
       city: data.city,
       country: data.country,
+      iban: data.iban ? electronicFormatIBAN(data.iban) : null,
       guestCount: parseInt(data.guestCount),
       locale,
       startDate: data.stayDates.from,
