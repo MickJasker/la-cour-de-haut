@@ -638,16 +638,21 @@ export function BookForm({
                         const upper = input.value.toUpperCase();
                         // Only re-group into "XX00 0000 ..." while typing at
                         // the end — regrouping mid-edit would shift the
-                        // spaces out from under the cursor. It self-corrects
-                        // (friendlyFormatIBAN regroups from scratch) the next
-                        // time the guest resumes typing at the end.
+                        // spaces out from under the cursor. A mid-string edit
+                        // is cleaned up on blur instead (below), or as soon
+                        // as the guest resumes typing at the end.
                         const atEnd =
                           input.selectionStart === input.value.length;
                         field.handleChange(
                           atEnd ? (friendlyFormatIBAN(upper) ?? upper) : upper,
                         );
                       }}
-                      onBlur={field.handleBlur}
+                      onBlur={(e) => {
+                        field.handleChange(
+                          friendlyFormatIBAN(e.target.value) ?? e.target.value,
+                        );
+                        field.handleBlur();
+                      }}
                     />
                     <FieldDescription>{t("form.ibanHelper")}</FieldDescription>
                     <FieldError errors={field.state.meta.errors} />
