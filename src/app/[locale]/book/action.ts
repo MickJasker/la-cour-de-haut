@@ -261,13 +261,8 @@ export async function getPricePerNightAction(): Promise<number> {
   return price_per_night ?? 0;
 }
 
-/**
- * The knobs the booking form needs to preview the two-stage payment schedule
- * (issue #167): the same percentage / deadline / borg settings the confirm
- * transition feeds to `computePaymentSchedule`, read server-side like the
- * nightly price. The form computes the live schedule client-side from these,
- * so the preview can never contradict the eventual bank-transfer email.
- */
+// Same settings the confirm transition feeds to `computePaymentSchedule`, so
+// the client-computed preview can never contradict the eventual bank-transfer email.
 export async function getPaymentScheduleConfigAction(): Promise<BookingPaymentConfig> {
   const settings = await import("@/lib/settings/settings");
   const s = await settings.getSettings();
