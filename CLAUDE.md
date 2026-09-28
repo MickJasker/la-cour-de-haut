@@ -6,6 +6,7 @@ Gîte vacation-rental site (Normandy) — an **inquiry-and-confirmation funnel**
 
 - **Domain model, booking lifecycle, iCal sync, i18n** → read `CONTEXT.md` first.
 - **Why things are the way they are** → `docs/adr/`.
+- **Code-level conventions (naming, React patterns, comments, caching, i18n nav)** → `CODING_STANDARDS.md`.
 - **Stack:** Next.js 16 (App Router) · React 19 · Drizzle ORM + Neon Postgres · Better Auth · Tailwind · native i18n (no next-intl). Package manager: **pnpm**.
 
 ## Pre-Commit / CI Checklist
