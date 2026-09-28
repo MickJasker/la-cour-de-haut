@@ -13,6 +13,7 @@ import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import {
   Field,
+  FieldDescription,
   FieldError,
   FieldGroup,
   FieldLabel,
@@ -86,7 +87,9 @@ export function BookForm({
       country: LOCALE_DEFAULT_COUNTRY[locale] ?? "",
     },
     validators: {
-      onDynamic: createBookingFormSchema(t),
+      onDynamic: createBookingFormSchema(t, {
+        requireIban: paymentConfig.securityDeposit > 0,
+      }),
     },
     validationLogic: revalidateLogic({
       mode: "submit",
@@ -617,6 +620,38 @@ export function BookForm({
               )}
             </form.Field>
           </FieldSet>
+
+          <form.Field name="iban">
+            {(field) =>
+              paymentConfig.securityDeposit > 0 ? (
+                <FieldSet>
+                  <Field>
+                    <FieldLabel htmlFor="iban">{t("form.iban")}</FieldLabel>
+                    <Input
+                      id="iban"
+                      type="text"
+                      name={field.name}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      onBlur={field.handleBlur}
+                    />
+                    <FieldDescription>{t("form.ibanHelper")}</FieldDescription>
+                    <FieldError errors={field.state.meta.errors} />
+                  </Field>
+                </FieldSet>
+              ) : (
+                // No security deposit configured: the field isn't shown, but a
+                // hidden input still submits its (empty) value so the server
+                // action always receives an `iban` key — createBookingFormSchema
+                // requires the key to be present even when it isn't required.
+                <input
+                  type="hidden"
+                  name={field.name}
+                  value={field.state.value}
+                />
+              )
+            }
+          </form.Field>
 
           {/* -bottom-10 cancels the dialog scroll container's pb-10: sticky
               offsets resolve against the scrollport's content box, so without

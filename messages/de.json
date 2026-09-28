@@ -69,6 +69,8 @@
       "countryPlaceholder": "Land auswählen",
       "countrySearchPlaceholder": "Land suchen...",
       "countryEmpty": "Kein Land gefunden",
+      "iban": "IBAN",
+      "ibanHelper": "Wird ausschließlich verwendet, um Ihnen die Kaution nach Ihrem Aufenthalt zurückzuerstatten.",
       "price": "Preis",
       "paymentSchedule": {
         "heading": "Zahlung in Raten",
@@ -84,6 +86,7 @@
       "required": "Dieses Feld ist erforderlich",
       "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein",
       "phone": "Bitte geben Sie eine gültige Telefonnummer ein",
+      "iban": "Geben Sie eine gültige IBAN ein",
       "dateRange": "Das Abreisedatum muss nach dem Anreisedatum liegen",
       "guestCount": "Die Anzahl der Gäste muss 1 oder 2 sein",
       "minNights": "Wählen Sie mindestens 2 Daten für einen Mindestaufenthalt von 1 Nacht aus",

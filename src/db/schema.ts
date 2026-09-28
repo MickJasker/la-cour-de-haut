@@ -141,6 +141,8 @@ export const bookingRequest = pgTable("booking_request", {
   postalCode: text("postal_code").notNull(),
   city: text("city").notNull(),
   country: text("country").notNull(),
+  // Guest's IBAN, captured on the inquiry form when a security deposit applies (issue #195) — used to return the borg after the stay.
+  iban: text("iban"),
   locale: text("locale").notNull().default("nl"),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
