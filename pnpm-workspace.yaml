@@ -7,6 +7,13 @@ trustPolicyExclude:
   - semver@6.3.1
   - eslint-import-resolver-typescript@3.10.1
 
+# @vercel/oidc lost its npm provenance attestation as of 3.8.2 (2026-08-03)
+# and every release since; pin to the last attested version until that's
+# resolved upstream. Same publish timestamp as the @vercel/functions
+# provenance loss pinned in package.json — likely one release-pipeline change.
+overrides:
+  "@vercel/oidc": "3.8.1"
+
 packages:
   - .
 
