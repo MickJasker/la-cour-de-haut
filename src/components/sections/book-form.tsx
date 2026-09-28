@@ -48,6 +48,7 @@ import { createBookingFormSchema } from "@/app/[locale]/book/shared";
 import { computePaymentSchedule } from "@/lib/booking/payment-schedule";
 import { CountryCombobox } from "@/components/ui/country-combobox";
 import { PhoneInput } from "@/components/ui/phone-input";
+import { friendlyFormatIBAN } from "ibantools";
 import { LOCALE_DEFAULT_COUNTRY } from "@/lib/countries";
 
 export function BookForm({
@@ -632,7 +633,20 @@ export function BookForm({
                       type="text"
                       name={field.name}
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
+                      onChange={(e) => {
+                        const input = e.target;
+                        const upper = input.value.toUpperCase();
+                        // Only re-group into "XX00 0000 ..." while typing at
+                        // the end — regrouping mid-edit would shift the
+                        // spaces out from under the cursor. It self-corrects
+                        // (friendlyFormatIBAN regroups from scratch) the next
+                        // time the guest resumes typing at the end.
+                        const atEnd =
+                          input.selectionStart === input.value.length;
+                        field.handleChange(
+                          atEnd ? (friendlyFormatIBAN(upper) ?? upper) : upper,
+                        );
+                      }}
                       onBlur={field.handleBlur}
                     />
                     <FieldDescription>{t("form.ibanHelper")}</FieldDescription>
