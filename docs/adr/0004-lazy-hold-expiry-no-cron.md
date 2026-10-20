@@ -17,3 +17,7 @@ Hold expiry is checked lazily. When the availability calendar is rendered, the o
 - Simpler infrastructure; no Vercel Cron configuration needed.
 - Dates are released from the export feed as soon as any read triggers the expiry check — in practice within minutes, since platforms poll the feed regularly.
 - If guaranteed prompt expiry is ever required (e.g. owner wants a nightly sweep with an email notification), a single daily cron job can be added without any schema changes.
+
+## Addendum: an expired hold is not terminal
+
+An expired hold can still be marked paid as a **late payment** (the normal mark-paid actions: collapsed → `confirmed`, two-stage → `deposit_paid`). Because its dates were already released, the transition first checks `isRangeAvailable` for the stay, and only for an expired hold. No self-exclusion is needed, because expired holds are already left out of busy intervals. If anything has claimed the dates in the meantime, the payment is refused before any write or email, so a revived hold can never double-book them. On-time payments skip the check. The frozen payment schedule is left as it is.
