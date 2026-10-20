@@ -111,7 +111,7 @@ export function BookingActions({
           </Button>
         </div>
         {paymentState?.ok === false && (
-          <p role="alert" className="text-xs text-red-600">
+          <p role="alert" className="max-w-xs text-right text-xs text-red-600">
             {paymentState.error}
           </p>
         )}

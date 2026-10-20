@@ -24,7 +24,7 @@ A single person who manages the property. They:
 requested ──(confirm)──► on_hold ──(deposit paid)──► deposit_paid ──(balance paid)──► confirmed
     │                       │                              │
     │                       └─(deposit deadline passes)──► expired ──► dates released
-    │                                                         └─(late payment, dates still free)──► deposit_paid / confirmed
+    │                       │                              └─(late payment, dates still free)──► deposit_paid / confirmed
     │                       └─(collapse: single payment)──────────────► confirmed
     └─(owner declines)──► declined
                 on_hold / deposit_paid / confirmed ──(owner cancels)──► cancelled ──► dates released

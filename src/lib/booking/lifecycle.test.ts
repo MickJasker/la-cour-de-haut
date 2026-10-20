@@ -671,7 +671,13 @@ describe("applyTransition — late payment on an expired hold", () => {
   ] as const)(
     "does not run the availability guard for %s on a non-expired on_hold — the hold still owns its dates",
     async (action, snapshot) => {
-      const row = { ...baseBooking, status: "on_hold", ...snapshot };
+      // Far-future deadline: the hold must stay non-expired whatever today is.
+      const row = {
+        ...baseBooking,
+        status: "on_hold",
+        ...snapshot,
+        paymentDeadline: "2099-12-31",
+      };
       const db = makeMockDb([row]);
       (getDb as Mock).mockReturnValue(db);
       // Would refuse if consulted: proves the on-time path never asks.

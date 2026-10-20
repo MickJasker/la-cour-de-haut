@@ -29,8 +29,8 @@ async function seedExpiredHold() {
       'jan@example.com',
       2,
       'nl',
-      '2027-08-01',
-      '2027-08-08',
+      (now() + interval '200 days')::date,
+      (now() + interval '207 days')::date,
       'on_hold',
       now() - interval '10 days',
       (now() - interval '2 days')::date,
@@ -366,12 +366,12 @@ test.describe("booking lifecycle — full admin funnel", () => {
         'laat@example.com',
         2,
         'nl',
-        '2028-07-01',
-        '2028-07-08',
+        '2029-03-01',
+        '2029-03-08',
         'on_hold',
         now() - interval '10 days',
         (now() - interval '2 days')::date,
-        false, 700, 900, '2028-06-24', 200,
+        false, 700, 900, '2029-02-22', 200,
         now() - interval '10 days',
         200, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL'
       )
@@ -398,7 +398,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     const sql = neon(process.env.DATABASE_URL!);
     await sql`
       INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, created_at, shown_price_at_booking, address, postal_code, city, country)
-      VALUES ('took-dates-1', 'Nieuwe Gast', 'nieuw@example.com', 2, 'nl', '2027-08-03', '2027-08-06', 'confirmed', now(), now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+      VALUES ('took-dates-1', 'Nieuwe Gast', 'nieuw@example.com', 2, 'nl', (now() + interval '202 days')::date, (now() + interval '205 days')::date, 'confirmed', now(), now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
     await page.goto("/admin/bookings");
