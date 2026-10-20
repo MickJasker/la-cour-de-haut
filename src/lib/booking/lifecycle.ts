@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import {
+  isExpiredHold,
   transition,
   type BookingAction,
   type DbBookingStatus,
@@ -32,6 +33,20 @@ import {
   calculatePriceBreakdown,
   calculateTotalNights,
 } from "@/app/[locale]/book/shared";
+
+/**
+ * A late payment on an expired hold whose released dates have since been
+ * taken. An expected owner-facing outcome, not a failure — thrown before any
+ * DB write or email so callers can map it to an inline message.
+ */
+export class LatePaymentDatesTakenError extends Error {
+  constructor() {
+    super(
+      "The hold expired and its dates have since been taken — this late payment can't be recorded.",
+    );
+    this.name = "LatePaymentDatesTakenError";
+  }
+}
 
 async function fetchBooking(id: string) {
   const db = getDb();
@@ -76,6 +91,18 @@ export async function applyTransition(
   let cancellationEmailParams:
     Parameters<typeof sendCancellationEmail>[0] | undefined;
   let declineEmailParams: Parameters<typeof sendDeclineEmail>[0] | undefined;
+
+  // An expired hold already released its dates (ADR-0004), so a late payment
+  // may only revive it if nothing else has claimed them since. Expired holds
+  // are excluded from busy intervals, so the booking never conflicts with
+  // itself; an on-time payment still holds its dates and skips the check.
+  if (
+    (action === "mark_paid" || action === "mark_deposit_paid") &&
+    isExpiredHold(booking) &&
+    !(await isRangeAvailable(booking.startDate, booking.endDate))
+  ) {
+    throw new LatePaymentDatesTakenError();
+  }
 
   if (action === "mark_deposit_paid") {
     // The deposit-received receipt restates the balance leg + repeats bank

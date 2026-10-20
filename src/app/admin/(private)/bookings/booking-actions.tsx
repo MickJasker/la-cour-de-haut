@@ -1,5 +1,5 @@
 "use client";
-import { useTransition } from "react";
+import { useActionState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import {
   declineBookingAction,
@@ -7,6 +7,7 @@ import {
   markBalancePaidBookingAction,
   markPaidBookingAction,
   cancelBookingAction,
+  type MarkPaymentActionState,
 } from "./actions";
 import { ConfirmDialog, type ConfirmSchedulePreview } from "./confirm-dialog";
 import type { DisplayStatus } from "@/lib/booking/machine";
@@ -35,6 +36,13 @@ export function BookingActions({
   schedulePreview,
 }: Props) {
   const [isPending, startTransition] = useTransition();
+  const [paymentState, markPayment, isMarkingPayment] = useActionState(
+    (
+      _prev: MarkPaymentActionState | null,
+      fn: (id: string) => Promise<MarkPaymentActionState>,
+    ) => fn(bookingId),
+    null,
+  );
 
   function action(fn: (id: string) => Promise<void>) {
     startTransition(() => fn(bookingId));
@@ -68,33 +76,45 @@ export function BookingActions({
     );
   }
 
-  if (displayStatus === "on_hold") {
+  // An expired hold takes the same actions: a late payment is recorded like
+  // an on-time one, and the server refuses it if the dates were taken since.
+  if (displayStatus === "on_hold" || displayStatus === "expired") {
     // A collapsed booking (or a legacy hold with no snapshot) is a single
     // payment → confirmed. A two-stage booking marks the deposit first.
     const isCollapsed = paymentCollapsed !== false;
+    const busy = isPending || isMarkingPayment;
     return (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          disabled={isPending}
-          onClick={() =>
-            action(
-              isCollapsed
-                ? markPaidBookingAction
-                : markDepositPaidBookingAction,
-            )
-          }
-        >
-          {isCollapsed ? "Betaald markeren" : "Aanbetaling markeren"}
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={isPending}
-          onClick={() => action(cancelBookingAction)}
-        >
-          Annuleren
-        </Button>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() =>
+              startTransition(() =>
+                markPayment(
+                  isCollapsed
+                    ? markPaidBookingAction
+                    : markDepositPaidBookingAction,
+                ),
+              )
+            }
+          >
+            {isCollapsed ? "Betaald markeren" : "Aanbetaling markeren"}
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => action(cancelBookingAction)}
+          >
+            Annuleren
+          </Button>
+        </div>
+        {paymentState?.ok === false && (
+          <p role="alert" className="text-xs text-red-600">
+            {paymentState.error}
+          </p>
+        )}
       </div>
     );
   }

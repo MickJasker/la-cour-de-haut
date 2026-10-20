@@ -46,7 +46,7 @@ import { sendBalanceReceivedEmail } from "./balance-received-email";
 import { sendCancellationEmail } from "./cancellation-email";
 import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
-import { applyTransition } from "./lifecycle";
+import { applyTransition, LatePaymentDatesTakenError } from "./lifecycle";
 
 // Booking runs 2027-09-01 → 2027-09-07 (6 nights), far enough out that the
 // schedule never collapses.
@@ -593,6 +593,96 @@ describe("applyTransition — mark_paid (collapse path)", () => {
       securityDeposit: 0,
     });
   });
+});
+
+describe("applyTransition — late payment on an expired hold", () => {
+  // Still stored as on_hold; the deposit deadline has passed, so it displays
+  // as expired and its dates are already released.
+  const EXPIRED_DEADLINE = { paymentDeadline: "2020-01-01" };
+
+  it("moves an expired collapsed hold to confirmed when the dates are still free", async () => {
+    const row = {
+      ...baseBooking,
+      status: "on_hold",
+      ...collapsedSnapshot,
+      ...EXPIRED_DEADLINE,
+    };
+    const db = makeMockDb([row]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await applyTransition("bk-1", "mark_paid");
+
+    expect(isRangeAvailable).toHaveBeenCalledWith(
+      baseBooking.startDate,
+      baseBooking.endDate,
+    );
+    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledOnce();
+  });
+
+  it("moves an expired two-stage hold to deposit_paid when the dates are still free, leaving the frozen schedule untouched", async () => {
+    const row = {
+      ...baseBooking,
+      status: "on_hold",
+      ...twoStageSnapshot,
+      ...EXPIRED_DEADLINE,
+    };
+    const db = makeMockDb([row]);
+    (getDb as Mock).mockReturnValue(db);
+
+    await applyTransition("bk-1", "mark_deposit_paid");
+
+    expect(isRangeAvailable).toHaveBeenCalledWith(
+      baseBooking.startDate,
+      baseBooking.endDate,
+    );
+    expect(db._set).toHaveBeenCalledWith({ status: "deposit_paid" });
+    expect(sendDepositReceivedEmail).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    ["mark_paid", collapsedSnapshot],
+    ["mark_deposit_paid", twoStageSnapshot],
+  ] as const)(
+    "refuses %s with LatePaymentDatesTakenError and changes nothing when the released dates were taken",
+    async (action, snapshot) => {
+      const row = {
+        ...baseBooking,
+        status: "on_hold",
+        ...snapshot,
+        ...EXPIRED_DEADLINE,
+      };
+      const db = makeMockDb([row]);
+      (getDb as Mock).mockReturnValue(db);
+      (isRangeAvailable as Mock).mockResolvedValue(false);
+
+      await expect(applyTransition("bk-1", action)).rejects.toBeInstanceOf(
+        LatePaymentDatesTakenError,
+      );
+      expect(db.update).not.toHaveBeenCalled();
+      expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
+      expect(sendBalanceReceivedEmail).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["mark_paid", collapsedSnapshot],
+    ["mark_deposit_paid", twoStageSnapshot],
+  ] as const)(
+    "does not run the availability guard for %s on a non-expired on_hold — the hold still owns its dates",
+    async (action, snapshot) => {
+      const row = { ...baseBooking, status: "on_hold", ...snapshot };
+      const db = makeMockDb([row]);
+      (getDb as Mock).mockReturnValue(db);
+      // Would refuse if consulted: proves the on-time path never asks.
+      (isRangeAvailable as Mock).mockResolvedValue(false);
+
+      await applyTransition("bk-1", action);
+
+      expect(isRangeAvailable).not.toHaveBeenCalled();
+      expect(db._set).toHaveBeenCalledOnce();
+    },
+  );
 });
 
 describe("applyTransition — cancel", () => {

@@ -322,11 +322,100 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await expect(
       page.locator("span").filter({ hasText: /^Verlopen$/ }),
     ).toBeVisible();
-    // Expired holds have no action buttons — scoped to the card to avoid matching sidebar buttons
+    // An expired hold keeps the on_hold actions so a late payment can still
+    // be recorded — scoped to the card to avoid matching sidebar buttons.
+    // The seeded row has no snapshot, so it is treated as collapsed.
     const expiredCard = page
       .locator("div.border")
       .filter({ hasText: "Jan Expired" });
-    await expect(expiredCard.getByRole("button")).not.toBeVisible();
+    await expect(
+      expiredCard.getByRole("button", { name: "Betaald markeren" }),
+    ).toBeVisible();
+    await expect(
+      expiredCard.getByRole("button", { name: "Annuleren" }),
+    ).toBeVisible();
+  });
+
+  test("late payment on an expired hold with free dates → status becomes 'Confirmed'", async ({
+    page,
+  }) => {
+    await seedExpiredHold();
+
+    await page.goto("/admin/bookings");
+    const card = page.locator("div.border").filter({ hasText: "Jan Expired" });
+    await expect(
+      card.locator("span").filter({ hasText: /^Verlopen$/ }),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Betaald markeren" }).click();
+
+    await expect(
+      card.locator("span").filter({ hasText: /^Bevestigd$/ }),
+    ).toBeVisible();
+  });
+
+  test("late deposit on an expired two-stage hold → status becomes 'Deposit paid'", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, payment_deadline, payment_collapsed, deposit_amount, balance_amount, balance_deadline, security_deposit_at_booking, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES (
+        'expired-two-stage-1',
+        'Laat Betaler',
+        'laat@example.com',
+        2,
+        'nl',
+        '2028-07-01',
+        '2028-07-08',
+        'on_hold',
+        now() - interval '10 days',
+        (now() - interval '2 days')::date,
+        false, 700, 900, '2028-06-24', 200,
+        now() - interval '10 days',
+        200, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL'
+      )
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page.locator("div.border").filter({ hasText: "Laat Betaler" });
+    await expect(
+      card.locator("span").filter({ hasText: /^Verlopen$/ }),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Aanbetaling markeren" }).click();
+
+    await expect(
+      card.locator("span").filter({ hasText: /^Aanbetaling voldaan$/ }),
+    ).toBeVisible();
+  });
+
+  test("late payment on an expired hold whose dates were taken is refused inline and nothing changes", async ({
+    page,
+  }) => {
+    await seedExpiredHold();
+    // A confirmed booking that claimed the released dates in the meantime.
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('took-dates-1', 'Nieuwe Gast', 'nieuw@example.com', 2, 'nl', '2027-08-03', '2027-08-06', 'confirmed', now(), now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page.locator("div.border").filter({ hasText: "Jan Expired" });
+    await expect(
+      card.locator("span").filter({ hasText: /^Verlopen$/ }),
+    ).toBeVisible();
+
+    await card.getByRole("button", { name: "Betaald markeren" }).click();
+
+    await expect(card.getByRole("alert")).toHaveText(
+      /datums zijn inmiddels bezet/,
+    );
+    await page.reload();
+    await expect(
+      card.locator("span").filter({ hasText: /^Verlopen$/ }),
+    ).toBeVisible();
   });
 
   test("confirm button is disabled when bank details are not configured", async ({

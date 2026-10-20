@@ -4,7 +4,10 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { verifySession } from "@/lib/auth/session";
-import { applyTransition } from "@/lib/booking/lifecycle";
+import {
+  applyTransition,
+  LatePaymentDatesTakenError,
+} from "@/lib/booking/lifecycle";
 import { CACHE_TAGS } from "@/lib/cache-tags";
 
 export async function confirmBookingAction(id: string) {
@@ -26,12 +29,35 @@ export async function declineBookingAction(id: string) {
   updateTag(CACHE_TAGS.icalExport);
 }
 
-/** Two-stage path: the deposit landed; balance + borg still due before arrival. */
-export async function markDepositPaidBookingAction(id: string) {
+export type MarkPaymentActionState =
+  { ok: true } | { ok: false; error: string };
+
+const LATE_PAYMENT_DATES_TAKEN =
+  "De betaaltermijn is verlopen en deze datums zijn inmiddels bezet. De late betaling kan niet worden verwerkt.";
+
+async function markPayment(
+  id: string,
+  action: "mark_paid" | "mark_deposit_paid",
+): Promise<MarkPaymentActionState> {
   await verifySession();
-  await applyTransition(id, "mark_deposit_paid");
+  try {
+    await applyTransition(id, action);
+  } catch (err) {
+    if (err instanceof LatePaymentDatesTakenError) {
+      return { ok: false, error: LATE_PAYMENT_DATES_TAKEN };
+    }
+    throw err;
+  }
   revalidatePath("/admin/bookings");
   updateTag(CACHE_TAGS.icalExport);
+  return { ok: true };
+}
+
+/** Two-stage path: the deposit landed; balance + borg still due before arrival. */
+export async function markDepositPaidBookingAction(
+  id: string,
+): Promise<MarkPaymentActionState> {
+  return markPayment(id, "mark_deposit_paid");
 }
 
 /** Two-stage path: the balance (incl. borg) landed → confirmed. */
@@ -43,11 +69,10 @@ export async function markBalancePaidBookingAction(id: string) {
 }
 
 /** Collapse path: the single 100% + borg payment landed → confirmed. */
-export async function markPaidBookingAction(id: string) {
-  await verifySession();
-  await applyTransition(id, "mark_paid");
-  revalidatePath("/admin/bookings");
-  updateTag(CACHE_TAGS.icalExport);
+export async function markPaidBookingAction(
+  id: string,
+): Promise<MarkPaymentActionState> {
+  return markPayment(id, "mark_paid");
 }
 
 export async function cancelBookingAction(id: string) {
