@@ -1,0 +1,95 @@
+// Hosted Mend Renovate app config (issue #202).
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended"],
+
+  // One weekly batch, waiting for you at the start of the week. Only gates
+  // branch creation/updates; security fixes below ignore it.
+  timezone: "Europe/Paris",
+  schedule: ["before 6am on Monday"],
+
+  // Match pnpm's minimumReleaseAge (10080 min = 7 days, pnpm-workspace.yaml)
+  // so Renovate never proposes a version pnpm would refuse to install. Strict
+  // = the branch isn't created at all until the age check passes.
+  minimumReleaseAge: "7 days",
+  internalChecksFilter: "strict",
+
+  // Needs "Dependabot alerts" enabled in the repo's security settings. pnpm's
+  // own age gate still applies, so a fix younger than 7 days is a manual step.
+  vulnerabilityAlerts: {
+    minimumReleaseAge: null,
+    schedule: ["at any time"],
+    labels: ["security"],
+  },
+
+  // Every PR into main creates a Neon branch + Vercel preview that runs
+  // db:migrate (neon-preview.yml); keep the load bounded.
+  prConcurrentLimit: 3,
+  prHourlyLimit: 2,
+
+  // Conventional Commits, matching the existing `chore(deps): ...` history.
+  semanticCommits: "enabled",
+  semanticCommitType: "chore",
+  semanticCommitScope: "deps",
+
+  // No automerge: merging to main deploys to production and runs db:migrate.
+  automerge: false,
+
+  // Rules apply in order; later matches override earlier ones.
+  packageRules: [
+    {
+      description: "Weekly batch for all non-major npm updates, incl. packageManager",
+      matchManagers: ["npm"],
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "non-major dependencies",
+    },
+    {
+      description: "Radix packages must stay on one release wave: split versions duplicate dismissable-layer/focus-scope and break Popover-in-Dialog on iOS",
+      matchPackageNames: ["@radix-ui/**"],
+      groupName: "radix",
+    },
+    {
+      description: "GitHub Actions in their own group; majors stay separate PRs",
+      matchManagers: ["github-actions"],
+      matchUpdateTypes: ["minor", "patch"],
+      groupName: "github actions",
+    },
+
+    // Intentional holds. Delete a rule once its lift condition is met.
+    {
+      description: "Hold: @vercel/functions is exact-pinned because it lost npm provenance (pnpm trustPolicy rejects newer). Lift when upstream restores provenance",
+      matchPackageNames: ["@vercel/functions"],
+      enabled: false,
+    },
+    {
+      description: "Hold: @vercel/oidc is overridden in pnpm-workspace.yaml to 3.8.1, the last attested version (same cause). Lift with the @vercel/functions pin",
+      matchPackageNames: ["@vercel/oidc"],
+      enabled: false,
+    },
+    {
+      description: "Hold: stay on ESLint 9. eslint-plugin-react (via eslint-config-next) caps its peer at ^9.7. Lift when upstream supports ESLint 10",
+      matchPackageNames: ["eslint"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+
+    // Node is a deliberate decision, not a bot's: keep .nvmrc, engines.node,
+    // CI node-version and @types/node (tracks the runtime major) unmanaged.
+    {
+      description: "Node version is upgraded by hand (also depends on Vercel's runtime)",
+      matchManagers: ["nvm"],
+      enabled: false,
+    },
+    {
+      description: "Node version is upgraded by hand (engines.node, CI node-version)",
+      matchDepNames: ["node"],
+      enabled: false,
+    },
+    {
+      description: "@types/node majors track the Node runtime major, upgraded by hand",
+      matchPackageNames: ["@types/node"],
+      matchUpdateTypes: ["major"],
+      enabled: false,
+    },
+  ],
+}
