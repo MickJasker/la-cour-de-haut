@@ -1,0 +1,51 @@
+name: Renovate
+
+# Self-hosted because the Mend-hosted runner (3 GB) OOMs in
+# `pnpm install --lockfile-only`. Config lives in renovate.json5; the
+# schedule, grouping and security exemptions are evaluated by Renovate itself,
+# so this workflow just needs to run often.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      log-level:
+        description: Renovate log level
+        type: choice
+        options: [info, debug]
+        default: info
+
+# Never overlap two runs on the same repo; let a running job finish.
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    name: Renovate
+    runs-on: ubuntu-latest
+    steps:
+      # GITHUB_TOKEN can't be used: PRs it opens don't trigger CI or the Neon
+      # preview workflow. A GitHub App token does.
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          client-id: ${{ vars.RENOVATE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+
+      - uses: renovatebot/github-action@v46
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+        env:
+          LOG_LEVEL: ${{ inputs.log-level || 'info' }}
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # The repo already has renovate.json5; never open an onboarding PR.
+          RENOVATE_ONBOARDING: "false"
+          # Commits via the API, so they are signed by GitHub (verified).
+          RENOVATE_PLATFORM_COMMIT: "enabled"
+          # Install the pnpm/node pinned in packageManager/.nvmrc instead of
+          # whatever the image bundles.
+          RENOVATE_BINARY_SOURCE: install
