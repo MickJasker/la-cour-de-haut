@@ -1,4 +1,4 @@
-// Hosted Mend Renovate app config (issue #202).
+// Renovate config (issue #202), run self-hosted by .github/workflows/renovate.yml.
 {
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended"],
