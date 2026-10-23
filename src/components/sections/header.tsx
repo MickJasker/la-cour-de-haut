@@ -1,11 +1,17 @@
 "use client";
 
-import { useParams, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ReactNode, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Globe } from "lucide-react";
+import { useLocale } from "@/i18n/provider";
+import {
+  HeaderBar,
+  LanguageNavFrame,
+  LANGUAGE_LINK_LAYOUT,
+} from "./header-shell";
 
 const LOCALES = ["fr", "en", "nl", "de"] as const;
 
@@ -33,7 +39,7 @@ export function Header({
   telephoneDisplay: string;
   email: string;
 }) {
-  const { locale } = useParams<{ locale: string }>();
+  const locale = useLocale();
   const pathname = usePathname();
   const mainEl = useSyncExternalStore(
     () => () => {},
@@ -63,76 +69,68 @@ export function Header({
 
   return (
     <>
-      <header className="fixed bottom-0 left-0 w-full bg-olive-900 text-olive-50 z-10 p-6 md:px-0 md:grid md:grid-cols-[24px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_24px] lg:grid-cols-[2fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_2fr] gap-4 md:items-center">
-        <a
-          href={`tel:${telephone}`}
-          className="max-lg:hidden md:col-start-2 col-span-3"
-        >
-          {telephoneDisplay}
-        </a>
-        <a
-          href={`mailto:${email}`}
-          className="max-lg:hidden md:col-start-5 col-span-3"
-        >
-          {email}
-        </a>
-        <nav
-          aria-label="Language"
-          className="max-md:hidden md:col-start-2 lg:col-start-8 col-span-3 p-1 rounded-full bg-olive-800 justify-self-start"
-        >
-          <div className="flex relative gap-1">
-            <div
-              className="absolute w-10 h-full top-0 left-0 transition-transform ease-in-out duration-200 pointer-events-none"
-              style={{
-                transform: `translateX(calc(${displayIndex * 100}% + ${displayIndex * 0.25}rem))`,
-              }}
-            >
-              <div className="size-full rounded-full bg-positive" />
-            </div>
-            {LOCALES.map((loc) => (
-              <LanguageLink
-                key={loc}
-                locale={loc}
-                isActive={loc === locale}
-                currentPathname={pathname}
-                onSwitch={switchLocale}
-              />
-            ))}
-          </div>
-        </nav>
-        <div className="md:contents flex gap-2">
-          {action}
-          <Popover
-            open={isLocaleSwitcherOpen}
-            onOpenChange={setIsLocaleSwitcherOpen}
-          >
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                className="md:hidden p-0 aspect-square"
-                size="lg"
-                aria-label="Switch language"
+      <HeaderBar
+        telephone={telephone}
+        telephoneDisplay={telephoneDisplay}
+        email={email}
+        languageNav={
+          <LanguageNavFrame>
+            <div className="flex relative gap-1">
+              <div
+                className="absolute w-10 h-full top-0 left-0 transition-transform ease-in-out duration-200 pointer-events-none"
+                style={{
+                  transform: `translateX(calc(${displayIndex * 100}% + ${displayIndex * 0.25}rem))`,
+                }}
               >
-                <Globe className="size-8" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className="w-30 p-2">
-              <div className="flex flex-col">
-                {LOCALES.map((loc) => (
-                  <LanguageLink
-                    key={loc}
-                    locale={loc}
-                    isActive={loc === locale}
-                    currentPathname={pathname}
-                    localeLabel={LOCALE_LABEL[loc]}
-                    onSwitch={switchLocale}
-                  />
-                ))}
+                <div className="size-full rounded-full bg-positive" />
               </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </header>
+              {LOCALES.map((loc) => (
+                <LanguageLink
+                  key={loc}
+                  locale={loc}
+                  isActive={loc === locale}
+                  currentPathname={pathname}
+                  onSwitch={switchLocale}
+                />
+              ))}
+            </div>
+          </LanguageNavFrame>
+        }
+        actions={
+          <>
+            {action}
+            <Popover
+              open={isLocaleSwitcherOpen}
+              onOpenChange={setIsLocaleSwitcherOpen}
+            >
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  className="md:hidden p-0 aspect-square"
+                  size="lg"
+                  aria-label="Switch language"
+                >
+                  <Globe className="size-8" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-30 p-2">
+                <div className="flex flex-col">
+                  {LOCALES.map((loc) => (
+                    <LanguageLink
+                      key={loc}
+                      locale={loc}
+                      isActive={loc === locale}
+                      currentPathname={pathname}
+                      localeLabel={LOCALE_LABEL[loc]}
+                      onSwitch={switchLocale}
+                    />
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </>
+        }
+      />
       {mainEl && createPortal(<div className="h-22" />, mainEl)}
     </>
   );
@@ -157,8 +155,7 @@ function LanguageLink({
     ? currentPathname.replace(/^\/[^/]+/, "")
     : "";
   const href = `/${locale}${withoutLocale}`;
-  const className =
-    "w-10 p-1 text-center rounded-full font-bold relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800";
+  const className = `${LANGUAGE_LINK_LAYOUT} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-olive-800`;
 
   // A real <a href> so a full document navigation is the default: each locale
   // is its own root layout (`[locale]` renders its own <html>/<body> —

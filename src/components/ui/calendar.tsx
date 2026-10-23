@@ -18,7 +18,7 @@ const localeMap = new Map([
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useParams } from "next/navigation";
+import { useLocale } from "@/i18n/provider";
 
 function Calendar({
   className,
@@ -33,7 +33,7 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
-  const { locale } = useParams<{ locale: string }>();
+  const locale = useLocale();
 
   return (
     <DayPicker
