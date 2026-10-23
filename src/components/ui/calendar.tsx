@@ -18,7 +18,7 @@ const localeMap = new Map([
 
 import { cn } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { useLocale } from "@/i18n/provider";
+import { useOptionalLocale } from "@/i18n/provider";
 
 function Calendar({
   className,
@@ -33,7 +33,8 @@ function Calendar({
   buttonVariant?: React.ComponentProps<typeof Button>["variant"];
 }) {
   const defaultClassNames = getDefaultClassNames();
-  const locale = useLocale();
+  // Undefined in the admin area (no I18nProvider): falls back to the default.
+  const locale = useOptionalLocale();
 
   return (
     <DayPicker
@@ -44,7 +45,7 @@ function Calendar({
         "rtl:**:[.rdp-button\\_previous>svg]:rotate-180",
         className,
       )}
-      locale={localeMap.get(locale)}
+      locale={locale ? localeMap.get(locale) : undefined}
       captionLayout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
