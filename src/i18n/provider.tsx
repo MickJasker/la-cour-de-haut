@@ -43,3 +43,12 @@ export function useTranslations(namespace?: string): Translator {
 export function useLocale(): string {
   return useI18n().locale;
 }
+
+/**
+ * Like `useLocale`, but returns `undefined` outside an `<I18nProvider>` instead
+ * of throwing. For shared UI primitives that also render in the admin area,
+ * which is a separate root layout with no provider (ADR-0011).
+ */
+export function useOptionalLocale(): string | undefined {
+  return useContext(I18nContext)?.locale;
+}

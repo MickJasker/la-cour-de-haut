@@ -2,6 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // next 16.4 warns when cacheComponents is on without this set. `false` keeps
+  // the pre-16.4 prefetch behavior (this app predates Partial Prefetching);
+  // adopt it deliberately later — both flags become the default, and the
+  // option goes away, in the next major. See the "Adopting Partial Prefetching"
+  // guide in node_modules/next/dist/docs.
+  partialPrefetching: false,
   // The OG/apple-icon routes read source assets at generation time via
   // `process.cwd()` + a literal path. `@vercel/nft` usually traces literal
   // reads, but declaring them guarantees the files ship in the function bundle

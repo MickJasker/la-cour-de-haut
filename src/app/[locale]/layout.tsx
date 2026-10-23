@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import type { Metadata, Viewport } from "next";
 import { Mulish, PT_Serif } from "next/font/google";
 import { notFound } from "next/navigation";
@@ -90,7 +90,12 @@ export default async function LocaleLayout({ children, modal, params }: Props) {
         <I18nProvider locale={locale} messages={messages}>
           {children}
           <Footer locale={locale} />
-          <ModalSlot>{modal}</ModalSlot>
+          {/* ModalSlot reads usePathname(), which can't prerender. The modal
+              is an overlay with no layout footprint, so a null fallback is
+              invisible. */}
+          <Suspense fallback={null}>
+            <ModalSlot>{modal}</ModalSlot>
+          </Suspense>
         </I18nProvider>
         {process.env.VERCEL_ENV === "production" && <AnalyticsGate />}
       </body>
