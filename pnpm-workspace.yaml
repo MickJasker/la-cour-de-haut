@@ -25,3 +25,6 @@ allowBuilds:
   protobufjs: false
   sharp: false
   unrs-resolver: false
+minimumReleaseAgeExclude:
+  # Renovate security update: zod@4.6.6
+  - zod@4.6.6
