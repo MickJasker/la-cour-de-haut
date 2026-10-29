@@ -75,6 +75,11 @@
       enabled: false,
     },
     {
+      description: "Hold: react-doctor 0.9.x adds two error-level rules that fire on intentional code and fail the React Doctor CI job (any error fails it): server-auth-actions on submitBookingAction (the public inquiry form is unauthenticated by design) and nextjs-no-side-effect-in-get-handler on the iCal feed (lastAccessedAt write, ADR-0024). Lift once those are triaged (suppression syntax for 0.9.x not yet verified) or fixed",
+      matchPackageNames: ["react-doctor"],
+      enabled: false,
+    },
+    {
       description: "Hold: stay on ESLint 9. eslint-plugin-react (via eslint-config-next) caps its peer at ^9.7. Lift when upstream supports ESLint 10",
       matchPackageNames: ["eslint"],
       matchUpdateTypes: ["major"],
