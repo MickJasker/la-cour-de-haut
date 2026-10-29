@@ -3,10 +3,12 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   extends: ["config:recommended"],
 
-  // One weekly batch, waiting for you at the start of the week. Only gates
-  // branch creation/updates; security fixes below ignore it.
+  // One weekly batch, opened on Mondays. Only gates branch creation/updates;
+  // security fixes below ignore it. All of Monday, not just early morning:
+  // GitHub delivers scheduled workflows best-effort (a few runs a day, at
+  // irregular times), so a narrow window can miss the week entirely.
   timezone: "Europe/Paris",
-  schedule: ["before 6am on Monday"],
+  schedule: ["on monday"],
 
   // Match pnpm's minimumReleaseAge (10080 min = 7 days, pnpm-workspace.yaml)
   // so Renovate never proposes a version pnpm would refuse to install. Strict
@@ -14,8 +16,9 @@
   minimumReleaseAge: "7 days",
   internalChecksFilter: "strict",
 
-  // Needs "Dependabot alerts" enabled in the repo's security settings. pnpm's
-  // own age gate still applies, so a fix younger than 7 days is a manual step.
+  // Needs "Dependabot alerts" enabled in the repo's security settings. For a
+  // fix younger than pnpm's 7-day gate, Renovate adds a minimumReleaseAgeExclude
+  // entry for that version to pnpm-workspace.yaml in its PR.
   vulnerabilityAlerts: {
     minimumReleaseAge: null,
     schedule: ["at any time"],
@@ -64,6 +67,11 @@
     {
       description: "Hold: @vercel/oidc is overridden in pnpm-workspace.yaml to 3.8.1, the last attested version (same cause). Lift with the @vercel/functions pin",
       matchPackageNames: ["@vercel/oidc"],
+      enabled: false,
+    },
+    {
+      description: "Hold: lefthook 2.2.2+ has no npm trust evidence (earlier releases had a trusted publisher), which pnpm's trustPolicy: no-downgrade rejects (ERR_PNPM_TRUST_DOWNGRADE) and fails the whole weekly batch's lockfile. Lift when a release restores provenance",
+      matchPackageNames: ["lefthook"],
       enabled: false,
     },
     {
