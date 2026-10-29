@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { neon } from "@neondatabase/serverless";
+import { pickDay } from "./calendar";
 
 async function deleteTestSubmissions() {
   const sql = neon(process.env.DATABASE_URL!);
@@ -101,41 +102,13 @@ test.describe("booking form — standalone page (/nl/book)", () => {
     await page.getByLabel("Woonplaats").fill("Testdorp");
     await fillIbanIfPresent(page);
 
-    // Use aria-label selectors for unambiguous date targeting — nth() is fragile
-    // after re-renders because react-day-picker may shift indices.
-    const dutchDays = [
-      "zondag",
-      "maandag",
-      "dinsdag",
-      "woensdag",
-      "donderdag",
-      "vrijdag",
-      "zaterdag",
-    ];
-    const dutchMonths = [
-      "januari",
-      "februari",
-      "maart",
-      "april",
-      "mei",
-      "juni",
-      "juli",
-      "augustus",
-      "september",
-      "oktober",
-      "november",
-      "december",
-    ];
-    const toAriaLabel = (d: Date) =>
-      `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]} ${d.getFullYear()}`;
-
     const checkin = new Date();
     checkin.setDate(checkin.getDate() + 1);
     const checkout = new Date();
     checkout.setDate(checkout.getDate() + 4);
 
-    await page.locator(`button[aria-label="${toAriaLabel(checkin)}"]`).click();
-    await page.locator(`button[aria-label="${toAriaLabel(checkout)}"]`).click();
+    await pickDay(page, checkin);
+    await pickDay(page, checkout);
 
     // Wait until to !== from — react-day-picker sets from=to on first click.
     await page.waitForFunction(() => {

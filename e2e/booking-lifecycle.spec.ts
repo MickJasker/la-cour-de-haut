@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { neon } from "@neondatabase/serverless";
 import { authFile } from "./constants";
+import { pickDay } from "./calendar";
 
 // All admin lifecycle tests run as the authenticated owner
 test.use({ storageState: authFile });
@@ -90,39 +91,13 @@ test.describe("booking lifecycle — full admin funnel", () => {
     // field is required (issue #195).
     await page.getByLabel("IBAN").fill("NL91ABNA0417164300");
 
-    const dutchDays = [
-      "zondag",
-      "maandag",
-      "dinsdag",
-      "woensdag",
-      "donderdag",
-      "vrijdag",
-      "zaterdag",
-    ];
-    const dutchMonths = [
-      "januari",
-      "februari",
-      "maart",
-      "april",
-      "mei",
-      "juni",
-      "juli",
-      "augustus",
-      "september",
-      "oktober",
-      "november",
-      "december",
-    ];
-    const toAriaLabel = (d: Date) =>
-      `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]} ${d.getFullYear()}`;
-
     const checkin = new Date();
     checkin.setDate(checkin.getDate() + 1);
     const checkout = new Date();
     checkout.setDate(checkout.getDate() + 4);
 
-    await page.locator(`button[aria-label="${toAriaLabel(checkin)}"]`).click();
-    await page.locator(`button[aria-label="${toAriaLabel(checkout)}"]`).click();
+    await pickDay(page, checkin);
+    await pickDay(page, checkout);
 
     await page.waitForFunction(() => {
       const from = (
