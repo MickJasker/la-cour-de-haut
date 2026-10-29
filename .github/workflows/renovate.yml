@@ -13,7 +13,7 @@ on:
         description: Renovate log level
         type: choice
         options: [info, debug]
-        default: info
+        default: debug
 
 # Never overlap two runs on the same repo; let a running job finish.
 concurrency:
@@ -40,7 +40,9 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
         env:
-          LOG_LEVEL: ${{ inputs.log-level || 'info' }}
+          # Debug by default: a scheduled run that aborts or skips a branch is
+          # otherwise unexplained at info level. Lower to info once stable.
+          LOG_LEVEL: ${{ inputs.log-level || 'debug' }}
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           # The repo already has renovate.json5; never open an onboarding PR.
           RENOVATE_ONBOARDING: "false"
