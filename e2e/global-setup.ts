@@ -71,8 +71,13 @@ export default async function globalSetup() {
   try {
     // 1. Template branch: build (which also migrates) and seed once.
     template = await createBranch(`e2e-${run}-template`);
+    // The build, seed scripts and servers never call the Neon API; keep its
+    // credentials out of their environment (least privilege).
+    const baseEnv = { ...process.env };
+    delete baseEnv.NEON_API_KEY;
+    delete baseEnv.NEON_PROJECT_ID;
     const templateEnv = {
-      ...process.env,
+      ...baseEnv,
       DATABASE_URL: template.pooledUrl,
       DATABASE_URL_UNPOOLED: template.directUrl,
       E2E_TESTING: "1",
