@@ -45,6 +45,9 @@ test.describe("documents: admin", () => {
   test.afterAll(clearDocuments);
 
   let publicLink: string;
+  // The UI shows an absolute URL built from NEXT_PUBLIC_APP_URL (baked at build
+  // time, not this worker's port). Fetch only its path, via the worker's baseURL.
+  const publicPath = () => new URL(publicLink).pathname;
 
   test("owner can upload a PDF and a row appears with a stable public link", async ({
     page,
@@ -76,7 +79,7 @@ test.describe("documents: admin", () => {
   test("the public link streams the uploaded PDF bytes", async ({
     request,
   }) => {
-    const res = await request.get(publicLink);
+    const res = await request.get(publicPath());
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toContain("application/pdf");
     expect(res.headers()["content-disposition"]).toContain("inline");
@@ -128,12 +131,12 @@ test.describe("documents: admin", () => {
         pageErrors,
         `client-side errors during replace: ${pageErrors.map(String).join("; ")}`,
       ).toHaveLength(0);
-      const res = await request.get(publicLink);
+      const res = await request.get(publicPath());
       const body = await res.text();
       expect(body).toContain("MARKER-B");
     }).toPass({ timeout: 45_000 });
 
-    const res = await request.get(publicLink);
+    const res = await request.get(publicPath());
     expect(res.status()).toBe(200);
     const body = await res.text();
     expect(body).toContain("MARKER-B");
@@ -197,7 +200,7 @@ test.describe("documents: admin", () => {
     // The row disappears optimistically before deleteDocumentAction commits
     // (documents-client.tsx onDelete), so poll instead of asserting once.
     await expect(async () => {
-      const res = await request.get(publicLink);
+      const res = await request.get(publicPath());
       expect(res.status()).toBe(404);
     }).toPass({ timeout: 15_000 });
   });

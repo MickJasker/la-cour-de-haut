@@ -74,9 +74,12 @@ async function seedImageUrl(opts: { key: string; url: string }) {
 }
 
 async function gotoFresh(page: Page, path: string) {
-  const res = await fetch("http://localhost:3000/api/dev/revalidate/content", {
-    method: "POST",
-  });
+  const res = await fetch(
+    `${process.env.E2E_BASE_URL}/api/dev/revalidate/content`,
+    {
+      method: "POST",
+    },
+  );
   if (!res.ok) {
     throw new Error(
       `Failed to revalidate content cache (status ${res.status}). Is E2E_TESTING set?`,
@@ -120,7 +123,7 @@ test.describe("content: gîte description — public", () => {
     `;
     try {
       const res = await fetch(
-        "http://localhost:3000/api/dev/revalidate/gallery",
+        `${process.env.E2E_BASE_URL}/api/dev/revalidate/gallery`,
         { method: "POST" },
       );
       if (!res.ok) throw new Error("Failed to revalidate gallery cache");

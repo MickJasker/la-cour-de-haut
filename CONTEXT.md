@@ -76,7 +76,7 @@ title_source: { nl: "human", en: "machine", fr: "machine", de: "machine" }
 Two test runners, strictly separated by what they can see:
 
 - **Vitest** — utility functions and synchronous client components only. Async Server Components are unsupported by Vitest (React ecosystem limitation). Tests live in `src/**/*.test.ts(x)`, co-located with source.
-- **Playwright** — full request-cycle tests. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`. Locally it drives `next dev`; **on CI it runs against a production build** (`next build && next start`), because Cache Components / PPR don't actually run under `next dev` — see [ADR-0009](docs/adr/0009-e2e-against-production-build.md). The suite `TRUNCATE`s core tables in `global-setup`, so only run it against a disposable database (CI uses a per-run Neon branch), never your dev DB.
+- **Playwright** — full request-cycle tests. The authoritative runner for anything involving Server Components, routing, or middleware. Tests live in `e2e/**/*.spec.ts`. It always runs against a production build (`next build && next start`), because Cache Components / PPR don't actually run under `next dev` — see [ADR-0009](docs/adr/0009-e2e-against-production-build.md). **Each worker gets its own Neon branch and its own server** (needs `NEON_API_KEY` + `NEON_PROJECT_ID`; the suite never touches your `.env.local` DB), so `TRUNCATE`s and global-state assertions can't race across workers — see [ADR-0027](docs/adr/0027-per-worker-e2e-isolation.md).
 
 ## Settings
 
