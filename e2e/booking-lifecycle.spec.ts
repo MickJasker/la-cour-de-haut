@@ -415,6 +415,94 @@ test.describe("booking lifecycle — full admin funnel", () => {
     await expect(confirmBtn).toBeDisabled();
   });
 
+  test("confirm on dates that were taken is refused inline in the dialog and nothing changes", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('confirm-taken-1', 'Wants Taken Dates', 'taken@example.com', 2, 'nl', '2028-03-01', '2028-03-07', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+    // Another guest's confirmed stay overlaps the requested dates.
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, confirmed_at, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('confirm-taken-2', 'Already Confirmed', 'first@example.com', 2, 'nl', '2028-03-03', '2028-03-05', 'confirmed', now(), now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page
+      .locator("div.border")
+      .filter({ hasText: "Wants Taken Dates" });
+    await card.getByRole("button", { name: "Bevestigen" }).click();
+    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog.getByRole("alert")).toHaveText(
+      /datums zijn inmiddels bezet/,
+    );
+    await expect(dialog).toBeVisible();
+
+    await page.reload();
+    await expect(
+      card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
+    ).toBeVisible();
+  });
+
+  test("confirm after bank details were removed is refused inline and nothing changes", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('confirm-nobank-1', 'Stale Bank Page', 'stale@example.com', 2, 'nl', '2028-04-01', '2028-04-07', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    // Load the page while bank details exist, so the Bevestigen button is
+    // enabled, then remove them before the owner submits the dialog.
+    await page.goto("/admin/bookings");
+    const card = page
+      .locator("div.border")
+      .filter({ hasText: "Stale Bank Page" });
+    await card.getByRole("button", { name: "Bevestigen" }).click();
+
+    await sql`TRUNCATE setting`;
+    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      method: "POST",
+    });
+
+    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+    await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
+      /bankgegevens/,
+    );
+
+    await page.reload();
+    await expect(
+      card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
+    ).toBeVisible();
+  });
+
+  test("acting on a stale page is refused inline when the booking already moved on", async ({
+    page,
+  }) => {
+    const sql = neon(process.env.DATABASE_URL!);
+    await sql`
+      INSERT INTO booking_request (id, name, email, guest_count, locale, start_date, end_date, status, created_at, shown_price_at_booking, address, postal_code, city, country)
+      VALUES ('stale-1', 'Stale Request', 'stale2@example.com', 2, 'nl', '2028-05-01', '2028-05-07', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
+    `;
+
+    await page.goto("/admin/bookings");
+    const card = page
+      .locator("div.border")
+      .filter({ hasText: "Stale Request" });
+    await expect(card.getByRole("button", { name: "Afwijzen" })).toBeVisible();
+
+    // Another tab/device declined it in the meantime.
+    await sql`UPDATE booking_request SET status = 'declined' WHERE id = 'stale-1'`;
+
+    await card.getByRole("button", { name: "Afwijzen" }).click();
+    await expect(card.getByRole("alert")).toHaveText(/niet meer mogelijk/);
+  });
+
   test("two-stage happy path: confirm → deposit paid → balance paid → confirmed", async ({
     page,
   }) => {

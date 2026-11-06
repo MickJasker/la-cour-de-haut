@@ -7,6 +7,7 @@ import {
 import { toUtcDayString } from "./calendar-day";
 import { computePaymentSchedule, scheduleToSnapshot } from "./payment-schedule";
 
+vi.mock("next/cache", () => ({ updateTag: vi.fn() }));
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
@@ -33,6 +34,7 @@ vi.mock("./decline-email", () => ({
 }));
 vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
 
+import { updateTag } from "next/cache";
 import { getDb } from "@/db";
 import {
   getSettings,
@@ -46,11 +48,7 @@ import { sendBalanceReceivedEmail } from "./balance-received-email";
 import { sendCancellationEmail } from "./cancellation-email";
 import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
-import {
-  applyTransition,
-  LatePaymentDatesTakenError,
-  type BookingAction,
-} from "./lifecycle";
+import { applyTransition, type BookingAction } from "./lifecycle";
 import type { DbBookingStatus } from "./machine";
 
 // Booking runs 2027-09-01 → 2027-09-07 (6 nights), far enough out that the
@@ -275,24 +273,32 @@ describe("applyTransition — confirm", () => {
     );
   });
 
-  it("throws when bank details are not configured", async () => {
+  it("refuses with bank_details_missing, changing and sending nothing", async () => {
     const db = makeMockDb();
     (getDb as Mock).mockReturnValue(db);
     vi.mocked(hasBankDetails).mockReturnValue(false);
 
-    await expect(applyTransition("bk-1", "confirm")).rejects.toThrow(
-      "Bank details must be configured",
-    );
+    await expect(applyTransition("bk-1", "confirm")).resolves.toEqual({
+      ok: false,
+      reason: "bank_details_missing",
+    });
+    expect(db.update).not.toHaveBeenCalled();
+    expect(sendBankTransferEmail).not.toHaveBeenCalled();
+    expect(updateTag).not.toHaveBeenCalled();
   });
 
-  it("throws when dates conflict with existing booking", async () => {
+  it("refuses with dates_taken when dates conflict with an existing booking", async () => {
     const db = makeMockDb();
     (getDb as Mock).mockReturnValue(db);
     (isRangeAvailable as Mock).mockResolvedValue(false);
 
-    await expect(applyTransition("bk-1", "confirm")).rejects.toThrow(
-      "conflict",
-    );
+    await expect(applyTransition("bk-1", "confirm")).resolves.toEqual({
+      ok: false,
+      reason: "dates_taken",
+    });
+    expect(db.update).not.toHaveBeenCalled();
+    expect(sendBankTransferEmail).not.toHaveBeenCalled();
+    expect(updateTag).not.toHaveBeenCalled();
   });
 
   it("sends the bank details straight from settings", async () => {
@@ -448,14 +454,14 @@ describe("applyTransition — mark_deposit_paid (two-stage)", () => {
     expect(db._set).toHaveBeenLastCalledWith({ status: "on_hold" });
   });
 
-  it("throws without touching the DB when bank details are missing", async () => {
+  it("refuses with bank_details_missing without touching the DB", async () => {
     const row = { ...baseBooking, status: "on_hold", ...twoStageSnapshot };
     const db = makeMockDb([row]);
     (getDb as Mock).mockReturnValue(db);
     vi.mocked(hasBankDetails).mockReturnValue(false);
 
-    await expect(applyTransition("bk-1", "mark_deposit_paid")).rejects.toThrow(
-      "Bank details must be configured",
+    await expect(applyTransition("bk-1", "mark_deposit_paid")).resolves.toEqual(
+      { ok: false, reason: "bank_details_missing" },
     );
     expect(db._set).not.toHaveBeenCalled();
   });
@@ -649,7 +655,7 @@ describe("applyTransition — late payment on an expired hold", () => {
     ["mark_paid", collapsedSnapshot],
     ["mark_deposit_paid", twoStageSnapshot],
   ] as const)(
-    "refuses %s with LatePaymentDatesTakenError and changes nothing when the released dates were taken",
+    "refuses %s with dates_taken and changes nothing when the released dates were taken",
     async (action, snapshot) => {
       const row = {
         ...baseBooking,
@@ -661,9 +667,11 @@ describe("applyTransition — late payment on an expired hold", () => {
       (getDb as Mock).mockReturnValue(db);
       (isRangeAvailable as Mock).mockResolvedValue(false);
 
-      await expect(applyTransition("bk-1", action)).rejects.toBeInstanceOf(
-        LatePaymentDatesTakenError,
-      );
+      await expect(applyTransition("bk-1", action)).resolves.toEqual({
+        ok: false,
+        reason: "dates_taken",
+      });
+      expect(updateTag).not.toHaveBeenCalled();
       expect(db.update).not.toHaveBeenCalled();
       expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
       expect(sendBalanceReceivedEmail).not.toHaveBeenCalled();
@@ -823,13 +831,44 @@ describe("applyTransition — transition table", () => {
       const db = makeMockDb([{ ...baseBooking, status: from }]);
       (getDb as Mock).mockReturnValue(db);
 
-      await expect(applyTransition("bk-1", action)).rejects.toThrow(
-        "Invalid transition",
-      );
+      await expect(applyTransition("bk-1", action)).resolves.toEqual({
+        ok: false,
+        reason: "invalid_transition",
+      });
       expect(db.update).not.toHaveBeenCalled();
       expect(sendBankTransferEmail).not.toHaveBeenCalled();
     });
   }
+});
+
+describe("applyTransition — iCal export feed invalidation (ADR-0024)", () => {
+  it("invalidates the feed once on success", async () => {
+    (getDb as Mock).mockReturnValue(makeMockDb());
+
+    await expect(applyTransition("bk-1", "decline")).resolves.toEqual({
+      ok: true,
+    });
+    expect(updateTag).toHaveBeenCalledExactlyOnceWith("ical-export");
+  });
+
+  it("still invalidates after rolling back a failed send", async () => {
+    (getDb as Mock).mockReturnValue(makeMockDb());
+    (sendDeclineEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+
+    await expect(applyTransition("bk-1", "decline")).rejects.toThrow(
+      "SMTP down",
+    );
+    expect(updateTag).toHaveBeenCalledOnce();
+  });
+
+  it("does not invalidate when the transition is refused", async () => {
+    (getDb as Mock).mockReturnValue(
+      makeMockDb([{ ...baseBooking, status: "declined" }]),
+    );
+
+    await applyTransition("bk-1", "cancel");
+    expect(updateTag).not.toHaveBeenCalled();
+  });
 });
 
 describe("applyTransition — invalid transitions", () => {
@@ -837,9 +876,10 @@ describe("applyTransition — invalid transitions", () => {
     const db = makeMockDb([{ ...baseBooking, status: "declined" }]);
     (getDb as Mock).mockReturnValue(db);
 
-    await expect(applyTransition("bk-1", "cancel")).rejects.toThrow(
-      "Invalid transition",
-    );
+    await expect(applyTransition("bk-1", "cancel")).resolves.toEqual({
+      ok: false,
+      reason: "invalid_transition",
+    });
   });
 
   it("throws when booking is not found", async () => {

@@ -17,6 +17,24 @@ const eslintConfig = defineConfig([
     "**/next-env.d.ts",
     ".claude/worktrees/**",
   ]),
+  // ADR-0026: booking status is owned by the lifecycle module. Writing `status`
+  // in a bookingRequest `.set({...})` anywhere else bypasses the transition
+  // table, its preconditions and the transactional emails.
+  {
+    files: ["src/**/*.{ts,tsx}", "scripts/**/*.mts"],
+    ignores: ["src/lib/booking/lifecycle.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            'CallExpression[callee.property.name="set"][callee.object.callee.property.name="update"][callee.object.arguments.0.name="bookingRequest"] > ObjectExpression.arguments > Property[key.name="status"]',
+          message:
+            "Don't write bookingRequest.status directly — go through applyTransition() in src/lib/booking/lifecycle.ts (ADR-0026).",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

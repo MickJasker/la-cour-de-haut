@@ -1,85 +1,67 @@
 "use server";
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { verifySession } from "@/lib/auth/session";
 import {
   applyTransition,
-  LatePaymentDatesTakenError,
+  type BookingAction,
+  type TransitionFailure,
 } from "@/lib/booking/lifecycle";
-import { CACHE_TAGS } from "@/lib/cache-tags";
 
-export async function confirmBookingAction(id: string) {
-  await verifySession();
-  // The payment schedule (deadlines + amounts) is derived from settings + the
-  // confirm date inside applyTransition and frozen onto the booking — the
-  // owner no longer picks a deadline. See ADR-0021.
-  await applyTransition(id, "confirm");
-  revalidatePath("/admin/bookings");
-  // Status transitions change effective busy-ness under lazy hold expiry, so
-  // the cached export feed must be invalidated too (ADR-0024).
-  updateTag(CACHE_TAGS.icalExport);
-}
+export type TransitionActionState = { ok: true } | { ok: false; error: string };
 
-export async function declineBookingAction(id: string) {
-  await verifySession();
-  await applyTransition(id, "decline");
-  revalidatePath("/admin/bookings");
-  updateTag(CACHE_TAGS.icalExport);
-}
+const FAILURE_MESSAGES: Record<TransitionFailure, string> = {
+  invalid_transition:
+    "Deze actie is niet meer mogelijk voor deze boeking. Ververs de pagina.",
+  dates_taken:
+    "Deze datums zijn inmiddels bezet (boeking, blokkade of platform). Controleer de beschikbaarheidskalender.",
+  bank_details_missing:
+    "Stel eerst bankgegevens in via Instellingen om de e-mail naar de gast te kunnen versturen.",
+};
 
-export type MarkPaymentActionState =
-  { ok: true } | { ok: false; error: string };
-
-const LATE_PAYMENT_DATES_TAKEN =
-  "De betaaltermijn is verlopen en deze datums zijn inmiddels bezet. De late betaling kan niet worden verwerkt.";
-
-async function markPayment(
+async function run(
   id: string,
-  action: "mark_paid" | "mark_deposit_paid",
-): Promise<MarkPaymentActionState> {
+  action: BookingAction,
+): Promise<TransitionActionState> {
   await verifySession();
-  try {
-    await applyTransition(id, action);
-  } catch (err) {
-    if (err instanceof LatePaymentDatesTakenError) {
-      return { ok: false, error: LATE_PAYMENT_DATES_TAKEN };
-    }
-    throw err;
-  }
+  // applyTransition owns the iCal feed invalidation (ADR-0024); this layer
+  // only refreshes the admin page.
+  const result = await applyTransition(id, action);
+  if (!result.ok) return { ok: false, error: FAILURE_MESSAGES[result.reason] };
   revalidatePath("/admin/bookings");
-  updateTag(CACHE_TAGS.icalExport);
   return { ok: true };
 }
 
+// The payment schedule (deadlines + amounts) is derived from settings + the
+// confirm date inside applyTransition and frozen onto the booking — the owner
+// no longer picks a deadline. See ADR-0021.
+export async function confirmBookingAction(id: string) {
+  return run(id, "confirm");
+}
+
+export async function declineBookingAction(id: string) {
+  return run(id, "decline");
+}
+
 /** Two-stage path: the deposit landed; balance + borg still due before arrival. */
-export async function markDepositPaidBookingAction(
-  id: string,
-): Promise<MarkPaymentActionState> {
-  return markPayment(id, "mark_deposit_paid");
+export async function markDepositPaidBookingAction(id: string) {
+  return run(id, "mark_deposit_paid");
 }
 
 /** Two-stage path: the balance (incl. borg) landed → confirmed. */
 export async function markBalancePaidBookingAction(id: string) {
-  await verifySession();
-  await applyTransition(id, "mark_balance_paid");
-  revalidatePath("/admin/bookings");
-  updateTag(CACHE_TAGS.icalExport);
+  return run(id, "mark_balance_paid");
 }
 
 /** Collapse path: the single 100% + borg payment landed → confirmed. */
-export async function markPaidBookingAction(
-  id: string,
-): Promise<MarkPaymentActionState> {
-  return markPayment(id, "mark_paid");
+export async function markPaidBookingAction(id: string) {
+  return run(id, "mark_paid");
 }
 
 export async function cancelBookingAction(id: string) {
-  await verifySession();
-  await applyTransition(id, "cancel");
-  revalidatePath("/admin/bookings");
-  updateTag(CACHE_TAGS.icalExport);
+  return run(id, "cancel");
 }
 
 export async function updateOwnerNotesAction(id: string, notes: string) {

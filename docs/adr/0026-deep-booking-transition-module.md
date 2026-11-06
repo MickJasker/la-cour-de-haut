@@ -1,6 +1,6 @@
 # ADR-0026: `applyTransition` is one deep module; the transition table is private
 
-**Status:** Accepted (implemented in two PRs, see Delivery)
+**Status:** Accepted (implemented in two PRs, both delivered)
 
 ## Context
 
@@ -12,9 +12,9 @@ The booking state machine (`machine.ts`) read as the enforcement gate, but the r
 - **One table-driven email mechanism.** Each table entry declares its `nextStatus` and a `prepare(booking)` step that validates preconditions and returns `{ send, frozenSchedule? }`. `applyTransition` runs one write → send → compensate path for every action. Rollback restores the previous status, and additionally clears `confirmedAt` and the frozen schedule only when the transition froze one.
 - **Synchronous send with compensating rollback is kept.** Transitions are owner-triggered, so failure is visible and retryable, and a confirm must never report success without the payment instructions having gone out.
 - **Accepted crash window.** neon-http has no interactive transactions, so the status write and the email send are not atomic: a process crash between them leaves the new status with no email sent. Accepted for a single-owner, low-volume site.
-- **Failure contract (PR 2).** `applyTransition` will return `{ ok: true } | { ok: false, reason: "invalid_transition" | "dates_taken" | "bank_details_missing" }`; `LatePaymentDatesTakenError` folds into `dates_taken`. Lifecycle bugs and email-transport failures stay thrown.
-- **Bypass prevention (PR 2).** An ESLint `no-restricted-syntax` rule forbids `status` in a `bookingRequest` `.set({...})` outside `lifecycle.ts`. No DB trigger: e2e specs seed rows in arbitrary statuses with raw SQL.
-- **Cache ownership (PR 2).** `applyTransition` owns `updateTag(CACHE_TAGS.icalExport)` as a documented post-condition (ADR-0024), which makes it Server-Action-only. Actions keep `revalidatePath("/admin/bookings")`.
+- **Failure contract.** `applyTransition` returns `{ ok: true } | { ok: false, reason: "invalid_transition" | "dates_taken" | "bank_details_missing" }`; `LatePaymentDatesTakenError` folds into `dates_taken`. Lifecycle bugs and email-transport failures stay thrown.
+- **Bypass prevention.** An ESLint `no-restricted-syntax` rule forbids `status` in a `bookingRequest` `.set({...})` outside `lifecycle.ts`. No DB trigger: e2e specs seed rows in arbitrary statuses with raw SQL.
+- **Cache ownership.** `applyTransition` owns `updateTag(CACHE_TAGS.icalExport)` as a documented post-condition (ADR-0024), which makes it Server-Action-only. Actions keep `revalidatePath("/admin/bookings")`. The tag is also invalidated when a failed send is rolled back, because the feed may have been regenerated while the new status was briefly written; refusals write nothing and invalidate nothing. `bank_details_missing` covers both `confirm` and `mark_deposit_paid`, which need bank details for the guest email.
 
 - **One intended ordering change.** The validity check now runs first, before any precondition. Previously an invalid action (e.g. `confirm` on an `on_hold` booking) could surface a bank-details or date-conflict error before "Invalid transition"; now it always reports the invalid transition.
 

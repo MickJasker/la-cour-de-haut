@@ -90,11 +90,14 @@ export function ConfirmDialog({
 }: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function handleConfirm() {
+    setError(null);
     startTransition(async () => {
-      await confirmBookingAction(bookingId);
-      setOpen(false);
+      const result = await confirmBookingAction(bookingId);
+      if (result.ok) setOpen(false);
+      else setError(result.error);
     });
   }
 
@@ -119,6 +122,11 @@ export function ConfirmDialog({
             verstuurd.
           </p>
           <SchedulePreview {...schedulePreview} />
+          {error && (
+            <p role="alert" className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button
