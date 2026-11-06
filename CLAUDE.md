@@ -49,10 +49,12 @@ When a feature has design decisions to lock down, run a guided requirements inte
 
 ## E2E testing patterns
 
+- Each Playwright worker has its **own Neon branch + server** (ADR-0027): use `process.env.DATABASE_URL` / `process.env.E2E_BASE_URL` in specs, never a hardcoded `localhost:3000`. Needs `NEON_API_KEY` + `NEON_PROJECT_ID`; runs a production build (`E2E_SKIP_BUILD=1` reuses `.next`). Cross-worker races are gone; the isolation concerns below only apply to spec files that run one after another on the same worker.
+
 - `clearBookings()` truncates `booking_request` only — `ical_source` is seeded by global-setup; seed test iCal rows with `ON CONFLICT (id) DO UPDATE` and a fixed ID, never truncate the table in tests
-- `page` is seeded by `db:migrate` (system pages `privacy`/`terms`, ADR-0020) — never `TRUNCATE page` in specs, and scope cleanup to rows the spec itself created (fixed id or slug prefix); a blanket `DELETE FROM page WHERE system = false` races other page specs in parallel workers
+- `page` is seeded by `db:migrate` (system pages `privacy`/`terms`, ADR-0020) — never `TRUNCATE page` in specs, and scope cleanup to rows the spec itself created (fixed id or slug prefix); a blanket `DELETE FROM page WHERE system = false` races other page specs sharing the same worker DB
 - `getByText("some heading")` matches substrings — use `getByRole("heading", { name })` for section headings to avoid false positives against body copy containing the same words
-- `booking-lifecycle.spec.ts` has a `beforeAll` that seeds `requested` bookings without `afterAll` cleanup; add `test.describe.configure({ mode: "serial" })` to any spec whose all-clear state can be dirtied by parallel workers
+- `booking-lifecycle.spec.ts` has a `beforeAll` that seeds `requested` bookings without `afterAll` cleanup; add `test.describe.configure({ mode: "serial" })` to any spec whose all-clear state can be dirtied by other spec files run earlier on the same worker (workers no longer share a DB, ADR-0027)
 
 ## Agent skills
 

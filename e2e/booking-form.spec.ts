@@ -142,7 +142,7 @@ test.describe("booking form — long-stay discount", () => {
       INSERT INTO setting (key, value) VALUES ('price_per_night', '150')
       ON CONFLICT (key) DO UPDATE SET value = '150'
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });
@@ -242,7 +242,7 @@ test.describe("booking form — IBAN field (issue #195)", () => {
       INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
       ON CONFLICT (key) DO UPDATE SET value = '0'
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });
@@ -253,7 +253,7 @@ test.describe("booking form — IBAN field (issue #195)", () => {
       INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
       ON CONFLICT (key) DO UPDATE SET value = '0'
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
 
@@ -300,7 +300,7 @@ test.describe("booking form — payment-schedule breakdown", () => {
         ('security_deposit_amount', '200')
       ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });
@@ -319,7 +319,7 @@ test.describe("booking form — payment-schedule breakdown", () => {
       INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
       ON CONFLICT (key) DO UPDATE SET value = '0'
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });

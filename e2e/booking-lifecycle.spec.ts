@@ -57,7 +57,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     // always reads the freshly-written bank details rather than a stale cache
     // entry (e.g. the empty one written during global-setup's TRUNCATE, or left
     // by test 260's TRUNCATE + revalidate call).
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });
@@ -77,7 +77,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
       INSERT INTO setting (key, value) VALUES ('security_deposit_amount', '0')
       ON CONFLICT (key) DO UPDATE SET value = '0'
     `;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
   });
@@ -415,7 +415,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
       VALUES ('test-nobk-1', 'No Bank Guest', 'guest@example.com', 1, 'nl', '2028-01-01', '2028-01-05', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
     // getSettings() is `use cache` — bust the tag so the page sees the truncated table
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
+    await fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
       method: "POST",
     });
 
@@ -473,7 +473,7 @@ test.describe("booking lifecycle — full admin funnel", () => {
     `;
 
     const bustSettings = () =>
-      fetch("http://localhost:3000/api/dev/revalidate/settings", {
+      fetch(`${process.env.E2E_BASE_URL}/api/dev/revalidate/settings`, {
         method: "POST",
       });
 

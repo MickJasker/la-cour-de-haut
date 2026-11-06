@@ -9,9 +9,12 @@ async function clearPois() {
 }
 
 async function gotoFresh(page: Page, path: string) {
-  const res = await fetch("http://localhost:3000/api/dev/revalidate/poi", {
-    method: "POST",
-  });
+  const res = await fetch(
+    `${process.env.E2E_BASE_URL}/api/dev/revalidate/poi`,
+    {
+      method: "POST",
+    },
+  );
   if (!res.ok) {
     throw new Error(
       `Failed to revalidate poi cache (status ${res.status}). Is E2E_TESTING set?`,

@@ -70,4 +70,5 @@ if (isProd && !process.env.E2E_TESTING) return 403;
   same `DATABASE_URL` / `BETTER_AUTH_*` it already had.
 - **Testing gotcha for contributors:** `e2e/global-setup.ts` `TRUNCATE`s core tables and
   `.env.local` points at a live Neon branch — so the suite can only be run safely against a
-  disposable database (CI spins up a per-run Neon branch). Don't run it against your dev DB.
+  disposable database. _Superseded by [ADR-0027](0027-per-worker-e2e-isolation.md): the suite now creates its own
+  throwaway Neon branches and never touches your dev DB._

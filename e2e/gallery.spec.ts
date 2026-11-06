@@ -71,9 +71,12 @@ async function clearGallery() {
 // than in beforeEach) closes the race where a concurrent render (e.g. smoke.spec
 // hitting "/") caches the pre-seed empty table.
 async function gotoFresh(page: Page, path: string) {
-  const res = await fetch("http://localhost:3000/api/dev/revalidate/gallery", {
-    method: "POST",
-  });
+  const res = await fetch(
+    `${process.env.E2E_BASE_URL}/api/dev/revalidate/gallery`,
+    {
+      method: "POST",
+    },
+  );
   if (!res.ok) {
     throw new Error(
       `Failed to revalidate gallery cache (status ${res.status}). Is E2E_TESTING set?`,

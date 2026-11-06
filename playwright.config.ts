@@ -1,43 +1,22 @@
 import { defineConfig, devices } from "@playwright/test";
+import { applyWorkerEnv, WORKER_COUNT } from "./e2e/isolation";
 
 try {
   process.loadEnvFile(".env.local");
 } catch {}
 
-// E2E_PORT lets a CI-style run (`CI=1 E2E_PORT=3100 pnpm exec playwright test`)
-// coexist with a dev server already bound to 3000 — without it, CI=1 disables
-// reuseExistingServer and the run fails (or silently reuses the wrong server
-// when CI is unset). Defaults to 3000, so CI itself is unaffected.
-const port = process.env.E2E_PORT ?? "3000";
+// Every worker gets its own Neon branch and its own `next start` server (ADR-0027);
+// global-setup creates them. This (re)runs in each worker process, where it points
+// DATABASE_URL / E2E_BASE_URL at that worker's branch and server.
+applyWorkerEnv();
 
 export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
-  webServer: {
-    // On CI, run e2e against a real production build. Cache Components / PPR
-    // only behave correctly when built (`'use cache'` is real, static shells are
-    // prerendered, routes are precompiled so there's no lazy-compile latency
-    // that flakes timeouts under parallel workers). Locally we keep `pnpm dev`
-    // for fast iteration; reuse an already-running dev server.
-    command: process.env.CI ? "pnpm build && pnpm start" : "pnpm dev",
-    url: `http://localhost:${port}`,
-    reuseExistingServer: !process.env.CI,
-    // A production build can take a couple of minutes on a cold CI runner.
-    timeout: 180_000,
-    // Inject E2E_TESTING so the server activates the deterministic translation
-    // stub ("<text> [locale]") instead of calling real Google Translate.
-    // Matches the CI environment so `pnpm test:e2e` passes locally without
-    // needing the var set in the shell.
-    // NEXT_PUBLIC_E2E_TESTING is the client-visible counterpart, read by
-    // upload-file.ts to skip @vercel/blob/client's upload() in favor of a
-    // same-origin stub (see src/app/api/admin/blob-upload/route.ts) — it must
-    // be set at build time (`pnpm build`, run by this command on CI) to be
-    // inlined into the client bundle.
-    env: { E2E_TESTING: "1", NEXT_PUBLIC_E2E_TESTING: "1", PORT: port },
-  },
+  workers: WORKER_COUNT,
   retries: 1,
   use: {
-    baseURL: `http://localhost:${port}`,
+    baseURL: process.env.E2E_BASE_URL,
     locale: "nl",
   },
   projects: [
