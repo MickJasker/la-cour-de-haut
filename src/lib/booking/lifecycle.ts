@@ -17,6 +17,7 @@ import { sendBalanceReceivedEmail } from "./balance-received-email";
 import { sendCancellationEmail } from "./cancellation-email";
 import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
+import type { Clock } from "./availability";
 import { toUtcDayString } from "./calendar-day";
 import {
   computePaymentSchedule,
@@ -63,7 +64,111 @@ interface Prepared {
 
 interface TransitionSpec {
   nextStatus: DbBookingStatus;
-  prepare: (booking: Booking) => Promise<Prepared | Refusal>;
+  prepare: (
+    booking: Booking,
+    deps: LifecycleDeps,
+  ) => Promise<Prepared | Refusal>;
+}
+
+/** The payment schedule a `confirm` freezes onto the booking (ADR-0021). */
+type FrozenSchedule = NonNullable<Prepared["frozenSchedule"]>;
+
+/**
+ * The DB seam behind `applyTransition` (ADR-0028): the three operations the
+ * lifecycle needs, nothing more. Tests substitute an in-memory fake and
+ * assert the resulting row.
+ */
+export interface LifecycleStore {
+  /** The booking row, or `undefined` when it doesn't exist. */
+  getBooking(id: string): Promise<Booking | undefined>;
+  /** Writes the next status; `freeze` also stamps `confirmedAt` + the schedule. */
+  saveTransition(
+    id: string,
+    transition: {
+      status: DbBookingStatus;
+      freeze?: { confirmedAt: Date; snapshot: FrozenSchedule };
+    },
+  ): Promise<void>;
+  /**
+   * Compensation for a failed send: restores `status`, and with
+   * `clearFrozenSchedule` also nulls `confirmedAt` and the schedule snapshot
+   * so a retried confirm starts clean.
+   */
+  revertTransition(
+    id: string,
+    revert: { status: DbBookingStatus; clearFrozenSchedule: boolean },
+  ): Promise<void>;
+}
+
+/**
+ * Everything `applyTransition` reaches outside itself for. Defaults to
+ * `defaultLifecycleDeps()`.
+ */
+export interface LifecycleDeps {
+  store: LifecycleStore;
+  /** Feeds both `confirmedAt` and every "today" in the deadline maths. */
+  clock: Clock;
+  getSettings: typeof getSettings;
+  isRangeAvailable: (startDate: string, endDate: string) => Promise<boolean>;
+  sendBankTransferEmail: typeof sendBankTransferEmail;
+  sendDepositReceivedEmail: typeof sendDepositReceivedEmail;
+  sendBalanceReceivedEmail: typeof sendBalanceReceivedEmail;
+  sendCancellationEmail: typeof sendCancellationEmail;
+  sendDeclineEmail: typeof sendDeclineEmail;
+}
+
+// Empty snapshot written when a rollback undoes a confirm's frozen schedule.
+const EMPTY_SNAPSHOT = {
+  paymentCollapsed: null,
+  depositAmount: null,
+  paymentDeadline: null,
+  balanceAmount: null,
+  balanceDeadline: null,
+  securityDepositAtBooking: null,
+} as const;
+
+// `getDb()` runs per call, never at module load (lazy, build-safe).
+const drizzleLifecycleStore: LifecycleStore = {
+  async getBooking(id) {
+    const [row] = await getDb()
+      .select()
+      .from(bookingRequest)
+      .where(eq(bookingRequest.id, id));
+    return row;
+  },
+  async saveTransition(id, { status, freeze }) {
+    await getDb()
+      .update(bookingRequest)
+      .set({
+        status,
+        ...(freeze && { confirmedAt: freeze.confirmedAt, ...freeze.snapshot }),
+      })
+      .where(eq(bookingRequest.id, id));
+  },
+  async revertTransition(id, { status, clearFrozenSchedule }) {
+    await getDb()
+      .update(bookingRequest)
+      .set({
+        status,
+        ...(clearFrozenSchedule && { confirmedAt: null, ...EMPTY_SNAPSHOT }),
+      })
+      .where(eq(bookingRequest.id, id));
+  },
+};
+
+/** Production wiring, resolved per call at request time. */
+export function defaultLifecycleDeps(): LifecycleDeps {
+  return {
+    store: drizzleLifecycleStore,
+    clock: () => new Date(),
+    getSettings,
+    isRangeAvailable,
+    sendBankTransferEmail,
+    sendDepositReceivedEmail,
+    sendBalanceReceivedEmail,
+    sendCancellationEmail,
+    sendDeclineEmail,
+  };
 }
 
 const guestOf = (b: Booking) => ({ name: b.name, email: b.email });
@@ -78,20 +183,26 @@ const stayOf = (b: Booking) => ({
 // may only revive it if nothing else has claimed them since. Expired holds
 // are excluded from busy intervals, so the booking never conflicts with
 // itself; an on-time payment still holds its dates and skips the check.
-async function latePaymentRefusal(booking: Booking): Promise<Refusal | null> {
+async function latePaymentRefusal(
+  booking: Booking,
+  deps: LifecycleDeps,
+): Promise<Refusal | null> {
   if (
-    isExpiredHold(booking) &&
-    !(await isRangeAvailable(booking.startDate, booking.endDate))
+    isExpiredHold(booking, toUtcDayString(deps.clock())) &&
+    !(await deps.isRangeAvailable(booking.startDate, booking.endDate))
   ) {
     return { refused: "dates_taken" };
   }
   return null;
 }
 
-async function prepareConfirm(booking: Booking): Promise<Prepared | Refusal> {
+async function prepareConfirm(
+  booking: Booking,
+  deps: LifecycleDeps,
+): Promise<Prepared | Refusal> {
   const [settings, available] = await Promise.all([
-    getSettings(),
-    isRangeAvailable(booking.startDate, booking.endDate),
+    deps.getSettings(),
+    deps.isRangeAvailable(booking.startDate, booking.endDate),
   ]);
   if (!hasBankDetails(settings)) return { refused: "bank_details_missing" };
   const bankDetails: BankDetails = {
@@ -120,7 +231,7 @@ async function prepareConfirm(booking: Booking): Promise<Prepared | Refusal> {
   const schedule = computePaymentSchedule(
     totalPrice,
     securityDeposit,
-    toUtcDayString(),
+    toUtcDayString(deps.clock()),
     booking.startDate,
     paymentScheduleSettings(settings),
   );
@@ -128,7 +239,7 @@ async function prepareConfirm(booking: Booking): Promise<Prepared | Refusal> {
   return {
     frozenSchedule: scheduleToSnapshot(schedule, securityDeposit),
     send: () =>
-      sendBankTransferEmail({
+      deps.sendBankTransferEmail({
         ...stayOf(booking),
         guestCount: booking.guestCount,
         price: { nights, discount, totalPrice },
@@ -141,8 +252,9 @@ async function prepareConfirm(booking: Booking): Promise<Prepared | Refusal> {
 
 async function prepareDepositPaid(
   booking: Booking,
+  deps: LifecycleDeps,
 ): Promise<Prepared | Refusal> {
-  const late = await latePaymentRefusal(booking);
+  const late = await latePaymentRefusal(booking, deps);
   if (late) return late;
   // The deposit-received receipt restates the balance leg + repeats bank
   // details (ADR-0021). mark_deposit_paid only ever
@@ -158,11 +270,11 @@ async function prepareDepositPaid(
       "Booking has no two-stage payment schedule (collapsed and legacy NULL-snapshot rows take mark_paid instead) — mark_deposit_paid indicates a lifecycle bug, not a user error",
     );
   }
-  const settings = await getSettings();
+  const settings = await deps.getSettings();
   if (!hasBankDetails(settings)) return { refused: "bank_details_missing" };
   return {
     send: () =>
-      sendDepositReceivedEmail({
+      deps.sendDepositReceivedEmail({
         ...stayOf(booking),
         schedule: {
           balanceAmount: bookingSchedule.balanceAmount,
@@ -188,7 +300,10 @@ async function prepareDepositPaid(
 // shownPriceAtBooking via calculatePriceBreakdown), borg €0. The receipt
 // must still go out — a legacy row never bricks the transition, and the
 // email is never silently skipped.
-function prepareBalanceReceived(booking: Booking): Prepared {
+function prepareBalanceReceived(
+  booking: Booking,
+  deps: LifecycleDeps,
+): Prepared {
   const bookingSchedule = bookingPaymentSchedule(booking);
   let totalPaid: number;
   let securityDeposit: number;
@@ -206,7 +321,7 @@ function prepareBalanceReceived(booking: Booking): Prepared {
   }
   return {
     send: () =>
-      sendBalanceReceivedEmail({
+      deps.sendBalanceReceivedEmail({
         ...stayOf(booking),
         totalPaid,
         securityDeposit,
@@ -218,12 +333,18 @@ function prepareBalanceReceived(booking: Booking): Prepared {
 // — including an expired on_hold, whose row is still on_hold in
 // the DB (expired is only a derived display status). The guest already
 // missed their deadline but still hears the booking is cancelled.
-const prepareCancel = async (booking: Booking): Promise<Prepared> => ({
-  send: () => sendCancellationEmail(stayOf(booking)),
+const prepareCancel = async (
+  booking: Booking,
+  deps: LifecycleDeps,
+): Promise<Prepared> => ({
+  send: () => deps.sendCancellationEmail(stayOf(booking)),
 });
 
-const prepareDecline = async (booking: Booking): Promise<Prepared> => ({
-  send: () => sendDeclineEmail(stayOf(booking)),
+const prepareDecline = async (
+  booking: Booking,
+  deps: LifecycleDeps,
+): Promise<Prepared> => ({
+  send: () => deps.sendDeclineEmail(stayOf(booking)),
 });
 
 // The one place the booking state machine is defined. Private: callers go
@@ -249,9 +370,10 @@ const TRANSITIONS: Record<
     // offers this action for a collapsed snapshot.
     mark_paid: {
       nextStatus: "confirmed",
-      prepare: async (booking) => {
+      prepare: async (booking, deps) => {
         return (
-          (await latePaymentRefusal(booking)) ?? prepareBalanceReceived(booking)
+          (await latePaymentRefusal(booking, deps)) ??
+          prepareBalanceReceived(booking, deps)
         );
       },
     },
@@ -260,7 +382,7 @@ const TRANSITIONS: Record<
   deposit_paid: {
     mark_balance_paid: {
       nextStatus: "confirmed",
-      prepare: async (booking) => prepareBalanceReceived(booking),
+      prepare: async (booking, deps) => prepareBalanceReceived(booking, deps),
     },
     cancel: { nextStatus: "cancelled", prepare: prepareCancel },
   },
@@ -270,27 +392,6 @@ const TRANSITIONS: Record<
   declined: {},
   cancelled: {},
 };
-
-async function fetchBooking(id: string) {
-  const db = getDb();
-  const [row] = await db
-    .select()
-    .from(bookingRequest)
-    .where(eq(bookingRequest.id, id));
-  if (!row) throw new Error("Booking not found");
-  return row;
-}
-
-// The empty snapshot written on rollback — undoes the confirm's frozen
-// schedule so a retried confirm starts clean.
-const EMPTY_SNAPSHOT = {
-  paymentCollapsed: null,
-  depositAmount: null,
-  paymentDeadline: null,
-  balanceAmount: null,
-  balanceDeadline: null,
-  securityDepositAtBooking: null,
-} as const;
 
 /**
  * Applies a booking action: the single gate for every status change.
@@ -320,30 +421,33 @@ const EMPTY_SNAPSHOT = {
  * write and the send are not atomic (neon-http has no interactive
  * transactions): a crash between them leaves the new status with no email —
  * accepted, see ADR-0026.
+ *
+ * `deps` (store, clock, settings, availability, email senders) defaults to
+ * production wiring; tests inject fakes (ADR-0028).
  */
 export async function applyTransition(
   bookingId: string,
   action: BookingAction,
+  deps: LifecycleDeps = defaultLifecycleDeps(),
 ): Promise<TransitionResult> {
-  const booking = await fetchBooking(bookingId);
+  const booking = await deps.store.getBooking(bookingId);
+  if (!booking) throw new Error("Booking not found");
   const status = booking.status as DbBookingStatus;
 
   const spec = TRANSITIONS[status]?.[action];
   if (!spec) return { ok: false, reason: "invalid_transition" };
 
-  const prepared = await spec.prepare(booking);
+  const prepared = await spec.prepare(booking, deps);
   if ("refused" in prepared) return { ok: false, reason: prepared.refused };
   const { send, frozenSchedule } = prepared;
 
-  const db = getDb();
   try {
-    await db
-      .update(bookingRequest)
-      .set({
-        status: spec.nextStatus,
-        ...(frozenSchedule && { confirmedAt: new Date(), ...frozenSchedule }),
-      })
-      .where(eq(bookingRequest.id, bookingId));
+    await deps.store.saveTransition(bookingId, {
+      status: spec.nextStatus,
+      ...(frozenSchedule && {
+        freeze: { confirmedAt: deps.clock(), snapshot: frozenSchedule },
+      }),
+    });
 
     try {
       await send();
@@ -351,13 +455,10 @@ export async function applyTransition(
       // Compensate so the transition looks un-applied and can be retried.
       // Only a transition that froze a schedule has more than the status to
       // undo. This is also the rollback path for an unconfigured transport.
-      await db
-        .update(bookingRequest)
-        .set({
-          status,
-          ...(frozenSchedule && { confirmedAt: null, ...EMPTY_SNAPSHOT }),
-        })
-        .where(eq(bookingRequest.id, bookingId));
+      await deps.store.revertTransition(bookingId, {
+        status,
+        clearFrozenSchedule: frozenSchedule !== undefined,
+      });
       throw err;
     }
   } finally {
