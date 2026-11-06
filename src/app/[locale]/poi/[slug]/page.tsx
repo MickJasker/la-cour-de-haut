@@ -13,6 +13,7 @@ import { pickLocalized } from "@/lib/translation/localized-field";
 import { truncateForMeta } from "@/lib/seo/meta-text";
 import { buildPoiJsonLd } from "@/lib/seo/poi-jsonld";
 import { getBaseUrl } from "@/lib/base-url";
+import { PoiSection } from "@/components/sections/poi";
 
 const BASE_URL = getBaseUrl();
 
@@ -101,9 +102,11 @@ export default async function PoiPage({
           </Button>
         }
       />
-      <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-6">
-        <PoiDetailLoader slug={slug} locale={locale as Locale} />
-        <div className="h-22" />
+      <main>
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-10">
+          <PoiDetailLoader slug={slug} locale={locale as Locale} />
+        </div>
+        <PoiSection locale={locale as Locale} />
       </main>
     </>
   );
