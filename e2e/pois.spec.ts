@@ -232,7 +232,9 @@ test.describe("pois: detail view", () => {
     await gotoFresh(page, "/nl/poi/bayeux");
 
     await expect(page.getByRole("dialog")).toHaveCount(0);
-    await expect(page.getByRole("heading", { name: "Bayeux" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Bayeux", level: 1 }),
+    ).toBeVisible();
     await expect(
       page.getByRole("heading", { name: "Geschiedenis" }),
     ).toBeVisible();
