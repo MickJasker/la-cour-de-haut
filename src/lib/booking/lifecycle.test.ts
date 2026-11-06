@@ -1,67 +1,58 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { Mock } from "vitest";
 import {
   calculatePriceBreakdown,
   calculateTotalNights,
 } from "@/app/[locale]/book/shared";
+import type { bookingRequest } from "@/db/schema";
+import type { Settings } from "@/lib/settings/settings";
 import { toUtcDayString } from "./calendar-day";
 import { computePaymentSchedule, scheduleToSnapshot } from "./payment-schedule";
-
-vi.mock("next/cache", () => ({ updateTag: vi.fn() }));
-vi.mock("@/db", () => ({ getDb: vi.fn() }));
-vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
-vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
-vi.mock("@/lib/settings/settings", () => ({
-  getSettings: vi.fn(),
-  hasBankDetails: vi.fn(),
-  paymentScheduleSettings: vi.fn(),
-  securityDepositAmount: vi.fn(),
-}));
-vi.mock("./bank-transfer-email", () => ({
-  sendBankTransferEmail: vi.fn(),
-}));
-vi.mock("./deposit-received-email", () => ({
-  sendDepositReceivedEmail: vi.fn(),
-}));
-vi.mock("./balance-received-email", () => ({
-  sendBalanceReceivedEmail: vi.fn(),
-}));
-vi.mock("./cancellation-email", () => ({
-  sendCancellationEmail: vi.fn(),
-}));
-vi.mock("./decline-email", () => ({
-  sendDeclineEmail: vi.fn(),
-}));
-vi.mock("./availability", () => ({ isRangeAvailable: vi.fn() }));
-
-import { updateTag } from "next/cache";
-import { getDb } from "@/db";
 import {
-  getSettings,
-  hasBankDetails,
-  paymentScheduleSettings,
-  securityDepositAmount,
-} from "@/lib/settings/settings";
-import { sendBankTransferEmail } from "./bank-transfer-email";
-import { sendDepositReceivedEmail } from "./deposit-received-email";
-import { sendBalanceReceivedEmail } from "./balance-received-email";
-import { sendCancellationEmail } from "./cancellation-email";
-import { sendDeclineEmail } from "./decline-email";
-import { isRangeAvailable } from "./availability";
-import { applyTransition, type BookingAction } from "./lifecycle";
+  applyTransition as applyTransitionWith,
+  type BookingAction,
+  type LifecycleDeps,
+  type LifecycleStore,
+} from "./lifecycle";
 import type { DbBookingStatus } from "./machine";
 
-// Booking runs 2027-09-01 → 2027-09-07 (6 nights), far enough out that the
-// schedule never collapses.
-const baseBooking = {
+// next/cache is a framework API (updateTag only works inside a Server Action),
+// not one of the lifecycle's injected deps.
+vi.mock("next/cache", () => ({ updateTag: vi.fn() }));
+import { updateTag } from "next/cache";
+
+type Booking = typeof bookingRequest.$inferSelect;
+
+// The injected "now". Fixed so every deadline and `confirmedAt` is exact.
+const NOW = new Date("2027-06-01T10:00:00.000Z");
+const TODAY = toUtcDayString(NOW); // 2027-06-01
+
+// Booking runs 2027-09-01 → 2027-09-07 (6 nights), far enough past NOW that
+// the schedule never collapses.
+const baseBooking: Booking = {
   id: "bk-1",
   name: "Anna Schmidt",
   email: "anna@example.com",
   guestCount: 2,
+  phone: null,
+  address: "Hauptstr. 1",
+  postalCode: "10115",
+  city: "Berlin",
+  country: "DE",
+  iban: null,
   locale: "de",
   startDate: "2027-09-01",
   endDate: "2027-09-07",
+  message: null,
   status: "requested",
+  confirmedAt: null,
+  paymentDeadline: null,
+  paymentCollapsed: null,
+  depositAmount: null,
+  balanceAmount: null,
+  balanceDeadline: null,
+  securityDepositAtBooking: null,
+  ownerNotes: null,
+  createdAt: new Date("2027-05-01T00:00:00.000Z"),
   // Frozen at submit time — deliberately different from
   // mockSettings.price_per_night so tests can prove the email renders this
   // value, not a live re-computation from settings.
@@ -75,23 +66,114 @@ const SCHEDULE_SETTINGS = {
 };
 const BORG = 200;
 
-const mockSettings = {
+const mockSettings: Settings = {
   iban: "NL91ABNA0417164300",
   bank_name: "Test Bank",
   account_holder: "La Cour de Haut",
   price_per_night: 999,
+  security_deposit_amount: BORG,
+  deposit_percentage: SCHEDULE_SETTINGS.depositPercentage,
+  deposit_deadline_days: SCHEDULE_SETTINGS.depositDeadlineDays,
+  balance_due_days_before_arrival:
+    SCHEDULE_SETTINGS.balanceDueDaysBeforeArrival,
 };
 
-function makeMockDb(rows: unknown[] = [baseBooking]) {
-  const where = vi.fn().mockResolvedValue(rows);
-  const set = vi.fn().mockReturnValue({ where });
-  const from = vi.fn().mockReturnValue({ where });
-  return {
-    select: vi.fn().mockReturnValue({ from }),
-    update: vi.fn().mockReturnValue({ set }),
-    _where: where,
-    _set: set,
+/**
+ * In-memory `LifecycleStore`: a real fake, not a faked query-builder chain.
+ * Tests assert the resulting row, so a rollback is observable as state.
+ */
+function makeStore(initial: Booking | undefined) {
+  const state = { row: initial && { ...initial }, writes: 0 };
+  const store: LifecycleStore = {
+    async getBooking() {
+      return state.row && { ...state.row };
+    },
+    async saveTransition(_id, { status, freeze }) {
+      state.writes++;
+      if (!state.row) throw new Error("no row");
+      state.row = {
+        ...state.row,
+        status,
+        ...(freeze && { confirmedAt: freeze.confirmedAt, ...freeze.snapshot }),
+      };
+    },
+    async revertTransition(_id, { status, clearFrozenSchedule }) {
+      state.writes++;
+      if (!state.row) throw new Error("no row");
+      state.row = {
+        ...state.row,
+        status,
+        ...(clearFrozenSchedule && {
+          confirmedAt: null,
+          paymentCollapsed: null,
+          depositAmount: null,
+          paymentDeadline: null,
+          balanceAmount: null,
+          balanceDeadline: null,
+          securityDepositAtBooking: null,
+        }),
+      };
+    },
   };
+  return { store, state };
+}
+
+const sendBankTransferEmail = vi.fn();
+const sendDepositReceivedEmail = vi.fn();
+const sendBalanceReceivedEmail = vi.fn();
+const sendCancellationEmail = vi.fn();
+const sendDeclineEmail = vi.fn();
+const isRangeAvailable = vi.fn();
+const getSettings = vi.fn();
+
+const row = (over: Partial<Booking> = {}): Booking => ({
+  ...baseBooking,
+  ...over,
+});
+
+/** Runs `applyTransition` against an in-memory store holding `initial`. */
+function run(
+  action: BookingAction,
+  initial: Booking | null = baseBooking,
+  now: Date = NOW,
+) {
+  const { store, state } = makeStore(initial ?? undefined);
+  const deps: LifecycleDeps = {
+    store,
+    clock: () => now,
+    getSettings,
+    isRangeAvailable,
+    sendBankTransferEmail,
+    sendDepositReceivedEmail,
+    sendBalanceReceivedEmail,
+    sendCancellationEmail,
+    sendDeclineEmail,
+  };
+  return { state, result: applyTransitionWith("bk-1", action, deps) };
+}
+
+/** `applyTransition` that returns the final row alongside the result. */
+async function apply(
+  action: BookingAction,
+  initial?: Booking | null,
+  now?: Date,
+) {
+  const { state, result } = run(action, initial, now);
+  return { result: await result, state };
+}
+
+/** Same, for transitions expected to throw. */
+async function applyRejecting(
+  action: BookingAction,
+  initial?: Booking | null,
+  now?: Date,
+) {
+  const { state, result } = run(action, initial, now);
+  const error = await result.then(
+    () => undefined,
+    (e: unknown) => e,
+  );
+  return { error, state };
 }
 
 /** The schedule + snapshot the lifecycle should freeze for baseBooking. */
@@ -108,7 +190,7 @@ function expectedForBase(shownPrice = baseBooking.shownPriceAtBooking) {
   const schedule = computePaymentSchedule(
     totalPrice,
     BORG,
-    toUtcDayString(),
+    TODAY,
     baseBooking.startDate,
     SCHEDULE_SETTINGS,
   );
@@ -117,18 +199,13 @@ function expectedForBase(shownPrice = baseBooking.shownPriceAtBooking) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  (getSettings as Mock).mockResolvedValue(mockSettings);
-  // hasBankDetails is a type predicate at the type level, so it can't be
-  // widened to `Mock` via `as` — vi.mocked() preserves its real signature.
-  vi.mocked(hasBankDetails).mockReturnValue(true);
-  (paymentScheduleSettings as Mock).mockReturnValue(SCHEDULE_SETTINGS);
-  (securityDepositAmount as Mock).mockReturnValue(BORG);
-  (isRangeAvailable as Mock).mockResolvedValue(true);
-  (sendBankTransferEmail as Mock).mockResolvedValue(undefined);
-  (sendDepositReceivedEmail as Mock).mockResolvedValue(undefined);
-  (sendBalanceReceivedEmail as Mock).mockResolvedValue(undefined);
-  (sendCancellationEmail as Mock).mockResolvedValue(undefined);
-  (sendDeclineEmail as Mock).mockResolvedValue(undefined);
+  getSettings.mockResolvedValue(mockSettings);
+  isRangeAvailable.mockResolvedValue(true);
+  sendBankTransferEmail.mockResolvedValue(undefined);
+  sendDepositReceivedEmail.mockResolvedValue(undefined);
+  sendBalanceReceivedEmail.mockResolvedValue(undefined);
+  sendCancellationEmail.mockResolvedValue(undefined);
+  sendDeclineEmail.mockResolvedValue(undefined);
 });
 
 // A booking whose two-stage schedule was frozen at confirm time (ADR-0021):
@@ -181,15 +258,11 @@ function legacyTotalForBase() {
 }
 
 describe("applyTransition — confirm", () => {
-  it("updates DB status to on_hold and sends bank transfer email", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
+  it("moves the booking to on_hold and sends the bank transfer email", async () => {
+    const { result, state } = await apply("confirm");
 
-    await applyTransition("bk-1", "confirm");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "on_hold" }),
-    );
+    expect(result).toEqual({ ok: true });
+    expect(state.row?.status).toBe("on_hold");
     expect(sendBankTransferEmail).toHaveBeenCalledOnce();
     expect(sendBankTransferEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -199,113 +272,81 @@ describe("applyTransition — confirm", () => {
   });
 
   it("freezes the computed payment-schedule snapshot onto the booking", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply("confirm");
 
-    await applyTransition("bk-1", "confirm");
+    expect(state.row).toMatchObject(expectedForBase().snapshot);
+  });
 
-    const { snapshot } = expectedForBase();
-    expect(db._set).toHaveBeenCalledWith(expect.objectContaining(snapshot));
-    // confirmedAt is stamped as a real Date.
-    const setArg = db._set.mock.calls[0]![0] as { confirmedAt: unknown };
-    expect(setArg.confirmedAt).toBeInstanceOf(Date);
+  it("stamps confirmedAt from the injected clock", async () => {
+    const { state } = await apply("confirm");
+
+    expect(state.row?.confirmedAt).toEqual(NOW);
   });
 
   it("passes the frozen schedule and borg to the bank-transfer email", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
+    await apply("confirm");
 
-    await applyTransition("bk-1", "confirm");
-
-    const { schedule } = expectedForBase();
     expect(sendBankTransferEmail).toHaveBeenCalledWith(
-      expect.objectContaining({ schedule, securityDeposit: BORG }),
-    );
-  });
-
-  it("surfaces bank transfer email errors — not fire-and-forget", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    (sendBankTransferEmail as Mock).mockRejectedValue(new Error("SMTP down"));
-
-    await expect(applyTransition("bk-1", "confirm")).rejects.toThrow(
-      "SMTP down",
-    );
-  });
-
-  it("rolls back DB status and clears the snapshot when email send fails", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    (sendBankTransferEmail as Mock).mockRejectedValue(new Error("SMTP down"));
-
-    await expect(applyTransition("bk-1", "confirm")).rejects.toThrow(
-      "SMTP down",
-    );
-
-    // Second _set call restores original status and nulls the snapshot.
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        status: "requested",
-        confirmedAt: null,
-        paymentCollapsed: null,
-        depositAmount: null,
-        balanceAmount: null,
-        balanceDeadline: null,
-        securityDepositAtBooking: null,
+        schedule: expectedForBase().schedule,
+        securityDeposit: BORG,
       }),
     );
   });
 
+  it("surfaces bank transfer email errors — not fire-and-forget", async () => {
+    sendBankTransferEmail.mockRejectedValue(new Error("SMTP down"));
+
+    const { error } = await applyRejecting("confirm");
+
+    expect(error).toEqual(new Error("SMTP down"));
+  });
+
+  it("rolls back status and clears confirmedAt + the snapshot when the email fails", async () => {
+    sendBankTransferEmail.mockRejectedValue(new Error("SMTP down"));
+
+    const { state } = await applyRejecting("confirm");
+
+    // Back to exactly the pre-confirm row: a retried confirm starts clean.
+    expect(state.row).toEqual(baseBooking);
+    expect(state.writes).toBe(2);
+  });
+
   it("rolls back when the email transport is unconfigured (same policy as any send failure)", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    (sendBankTransferEmail as Mock).mockRejectedValue(
+    sendBankTransferEmail.mockRejectedValue(
       new Error("RESEND_API_KEY is not configured"),
     );
 
-    await expect(applyTransition("bk-1", "confirm")).rejects.toThrow(
-      "RESEND_API_KEY",
-    );
+    const { error, state } = await applyRejecting("confirm");
 
-    expect(db._set).toHaveBeenLastCalledWith(
-      expect.objectContaining({ status: "requested" }),
-    );
+    expect(error).toEqual(new Error("RESEND_API_KEY is not configured"));
+    expect(state.row?.status).toBe("requested");
   });
 
   it("refuses with bank_details_missing, changing and sending nothing", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    vi.mocked(hasBankDetails).mockReturnValue(false);
+    getSettings.mockResolvedValue({ ...mockSettings, iban: undefined });
 
-    await expect(applyTransition("bk-1", "confirm")).resolves.toEqual({
-      ok: false,
-      reason: "bank_details_missing",
-    });
-    expect(db.update).not.toHaveBeenCalled();
+    const { result, state } = await apply("confirm");
+
+    expect(result).toEqual({ ok: false, reason: "bank_details_missing" });
+    expect(state.writes).toBe(0);
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
     expect(updateTag).not.toHaveBeenCalled();
   });
 
   it("refuses with dates_taken when dates conflict with an existing booking", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    (isRangeAvailable as Mock).mockResolvedValue(false);
+    isRangeAvailable.mockResolvedValue(false);
 
-    await expect(applyTransition("bk-1", "confirm")).resolves.toEqual({
-      ok: false,
-      reason: "dates_taken",
-    });
-    expect(db.update).not.toHaveBeenCalled();
+    const { result, state } = await apply("confirm");
+
+    expect(result).toEqual({ ok: false, reason: "dates_taken" });
+    expect(state.writes).toBe(0);
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
     expect(updateTag).not.toHaveBeenCalled();
   });
 
   it("sends the bank details straight from settings", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "confirm");
+    await apply("confirm");
 
     expect(sendBankTransferEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -319,10 +360,7 @@ describe("applyTransition — confirm", () => {
   });
 
   it("prices the email from the price frozen on the booking request, not live settings", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "confirm");
+    await apply("confirm");
 
     const nights = calculateTotalNights(
       baseBooking.startDate,
@@ -346,7 +384,7 @@ describe("applyTransition — confirm", () => {
 
     // Sanity check that the settings price (999) never leaks in.
     const settingsBasedTotal = calculatePriceBreakdown(
-      mockSettings.price_per_night,
+      mockSettings.price_per_night!,
       nights,
       baseBooking.guestCount,
     ).totalPrice;
@@ -354,21 +392,12 @@ describe("applyTransition — confirm", () => {
   });
 
   it("re-prices from the updated shownPriceAtBooking when the nightly price changed since submission", async () => {
-    const changedPriceBooking = { ...baseBooking, shownPriceAtBooking: "250" };
-    const db = makeMockDb([changedPriceBooking]);
-    (getDb as Mock).mockReturnValue(db);
+    const changed = row({ shownPriceAtBooking: "250" });
 
-    await applyTransition("bk-1", "confirm");
+    await apply("confirm", changed);
 
-    const nights = calculateTotalNights(
-      changedPriceBooking.startDate,
-      changedPriceBooking.endDate,
-    );
-    const expected = calculatePriceBreakdown(
-      250,
-      nights,
-      changedPriceBooking.guestCount,
-    );
+    const nights = calculateTotalNights(changed.startDate, changed.endDate);
+    const expected = calculatePriceBreakdown(250, nights, changed.guestCount);
 
     expect(sendBankTransferEmail).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -378,19 +407,57 @@ describe("applyTransition — confirm", () => {
   });
 });
 
+describe("applyTransition — confirm at the 'today' edge (injected clock)", () => {
+  // Deposit is due 3 days after confirm (06-04); the balance is due 7 days
+  // before arrival. The schedule collapses to one payment when the balance
+  // deadline falls on or before the deposit deadline.
+  //   arrival 06-11 → balance due 06-04 (== deposit deadline) → collapsed
+  //   arrival 06-12 → balance due 06-05 (>  deposit deadline) → two-stage
+  const stay = (startDate: string) =>
+    row({ startDate, endDate: addNightsTo(startDate) });
+  const addNightsTo = (d: string) => {
+    const next = new Date(`${d}T00:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 6);
+    return toUtcDayString(next);
+  };
+
+  it("collapses when the balance deadline lands exactly on the deposit deadline", async () => {
+    const { state } = await apply("confirm", stay("2027-06-11"));
+
+    expect(state.row).toMatchObject({
+      paymentCollapsed: true,
+      paymentDeadline: "2027-06-04",
+    });
+  });
+
+  it("stays two-stage one day later", async () => {
+    const { state } = await apply("confirm", stay("2027-06-12"));
+
+    expect(state.row).toMatchObject({
+      paymentCollapsed: false,
+      paymentDeadline: "2027-06-04",
+      balanceDeadline: "2027-06-05",
+    });
+  });
+
+  it("derives the deadlines from the injected clock's day, not the wall clock", async () => {
+    // Same booking, confirmed a day later: every deadline shifts by a day.
+    const later = new Date("2027-06-02T10:00:00.000Z");
+
+    const { state } = await apply("confirm", stay("2027-06-20"), later);
+
+    expect(state.row?.paymentDeadline).toBe("2027-06-05");
+    expect(state.row?.confirmedAt).toEqual(later);
+  });
+});
+
 describe("applyTransition — decline", () => {
-  it("updates DB status to declined and sends the decline email", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
+  it("moves the booking to declined and sends the decline email", async () => {
+    const { state } = await apply("decline");
 
-    await applyTransition("bk-1", "decline");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "declined" }),
-    );
+    expect(state.row?.status).toBe("declined");
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
-    expect(sendDeclineEmail).toHaveBeenCalledOnce();
-    expect(sendDeclineEmail).toHaveBeenCalledWith({
+    expect(sendDeclineEmail).toHaveBeenCalledExactlyOnceWith({
       guest: { name: baseBooking.name, email: baseBooking.email },
       startDate: baseBooking.startDate,
       endDate: baseBooking.endDate,
@@ -399,31 +466,26 @@ describe("applyTransition — decline", () => {
   });
 
   it("rolls back to requested when the decline email fails to send", async () => {
-    const db = makeMockDb();
-    (getDb as Mock).mockReturnValue(db);
-    (sendDeclineEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+    sendDeclineEmail.mockRejectedValue(new Error("SMTP down"));
 
-    await expect(applyTransition("bk-1", "decline")).rejects.toThrow(
-      "SMTP down",
-    );
+    const { error, state } = await applyRejecting("decline");
 
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith({ status: "requested" });
+    expect(error).toEqual(new Error("SMTP down"));
+    expect(state.row).toEqual(baseBooking);
+    expect(state.writes).toBe(2);
   });
 });
 
 describe("applyTransition — mark_deposit_paid (two-stage)", () => {
+  const onHold = (over: Partial<Booking> = {}) =>
+    row({ status: "on_hold", ...twoStageSnapshot, ...over });
+
   it("moves on_hold to deposit_paid without touching the snapshot, sends the deposit-received email", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...twoStageSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply("mark_deposit_paid", onHold());
 
-    await applyTransition("bk-1", "mark_deposit_paid");
-
-    expect(db._set).toHaveBeenCalledWith({ status: "deposit_paid" });
+    expect(state.row).toEqual(onHold({ status: "deposit_paid" }));
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
-    expect(sendDepositReceivedEmail).toHaveBeenCalledOnce();
-    expect(sendDepositReceivedEmail).toHaveBeenCalledWith({
+    expect(sendDepositReceivedEmail).toHaveBeenCalledExactlyOnceWith({
       guest: { name: baseBooking.name, email: baseBooking.email },
       startDate: baseBooking.startDate,
       endDate: baseBooking.endDate,
@@ -438,72 +500,59 @@ describe("applyTransition — mark_deposit_paid (two-stage)", () => {
     });
   });
 
-  it("rolls back to on_hold when the deposit-received email fails to send", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...twoStageSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-    (sendDepositReceivedEmail as Mock).mockRejectedValue(
-      new Error("SMTP down"),
+  it("rolls back to on_hold, keeping the frozen schedule, when the email fails to send", async () => {
+    sendDepositReceivedEmail.mockRejectedValue(new Error("SMTP down"));
+
+    const { error, state } = await applyRejecting(
+      "mark_deposit_paid",
+      onHold(),
     );
 
-    await expect(applyTransition("bk-1", "mark_deposit_paid")).rejects.toThrow(
-      "SMTP down",
-    );
-
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith({ status: "on_hold" });
+    expect(error).toEqual(new Error("SMTP down"));
+    expect(state.row).toEqual(onHold());
+    expect(state.writes).toBe(2);
   });
 
-  it("refuses with bank_details_missing without touching the DB", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...twoStageSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-    vi.mocked(hasBankDetails).mockReturnValue(false);
+  it("refuses with bank_details_missing without touching the store", async () => {
+    getSettings.mockResolvedValue({ ...mockSettings, iban: undefined });
 
-    await expect(applyTransition("bk-1", "mark_deposit_paid")).resolves.toEqual(
-      { ok: false, reason: "bank_details_missing" },
-    );
-    expect(db._set).not.toHaveBeenCalled();
+    const { result, state } = await apply("mark_deposit_paid", onHold());
+
+    expect(result).toEqual({ ok: false, reason: "bank_details_missing" });
+    expect(state.writes).toBe(0);
   });
 
   it("throws when the booking has a collapsed snapshot (lifecycle bug guard)", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...collapsedSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await expect(applyTransition("bk-1", "mark_deposit_paid")).rejects.toThrow(
-      "lifecycle bug",
+    const { error, state } = await applyRejecting(
+      "mark_deposit_paid",
+      onHold(collapsedSnapshot),
     );
-    expect(db._set).not.toHaveBeenCalled();
+
+    expect(String(error)).toContain("lifecycle bug");
+    expect(state.writes).toBe(0);
   });
 
-  it("throws without touching the DB for a legacy NULL-snapshot row (treated as collapsed, so mark_deposit_paid is never offered)", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...nullSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await expect(applyTransition("bk-1", "mark_deposit_paid")).rejects.toThrow(
-      "lifecycle bug",
+  it("throws without writing for a legacy NULL-snapshot row (treated as collapsed, so mark_deposit_paid is never offered)", async () => {
+    const { error, state } = await applyRejecting(
+      "mark_deposit_paid",
+      onHold(nullSnapshot),
     );
-    expect(db._set).not.toHaveBeenCalled();
+
+    expect(String(error)).toContain("lifecycle bug");
+    expect(state.writes).toBe(0);
     expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
   });
 });
 
 describe("applyTransition — mark_balance_paid (two-stage)", () => {
+  const depositPaid = (over: Partial<Booking> = {}) =>
+    row({ status: "deposit_paid", ...twoStageSnapshot, ...over });
+
   it("moves deposit_paid to confirmed, sends the balance-received email with the full total", async () => {
-    const row = {
-      ...baseBooking,
-      status: "deposit_paid",
-      ...twoStageSnapshot,
-    };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply("mark_balance_paid", depositPaid());
 
-    await applyTransition("bk-1", "mark_balance_paid");
-
-    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
-    expect(sendBalanceReceivedEmail).toHaveBeenCalledWith({
+    expect(state.row?.status).toBe("confirmed");
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledExactlyOnceWith({
       guest: { name: baseBooking.name, email: baseBooking.email },
       startDate: baseBooking.startDate,
       endDate: baseBooking.endDate,
@@ -514,33 +563,25 @@ describe("applyTransition — mark_balance_paid (two-stage)", () => {
   });
 
   it("rolls back to deposit_paid when the balance-received email fails to send", async () => {
-    const row = {
-      ...baseBooking,
-      status: "deposit_paid",
-      ...twoStageSnapshot,
-    };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-    (sendBalanceReceivedEmail as Mock).mockRejectedValue(
-      new Error("SMTP down"),
+    sendBalanceReceivedEmail.mockRejectedValue(new Error("SMTP down"));
+
+    const { error, state } = await applyRejecting(
+      "mark_balance_paid",
+      depositPaid(),
     );
 
-    await expect(applyTransition("bk-1", "mark_balance_paid")).rejects.toThrow(
-      "SMTP down",
-    );
-
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith({ status: "deposit_paid" });
+    expect(error).toEqual(new Error("SMTP down"));
+    expect(state.row).toEqual(depositPaid());
+    expect(state.writes).toBe(2);
   });
 
   it("still transitions and emails a legacy NULL-snapshot row, deriving the collapsed total from shownPriceAtBooking with borg €0", async () => {
-    const row = { ...baseBooking, status: "deposit_paid", ...nullSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply(
+      "mark_balance_paid",
+      depositPaid(nullSnapshot),
+    );
 
-    await applyTransition("bk-1", "mark_balance_paid");
-
-    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(state.row?.status).toBe("confirmed");
     expect(sendBalanceReceivedEmail).toHaveBeenCalledWith(
       expect.objectContaining({
         totalPaid: legacyTotalForBase(),
@@ -551,17 +592,16 @@ describe("applyTransition — mark_balance_paid (two-stage)", () => {
 });
 
 describe("applyTransition — mark_paid (collapse path)", () => {
+  const onHold = (over: Partial<Booking> = {}) =>
+    row({ status: "on_hold", ...collapsedSnapshot, ...over });
+
   it("moves on_hold straight to confirmed, sends the balance-received email with the single total", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...collapsedSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply("mark_paid", onHold());
 
-    await applyTransition("bk-1", "mark_paid");
-
-    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(state.row?.status).toBe("confirmed");
     expect(sendBankTransferEmail).not.toHaveBeenCalled();
     expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
-    expect(sendBalanceReceivedEmail).toHaveBeenCalledWith({
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledExactlyOnceWith({
       guest: { name: baseBooking.name, email: baseBooking.email },
       startDate: baseBooking.startDate,
       endDate: baseBooking.endDate,
@@ -572,30 +612,20 @@ describe("applyTransition — mark_paid (collapse path)", () => {
   });
 
   it("rolls back to on_hold when the balance-received email fails to send", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...collapsedSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-    (sendBalanceReceivedEmail as Mock).mockRejectedValue(
-      new Error("SMTP down"),
-    );
+    sendBalanceReceivedEmail.mockRejectedValue(new Error("SMTP down"));
 
-    await expect(applyTransition("bk-1", "mark_paid")).rejects.toThrow(
-      "SMTP down",
-    );
+    const { error, state } = await applyRejecting("mark_paid", onHold());
 
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith({ status: "on_hold" });
+    expect(error).toEqual(new Error("SMTP down"));
+    expect(state.row).toEqual(onHold());
+    expect(state.writes).toBe(2);
   });
 
   it("still transitions and emails a legacy NULL-snapshot on_hold row (ADR-0021 backfill convention: collapsed full price, borg €0)", async () => {
-    const row = { ...baseBooking, status: "on_hold", ...nullSnapshot };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
+    const { state } = await apply("mark_paid", onHold(nullSnapshot));
 
-    await applyTransition("bk-1", "mark_paid");
-
-    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
-    expect(sendBalanceReceivedEmail).toHaveBeenCalledWith({
+    expect(state.row?.status).toBe("confirmed");
+    expect(sendBalanceReceivedEmail).toHaveBeenCalledExactlyOnceWith({
       guest: { name: baseBooking.name, email: baseBooking.email },
       startDate: baseBooking.startDate,
       endDate: baseBooking.endDate,
@@ -610,69 +640,46 @@ describe("applyTransition — late payment on an expired hold", () => {
   // Still stored as on_hold; the deposit deadline has passed, so it displays
   // as expired and its dates are already released.
   const EXPIRED_DEADLINE = { paymentDeadline: "2020-01-01" };
+  const expiredCollapsed = () =>
+    row({ status: "on_hold", ...collapsedSnapshot, ...EXPIRED_DEADLINE });
+  const expiredTwoStage = () =>
+    row({ status: "on_hold", ...twoStageSnapshot, ...EXPIRED_DEADLINE });
 
   it("moves an expired collapsed hold to confirmed when the dates are still free", async () => {
-    const row = {
-      ...baseBooking,
-      status: "on_hold",
-      ...collapsedSnapshot,
-      ...EXPIRED_DEADLINE,
-    };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "mark_paid");
+    const { state } = await apply("mark_paid", expiredCollapsed());
 
     expect(isRangeAvailable).toHaveBeenCalledWith(
       baseBooking.startDate,
       baseBooking.endDate,
     );
-    expect(db._set).toHaveBeenCalledWith({ status: "confirmed" });
+    expect(state.row?.status).toBe("confirmed");
     expect(sendBalanceReceivedEmail).toHaveBeenCalledOnce();
   });
 
   it("moves an expired two-stage hold to deposit_paid when the dates are still free, leaving the frozen schedule untouched", async () => {
-    const row = {
-      ...baseBooking,
-      status: "on_hold",
-      ...twoStageSnapshot,
-      ...EXPIRED_DEADLINE,
-    };
-    const db = makeMockDb([row]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "mark_deposit_paid");
+    const { state } = await apply("mark_deposit_paid", expiredTwoStage());
 
     expect(isRangeAvailable).toHaveBeenCalledWith(
       baseBooking.startDate,
       baseBooking.endDate,
     );
-    expect(db._set).toHaveBeenCalledWith({ status: "deposit_paid" });
+    expect(state.row).toEqual({ ...expiredTwoStage(), status: "deposit_paid" });
     expect(sendDepositReceivedEmail).toHaveBeenCalledOnce();
   });
 
   it.each([
-    ["mark_paid", collapsedSnapshot],
-    ["mark_deposit_paid", twoStageSnapshot],
+    ["mark_paid", expiredCollapsed],
+    ["mark_deposit_paid", expiredTwoStage],
   ] as const)(
     "refuses %s with dates_taken and changes nothing when the released dates were taken",
-    async (action, snapshot) => {
-      const row = {
-        ...baseBooking,
-        status: "on_hold",
-        ...snapshot,
-        ...EXPIRED_DEADLINE,
-      };
-      const db = makeMockDb([row]);
-      (getDb as Mock).mockReturnValue(db);
-      (isRangeAvailable as Mock).mockResolvedValue(false);
+    async (action, make) => {
+      isRangeAvailable.mockResolvedValue(false);
 
-      await expect(applyTransition("bk-1", action)).resolves.toEqual({
-        ok: false,
-        reason: "dates_taken",
-      });
+      const { result, state } = await apply(action, make());
+
+      expect(result).toEqual({ ok: false, reason: "dates_taken" });
       expect(updateTag).not.toHaveBeenCalled();
-      expect(db.update).not.toHaveBeenCalled();
+      expect(state.writes).toBe(0);
       expect(sendDepositReceivedEmail).not.toHaveBeenCalled();
       expect(sendBalanceReceivedEmail).not.toHaveBeenCalled();
     },
@@ -684,98 +691,88 @@ describe("applyTransition — late payment on an expired hold", () => {
   ] as const)(
     "does not run the availability guard for %s on a non-expired on_hold — the hold still owns its dates",
     async (action, snapshot) => {
-      // Far-future deadline: the hold must stay non-expired whatever today is.
-      const row = {
-        ...baseBooking,
-        status: "on_hold",
-        ...snapshot,
-        paymentDeadline: "2099-12-31",
-      };
-      const db = makeMockDb([row]);
-      (getDb as Mock).mockReturnValue(db);
       // Would refuse if consulted: proves the on-time path never asks.
-      (isRangeAvailable as Mock).mockResolvedValue(false);
+      isRangeAvailable.mockResolvedValue(false);
 
-      await applyTransition("bk-1", action);
+      const { state } = await apply(
+        action,
+        row({ status: "on_hold", ...snapshot, paymentDeadline: "2099-12-31" }),
+      );
 
       expect(isRangeAvailable).not.toHaveBeenCalled();
-      expect(db._set).toHaveBeenCalledOnce();
+      expect(state.writes).toBe(1);
     },
   );
+
+  describe("deadline boundary follows the injected clock", () => {
+    // isExpiredHold is strictly `deadline < today`: a hold is still valid on
+    // its deadline day and expires the day after.
+    const holdDue = (paymentDeadline: string) =>
+      row({ status: "on_hold", ...collapsedSnapshot, paymentDeadline });
+
+    it("treats a hold due today as still owning its dates", async () => {
+      isRangeAvailable.mockResolvedValue(false);
+
+      const { result } = await apply("mark_paid", holdDue(TODAY));
+
+      expect(result).toEqual({ ok: true });
+      expect(isRangeAvailable).not.toHaveBeenCalled();
+    });
+
+    it("treats a hold due yesterday as expired and re-checks the dates", async () => {
+      isRangeAvailable.mockResolvedValue(false);
+
+      const { result } = await apply("mark_paid", holdDue("2027-05-31"));
+
+      expect(result).toEqual({ ok: false, reason: "dates_taken" });
+    });
+
+    it("flips from valid to expired as the injected clock crosses midnight", async () => {
+      isRangeAvailable.mockResolvedValue(false);
+      const nextDay = new Date("2027-06-02T00:00:01.000Z");
+
+      const { result } = await apply("mark_paid", holdDue(TODAY), nextDay);
+
+      expect(result).toEqual({ ok: false, reason: "dates_taken" });
+    });
+  });
 });
 
 describe("applyTransition — cancel", () => {
-  it("updates on_hold booking to cancelled and sends the cancellation email", async () => {
-    const db = makeMockDb([{ ...baseBooking, status: "on_hold" }]);
-    (getDb as Mock).mockReturnValue(db);
+  it.each(["on_hold", "deposit_paid", "confirmed"] as const)(
+    "moves a %s booking to cancelled and sends the cancellation email",
+    async (status) => {
+      const { state } = await apply("cancel", row({ status }));
 
-    await applyTransition("bk-1", "cancel");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "cancelled" }),
-    );
-    expect(sendCancellationEmail).toHaveBeenCalledOnce();
-    expect(sendCancellationEmail).toHaveBeenCalledWith({
-      guest: { name: baseBooking.name, email: baseBooking.email },
-      startDate: baseBooking.startDate,
-      endDate: baseBooking.endDate,
-      locale: baseBooking.locale,
-    });
-  });
-
-  it("updates deposit_paid booking to cancelled and sends the cancellation email", async () => {
-    const db = makeMockDb([{ ...baseBooking, status: "deposit_paid" }]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "cancel");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "cancelled" }),
-    );
-    expect(sendCancellationEmail).toHaveBeenCalledOnce();
-  });
-
-  it("updates confirmed booking to cancelled and sends the cancellation email", async () => {
-    const db = makeMockDb([{ ...baseBooking, status: "confirmed" }]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "cancel");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "cancelled" }),
-    );
-    expect(sendCancellationEmail).toHaveBeenCalledOnce();
-  });
+      expect(state.row?.status).toBe("cancelled");
+      expect(sendCancellationEmail).toHaveBeenCalledExactlyOnceWith({
+        guest: { name: baseBooking.name, email: baseBooking.email },
+        startDate: baseBooking.startDate,
+        endDate: baseBooking.endDate,
+        locale: baseBooking.locale,
+      });
+    },
+  );
 
   it("cancels an expired on_hold booking (still stored as on_hold) and sends the cancellation email — the guest missed the deadline but still hears about the cancellation", async () => {
-    const db = makeMockDb([
-      {
-        ...baseBooking,
-        status: "on_hold",
-        paymentDeadline: "2020-01-01",
-      },
-    ]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await applyTransition("bk-1", "cancel");
-
-    expect(db._set).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "cancelled" }),
+    const { state } = await apply(
+      "cancel",
+      row({ status: "on_hold", paymentDeadline: "2020-01-01" }),
     );
+
+    expect(state.row?.status).toBe("cancelled");
     expect(sendCancellationEmail).toHaveBeenCalledOnce();
   });
 
   it("rolls back to the prior status when the cancellation email fails to send", async () => {
-    const db = makeMockDb([{ ...baseBooking, status: "confirmed" }]);
-    (getDb as Mock).mockReturnValue(db);
-    (sendCancellationEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+    sendCancellationEmail.mockRejectedValue(new Error("SMTP down"));
+    const confirmed = row({ status: "confirmed" });
 
-    await expect(applyTransition("bk-1", "cancel")).rejects.toThrow(
-      "SMTP down",
-    );
+    const { error, state } = await applyRejecting("cancel", confirmed);
 
-    expect(db._set).toHaveBeenCalledTimes(2);
-    expect(db._set).toHaveBeenLastCalledWith({ status: "confirmed" });
+    expect(error).toEqual(new Error("SMTP down"));
+    expect(state.row).toEqual(confirmed);
+    expect(state.writes).toBe(2);
   });
 });
 
@@ -794,14 +791,9 @@ describe("applyTransition — transition table", () => {
 
   for (const [from, action, to, extra] of validCases) {
     it(`${from} → ${to} on '${action}'`, async () => {
-      const db = makeMockDb([{ ...baseBooking, ...extra, status: from }]);
-      (getDb as Mock).mockReturnValue(db);
+      const { state } = await apply(action, row({ ...extra, status: from }));
 
-      await applyTransition("bk-1", action);
-
-      expect(db._set).toHaveBeenCalledWith(
-        expect.objectContaining({ status: to }),
-      );
+      expect(state.row?.status).toBe(to);
     });
   }
 
@@ -828,14 +820,10 @@ describe("applyTransition — transition table", () => {
 
   for (const [from, action] of invalidCases) {
     it(`rejects '${action}' from '${from}' without writing or emailing`, async () => {
-      const db = makeMockDb([{ ...baseBooking, status: from }]);
-      (getDb as Mock).mockReturnValue(db);
+      const { result, state } = await apply(action, row({ status: from }));
 
-      await expect(applyTransition("bk-1", action)).resolves.toEqual({
-        ok: false,
-        reason: "invalid_transition",
-      });
-      expect(db.update).not.toHaveBeenCalled();
+      expect(result).toEqual({ ok: false, reason: "invalid_transition" });
+      expect(state.writes).toBe(0);
       expect(sendBankTransferEmail).not.toHaveBeenCalled();
     });
   }
@@ -843,51 +831,32 @@ describe("applyTransition — transition table", () => {
 
 describe("applyTransition — iCal export feed invalidation (ADR-0024)", () => {
   it("invalidates the feed once on success", async () => {
-    (getDb as Mock).mockReturnValue(makeMockDb());
+    const { result } = await apply("decline");
 
-    await expect(applyTransition("bk-1", "decline")).resolves.toEqual({
-      ok: true,
-    });
+    expect(result).toEqual({ ok: true });
     expect(updateTag).toHaveBeenCalledExactlyOnceWith("ical-export");
   });
 
   it("still invalidates after rolling back a failed send", async () => {
-    (getDb as Mock).mockReturnValue(makeMockDb());
-    (sendDeclineEmail as Mock).mockRejectedValue(new Error("SMTP down"));
+    sendDeclineEmail.mockRejectedValue(new Error("SMTP down"));
 
-    await expect(applyTransition("bk-1", "decline")).rejects.toThrow(
-      "SMTP down",
-    );
+    await applyRejecting("decline");
+
     expect(updateTag).toHaveBeenCalledOnce();
   });
 
   it("does not invalidate when the transition is refused", async () => {
-    (getDb as Mock).mockReturnValue(
-      makeMockDb([{ ...baseBooking, status: "declined" }]),
-    );
+    await apply("cancel", row({ status: "declined" }));
 
-    await applyTransition("bk-1", "cancel");
     expect(updateTag).not.toHaveBeenCalled();
   });
 });
 
-describe("applyTransition — invalid transitions", () => {
-  it("throws for an impossible transition", async () => {
-    const db = makeMockDb([{ ...baseBooking, status: "declined" }]);
-    (getDb as Mock).mockReturnValue(db);
+describe("applyTransition — missing booking", () => {
+  it("throws when the booking is not found", async () => {
+    const { error, state } = await applyRejecting("decline", null);
 
-    await expect(applyTransition("bk-1", "cancel")).resolves.toEqual({
-      ok: false,
-      reason: "invalid_transition",
-    });
-  });
-
-  it("throws when booking is not found", async () => {
-    const db = makeMockDb([]);
-    (getDb as Mock).mockReturnValue(db);
-
-    await expect(applyTransition("missing-id", "decline")).rejects.toThrow(
-      "Booking not found",
-    );
+    expect(error).toEqual(new Error("Booking not found"));
+    expect(state.writes).toBe(0);
   });
 });
