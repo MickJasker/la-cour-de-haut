@@ -20,6 +20,14 @@ async function clearBookings() {
   await sql`TRUNCATE booking_request`;
 }
 
+// Rows a spec seeds beyond the shared beforeEach truncate are removed by id, so
+// a `requested` row never lingers to dirty other specs' all-clear checks
+// (dashboard) while they run in parallel workers.
+async function deleteBookings(...ids: string[]) {
+  const sql = neon(process.env.DATABASE_URL!);
+  await sql`DELETE FROM booking_request WHERE id = ANY(${ids})`;
+}
+
 async function seedExpiredHold() {
   const sql = neon(process.env.DATABASE_URL!);
   await sql`
@@ -178,18 +186,21 @@ test.describe("booking lifecycle — full admin funnel", () => {
 
     await page.goto("/admin/bookings");
     await expect(page.getByText("Peter Jones")).toBeVisible();
+    const jonesCard = page
+      .locator("div.border")
+      .filter({ hasText: "Peter Jones" });
 
-    await page.getByRole("button", { name: "Afwijzen" }).click();
+    await jonesCard.getByRole("button", { name: "Afwijzen" }).click();
 
     // Sends the decline notice (issue #165), a no-op under E2E_TESTING
     // (playwright.config.ts) — the transition succeeding here proves the
     // send-then-transition path doesn't roll back under the stubbed
     // transport.
     await expect(
-      page.locator("span").filter({ hasText: /^Afgewezen$/ }),
+      jonesCard.locator("span").filter({ hasText: /^Afgewezen$/ }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Afwijzen" }),
+      jonesCard.getByRole("button", { name: "Afwijzen" }),
     ).not.toBeVisible();
   });
 
@@ -429,23 +440,27 @@ test.describe("booking lifecycle — full admin funnel", () => {
       VALUES ('confirm-taken-2', 'Already Confirmed', 'first@example.com', 2, 'nl', '2028-03-03', '2028-03-05', 'confirmed', now(), now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
-    await page.goto("/admin/bookings");
-    const card = page
-      .locator("div.border")
-      .filter({ hasText: "Wants Taken Dates" });
-    await card.getByRole("button", { name: "Bevestigen" }).click();
-    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+    try {
+      await page.goto("/admin/bookings");
+      const card = page
+        .locator("div.border")
+        .filter({ hasText: "Wants Taken Dates" });
+      await card.getByRole("button", { name: "Bevestigen" }).click();
+      await page.getByRole("button", { name: "Boeking bevestigen" }).click();
 
-    const dialog = page.getByRole("dialog");
-    await expect(dialog.getByRole("alert")).toHaveText(
-      /datums zijn inmiddels bezet/,
-    );
-    await expect(dialog).toBeVisible();
+      const dialog = page.getByRole("dialog");
+      await expect(dialog.getByRole("alert")).toHaveText(
+        /datums zijn inmiddels bezet/,
+      );
+      await expect(dialog).toBeVisible();
 
-    await page.reload();
-    await expect(
-      card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
-    ).toBeVisible();
+      await page.reload();
+      await expect(
+        card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
+      ).toBeVisible();
+    } finally {
+      await deleteBookings("confirm-taken-1", "confirm-taken-2");
+    }
   });
 
   test("confirm after bank details were removed is refused inline and nothing changes", async ({
@@ -457,28 +472,38 @@ test.describe("booking lifecycle — full admin funnel", () => {
       VALUES ('confirm-nobank-1', 'Stale Bank Page', 'stale@example.com', 2, 'nl', '2028-04-01', '2028-04-07', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
-    // Load the page while bank details exist, so the Bevestigen button is
-    // enabled, then remove them before the owner submits the dialog.
-    await page.goto("/admin/bookings");
-    const card = page
-      .locator("div.border")
-      .filter({ hasText: "Stale Bank Page" });
-    await card.getByRole("button", { name: "Bevestigen" }).click();
+    const bustSettings = () =>
+      fetch("http://localhost:3000/api/dev/revalidate/settings", {
+        method: "POST",
+      });
 
-    await sql`TRUNCATE setting`;
-    await fetch("http://localhost:3000/api/dev/revalidate/settings", {
-      method: "POST",
-    });
+    try {
+      // Load the page while bank details exist, so the Bevestigen button is
+      // enabled, then remove the IBAN before the owner submits the dialog.
+      // Only that one key goes (not TRUNCATE) so parallel specs keep the rest.
+      await page.goto("/admin/bookings");
+      const card = page
+        .locator("div.border")
+        .filter({ hasText: "Stale Bank Page" });
+      await card.getByRole("button", { name: "Bevestigen" }).click();
 
-    await page.getByRole("button", { name: "Boeking bevestigen" }).click();
-    await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
-      /bankgegevens/,
-    );
+      await sql`DELETE FROM setting WHERE key = 'iban'`;
+      await bustSettings();
 
-    await page.reload();
-    await expect(
-      card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
-    ).toBeVisible();
+      await page.getByRole("button", { name: "Boeking bevestigen" }).click();
+      await expect(page.getByRole("dialog").getByRole("alert")).toHaveText(
+        /bankgegevens/,
+      );
+
+      await page.reload();
+      await expect(
+        card.locator("span").filter({ hasText: /^Aangevraagd$/ }),
+      ).toBeVisible();
+    } finally {
+      await seedBankDetails();
+      await bustSettings();
+      await deleteBookings("confirm-nobank-1");
+    }
   });
 
   test("acting on a stale page is refused inline when the booking already moved on", async ({
@@ -490,17 +515,23 @@ test.describe("booking lifecycle — full admin funnel", () => {
       VALUES ('stale-1', 'Stale Request', 'stale2@example.com', 2, 'nl', '2028-05-01', '2028-05-07', 'requested', now(), 0, 'Teststraat 1', '1234 AB', 'Testdorp', 'NL')
     `;
 
-    await page.goto("/admin/bookings");
-    const card = page
-      .locator("div.border")
-      .filter({ hasText: "Stale Request" });
-    await expect(card.getByRole("button", { name: "Afwijzen" })).toBeVisible();
+    try {
+      await page.goto("/admin/bookings");
+      const card = page
+        .locator("div.border")
+        .filter({ hasText: "Stale Request" });
+      await expect(
+        card.getByRole("button", { name: "Afwijzen" }),
+      ).toBeVisible();
 
-    // Another tab/device declined it in the meantime.
-    await sql`UPDATE booking_request SET status = 'declined' WHERE id = 'stale-1'`;
+      // Another tab/device declined it in the meantime.
+      await sql`UPDATE booking_request SET status = 'declined' WHERE id = 'stale-1'`;
 
-    await card.getByRole("button", { name: "Afwijzen" }).click();
-    await expect(card.getByRole("alert")).toHaveText(/niet meer mogelijk/);
+      await card.getByRole("button", { name: "Afwijzen" }).click();
+      await expect(card.getByRole("alert")).toHaveText(/niet meer mogelijk/);
+    } finally {
+      await deleteBookings("stale-1");
+    }
   });
 
   test("two-stage happy path: confirm → deposit paid → balance paid → confirmed", async ({
