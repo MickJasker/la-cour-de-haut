@@ -137,11 +137,8 @@ async function prepareConfirm(booking: Booking): Promise<Prepared> {
     frozenSchedule: scheduleToSnapshot(schedule, securityDeposit),
     send: () =>
       sendBankTransferEmail({
-        guest: guestOf(booking),
-        startDate: booking.startDate,
-        endDate: booking.endDate,
+        ...stayOf(booking),
         guestCount: booking.guestCount,
-        locale: booking.locale,
         price: { nights, discount, totalPrice },
         schedule,
         securityDeposit,
@@ -153,7 +150,7 @@ async function prepareConfirm(booking: Booking): Promise<Prepared> {
 async function prepareDepositPaid(booking: Booking): Promise<Prepared> {
   await assertLatePaymentAllowed(booking);
   // The deposit-received receipt restates the balance leg + repeats bank
-  // details (ADR-0021 wave 3, issue #164). mark_deposit_paid only ever
+  // details (ADR-0021). mark_deposit_paid only ever
   // reaches a booking with a two-stage snapshot: a collapsed booking goes
   // on_hold → confirmed directly via mark_paid, and a legacy NULL-snapshot
   // row (never ran the ADR-0021 backfill) is treated as collapsed by the
@@ -227,7 +224,7 @@ function prepareBalanceReceived(booking: Booking): Prepared {
 }
 
 // Cancellation notice: fires from on_hold, deposit_paid, or confirmed
-// (issue #165) — including an expired on_hold, whose row is still on_hold in
+// — including an expired on_hold, whose row is still on_hold in
 // the DB (expired is only a derived display status). The guest already
 // missed their deadline but still hears the booking is cancelled.
 const prepareCancel = async (booking: Booking): Promise<Prepared> => ({

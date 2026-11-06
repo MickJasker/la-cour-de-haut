@@ -16,6 +16,8 @@ The booking state machine (`machine.ts`) read as the enforcement gate, but the r
 - **Bypass prevention (PR 2).** An ESLint `no-restricted-syntax` rule forbids `status` in a `bookingRequest` `.set({...})` outside `lifecycle.ts`. No DB trigger: e2e specs seed rows in arbitrary statuses with raw SQL.
 - **Cache ownership (PR 2).** `applyTransition` owns `updateTag(CACHE_TAGS.icalExport)` as a documented post-condition (ADR-0024), which makes it Server-Action-only. Actions keep `revalidatePath("/admin/bookings")`.
 
+- **One intended ordering change.** The validity check now runs first, before any precondition. Previously an invalid action (e.g. `confirm` on an `on_hold` booking) could surface a bank-details or date-conflict error before "Invalid transition"; now it always reports the invalid transition.
+
 ## Delivery
 
 1. Behavior-preserving deepening (table private, one email mechanism, `machine.ts` trimmed, this ADR).
