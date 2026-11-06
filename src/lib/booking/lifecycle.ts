@@ -2,6 +2,8 @@ import "server-only";
 import { getDb } from "@/db";
 import { bookingRequest } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { updateTag } from "next/cache";
+import { CACHE_TAGS } from "@/lib/cache-tags";
 import { isExpiredHold, type DbBookingStatus } from "./machine";
 import {
   getSettings,
@@ -28,20 +30,6 @@ import {
   calculateTotalNights,
 } from "@/app/[locale]/book/shared";
 
-/**
- * A late payment on an expired hold whose released dates have since been
- * taken. An expected owner-facing outcome, not a failure — thrown before any
- * DB write or email so callers can map it to an inline message.
- */
-export class LatePaymentDatesTakenError extends Error {
-  constructor() {
-    super(
-      "The hold expired and its dates have since been taken — this late payment can't be recorded.",
-    );
-    this.name = "LatePaymentDatesTakenError";
-  }
-}
-
 type Booking = typeof bookingRequest.$inferSelect;
 
 export type BookingAction =
@@ -51,6 +39,17 @@ export type BookingAction =
   | "mark_balance_paid"
   | "mark_paid"
   | "cancel";
+
+/** Why a transition was refused. Expected owner-facing outcomes, not bugs. */
+export type TransitionFailure =
+  "invalid_transition" | "dates_taken" | "bank_details_missing";
+
+export type TransitionResult =
+  { ok: true } | { ok: false; reason: TransitionFailure };
+
+interface Refusal {
+  refused: TransitionFailure;
+}
 
 /**
  * What a transition resolves before anything is written: the transactional
@@ -64,7 +63,7 @@ interface Prepared {
 
 interface TransitionSpec {
   nextStatus: DbBookingStatus;
-  prepare: (booking: Booking) => Promise<Prepared>;
+  prepare: (booking: Booking) => Promise<Prepared | Refusal>;
 }
 
 const guestOf = (b: Booking) => ({ name: b.name, email: b.email });
@@ -79,35 +78,28 @@ const stayOf = (b: Booking) => ({
 // may only revive it if nothing else has claimed them since. Expired holds
 // are excluded from busy intervals, so the booking never conflicts with
 // itself; an on-time payment still holds its dates and skips the check.
-async function assertLatePaymentAllowed(booking: Booking): Promise<void> {
+async function latePaymentRefusal(booking: Booking): Promise<Refusal | null> {
   if (
     isExpiredHold(booking) &&
     !(await isRangeAvailable(booking.startDate, booking.endDate))
   ) {
-    throw new LatePaymentDatesTakenError();
+    return { refused: "dates_taken" };
   }
+  return null;
 }
 
-async function prepareConfirm(booking: Booking): Promise<Prepared> {
+async function prepareConfirm(booking: Booking): Promise<Prepared | Refusal> {
   const [settings, available] = await Promise.all([
     getSettings(),
     isRangeAvailable(booking.startDate, booking.endDate),
   ]);
-  if (!hasBankDetails(settings)) {
-    throw new Error(
-      "Bank details must be configured before confirming a booking",
-    );
-  }
+  if (!hasBankDetails(settings)) return { refused: "bank_details_missing" };
   const bankDetails: BankDetails = {
     iban: settings.iban,
     bankName: settings.bank_name,
     accountHolder: settings.account_holder,
   };
-  if (!available) {
-    throw new Error(
-      "These dates conflict with an existing booking or platform hold. Check the availability calendar before confirming.",
-    );
-  }
+  if (!available) return { refused: "dates_taken" };
 
   // Price snapshot: compute from the price frozen on the booking request at
   // submit time (shownPriceAtBooking), not live settings — so guest and
@@ -147,8 +139,11 @@ async function prepareConfirm(booking: Booking): Promise<Prepared> {
   };
 }
 
-async function prepareDepositPaid(booking: Booking): Promise<Prepared> {
-  await assertLatePaymentAllowed(booking);
+async function prepareDepositPaid(
+  booking: Booking,
+): Promise<Prepared | Refusal> {
+  const late = await latePaymentRefusal(booking);
+  if (late) return late;
   // The deposit-received receipt restates the balance leg + repeats bank
   // details (ADR-0021). mark_deposit_paid only ever
   // reaches a booking with a two-stage snapshot: a collapsed booking goes
@@ -164,11 +159,7 @@ async function prepareDepositPaid(booking: Booking): Promise<Prepared> {
     );
   }
   const settings = await getSettings();
-  if (!hasBankDetails(settings)) {
-    throw new Error(
-      "Bank details must be configured to send the deposit-received email",
-    );
-  }
+  if (!hasBankDetails(settings)) return { refused: "bank_details_missing" };
   return {
     send: () =>
       sendDepositReceivedEmail({
@@ -259,8 +250,9 @@ const TRANSITIONS: Record<
     mark_paid: {
       nextStatus: "confirmed",
       prepare: async (booking) => {
-        await assertLatePaymentAllowed(booking);
-        return prepareBalanceReceived(booking);
+        return (
+          (await latePaymentRefusal(booking)) ?? prepareBalanceReceived(booking)
+        );
       },
     },
     cancel: { nextStatus: "cancelled", prepare: prepareCancel },
@@ -303,62 +295,73 @@ const EMPTY_SNAPSHOT = {
 /**
  * Applies a booking action: the single gate for every status change.
  *
- * Preconditions (each throws before any DB write or email):
- * - the booking exists and `action` is valid from its current status
- * - `confirm`: bank details are configured and the dates are still free
- * - `mark_paid` / `mark_deposit_paid` on an expired hold: the released dates
- *   are still free (else {@link LatePaymentDatesTakenError})
+ * Refusals (returned as `{ ok: false, reason }`, before any DB write or email):
+ * - `invalid_transition` — `action` isn't valid from the booking's status
+ * - `dates_taken` — `confirm`, or a late `mark_paid` / `mark_deposit_paid` on
+ *   an expired hold, whose dates are no longer free
+ * - `bank_details_missing` — `confirm` / `mark_deposit_paid` need bank details
+ *   in settings for the guest email
+ *
+ * Still thrown: a missing booking, lifecycle bugs, and email-transport
+ * failures (after rollback, see below).
  *
  * Post-conditions on success:
  * - status is the transition's next status; `confirm` also stamps
  *   `confirmedAt` and freezes the payment schedule (ADR-0021)
  * - the guest has been sent the transition's transactional email
+ * - the cached iCal export feed is invalidated (`updateTag`, ADR-0024), which
+ *   makes this callable from Server Actions only
  *
- * Failure: the email is sent synchronously. If sending fails, the status (and
- * for `confirm`, the frozen schedule) is rolled back and the error rethrown,
- * so a transition never reports success without the email going out and the
- * owner can simply retry. The status write and the send are not atomic
- * (neon-http has no interactive transactions): a crash between them leaves
- * the new status with no email — accepted, see ADR-0026.
+ * The email is sent synchronously. If sending fails, the status (and for
+ * `confirm`, the frozen schedule) is rolled back and the error rethrown, so a
+ * transition never reports success without the email going out and the owner
+ * can simply retry. The feed is invalidated on that path too, since it may
+ * have been regenerated while the new status was briefly written. The status
+ * write and the send are not atomic (neon-http has no interactive
+ * transactions): a crash between them leaves the new status with no email —
+ * accepted, see ADR-0026.
  */
 export async function applyTransition(
   bookingId: string,
   action: BookingAction,
-): Promise<void> {
+): Promise<TransitionResult> {
   const booking = await fetchBooking(bookingId);
   const status = booking.status as DbBookingStatus;
 
   const spec = TRANSITIONS[status]?.[action];
-  if (!spec) {
-    throw new Error(
-      `Invalid transition: cannot '${action}' a booking with status '${status}'`,
-    );
-  }
+  if (!spec) return { ok: false, reason: "invalid_transition" };
 
-  const { send, frozenSchedule } = await spec.prepare(booking);
+  const prepared = await spec.prepare(booking);
+  if ("refused" in prepared) return { ok: false, reason: prepared.refused };
+  const { send, frozenSchedule } = prepared;
 
   const db = getDb();
-  await db
-    .update(bookingRequest)
-    .set({
-      status: spec.nextStatus,
-      ...(frozenSchedule && { confirmedAt: new Date(), ...frozenSchedule }),
-    })
-    .where(eq(bookingRequest.id, bookingId));
-
   try {
-    await send();
-  } catch (err) {
-    // Compensate so the transition looks un-applied and can be retried. Only
-    // a transition that froze a schedule has more than the status to undo.
-    // This is also the rollback path for an unconfigured email transport.
     await db
       .update(bookingRequest)
       .set({
-        status,
-        ...(frozenSchedule && { confirmedAt: null, ...EMPTY_SNAPSHOT }),
+        status: spec.nextStatus,
+        ...(frozenSchedule && { confirmedAt: new Date(), ...frozenSchedule }),
       })
       .where(eq(bookingRequest.id, bookingId));
-    throw err;
+
+    try {
+      await send();
+    } catch (err) {
+      // Compensate so the transition looks un-applied and can be retried.
+      // Only a transition that froze a schedule has more than the status to
+      // undo. This is also the rollback path for an unconfigured transport.
+      await db
+        .update(bookingRequest)
+        .set({
+          status,
+          ...(frozenSchedule && { confirmedAt: null, ...EMPTY_SNAPSHOT }),
+        })
+        .where(eq(bookingRequest.id, bookingId));
+      throw err;
+    }
+  } finally {
+    updateTag(CACHE_TAGS.icalExport);
   }
+  return { ok: true };
 }

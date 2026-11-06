@@ -7,7 +7,7 @@ import {
   markBalancePaidBookingAction,
   markPaidBookingAction,
   cancelBookingAction,
-  type MarkPaymentActionState,
+  type TransitionActionState,
 } from "./actions";
 import { ConfirmDialog, type ConfirmSchedulePreview } from "./confirm-dialog";
 import type { DisplayStatus } from "@/lib/booking/machine";
@@ -36,42 +36,54 @@ export function BookingActions({
   schedulePreview,
 }: Props) {
   const [isPending, startTransition] = useTransition();
-  const [paymentState, markPayment, isMarkingPayment] = useActionState(
+  const [actionState, runAction, isRunning] = useActionState(
     (
-      _prev: MarkPaymentActionState | null,
-      fn: (id: string) => Promise<MarkPaymentActionState>,
+      _prev: TransitionActionState | null,
+      fn: (id: string) => Promise<TransitionActionState>,
     ) => fn(bookingId),
     null,
   );
 
-  function action(fn: (id: string) => Promise<void>) {
-    startTransition(() => fn(bookingId));
+  function action(fn: (id: string) => Promise<TransitionActionState>) {
+    startTransition(() => runAction(fn));
   }
+
+  const error = actionState?.ok === false ? actionState.error : null;
+  const errorLine = error && (
+    <p role="alert" className="max-w-xs text-right text-xs text-red-600">
+      {error}
+    </p>
+  );
+
+  const busy = isPending || isRunning;
 
   if (displayStatus === "requested") {
     return (
-      <div className="flex gap-2">
-        {bankDetailsConfigured ? (
-          <ConfirmDialog
-            bookingId={bookingId}
-            guestName={guestName}
-            schedulePreview={schedulePreview}
-          />
-        ) : (
-          <div title="Stel bankgegevens in via Instellingen voor bevestiging">
-            <Button size="sm" disabled>
-              Bevestigen
-            </Button>
-          </div>
-        )}
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={isPending}
-          onClick={() => action(declineBookingAction)}
-        >
-          Afwijzen
-        </Button>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex gap-2">
+          {bankDetailsConfigured ? (
+            <ConfirmDialog
+              bookingId={bookingId}
+              guestName={guestName}
+              schedulePreview={schedulePreview}
+            />
+          ) : (
+            <div title="Stel bankgegevens in via Instellingen voor bevestiging">
+              <Button size="sm" disabled>
+                Bevestigen
+              </Button>
+            </div>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => action(declineBookingAction)}
+          >
+            Afwijzen
+          </Button>
+        </div>
+        {errorLine}
       </div>
     );
   }
@@ -82,7 +94,6 @@ export function BookingActions({
     // A collapsed booking (or a legacy hold with no snapshot) is a single
     // payment → confirmed. A two-stage booking marks the deposit first.
     const isCollapsed = paymentCollapsed !== false;
-    const busy = isPending || isMarkingPayment;
     return (
       <div className="flex flex-col items-end gap-1">
         <div className="flex gap-2">
@@ -90,12 +101,10 @@ export function BookingActions({
             size="sm"
             disabled={busy}
             onClick={() =>
-              startTransition(() =>
-                markPayment(
-                  isCollapsed
-                    ? markPaidBookingAction
-                    : markDepositPaidBookingAction,
-                ),
+              action(
+                isCollapsed
+                  ? markPaidBookingAction
+                  : markDepositPaidBookingAction,
               )
             }
           >
@@ -110,47 +119,49 @@ export function BookingActions({
             Annuleren
           </Button>
         </div>
-        {paymentState?.ok === false && (
-          <p role="alert" className="max-w-xs text-right text-xs text-red-600">
-            {paymentState.error}
-          </p>
-        )}
+        {errorLine}
       </div>
     );
   }
 
   if (displayStatus === "deposit_paid") {
     return (
-      <div className="flex gap-2">
-        <Button
-          size="sm"
-          disabled={isPending}
-          onClick={() => action(markBalancePaidBookingAction)}
-        >
-          Restbetaling markeren
-        </Button>
-        <Button
-          size="sm"
-          variant="secondary"
-          disabled={isPending}
-          onClick={() => action(cancelBookingAction)}
-        >
-          Annuleren
-        </Button>
+      <div className="flex flex-col items-end gap-1">
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={() => action(markBalancePaidBookingAction)}
+          >
+            Restbetaling markeren
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            disabled={busy}
+            onClick={() => action(cancelBookingAction)}
+          >
+            Annuleren
+          </Button>
+        </div>
+        {errorLine}
       </div>
     );
   }
 
   if (displayStatus === "confirmed") {
     return (
-      <Button
-        size="sm"
-        variant="secondary"
-        disabled={isPending}
-        onClick={() => action(cancelBookingAction)}
-      >
-        Annuleren
-      </Button>
+      <div className="flex flex-col items-end gap-1">
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={busy}
+          onClick={() => action(cancelBookingAction)}
+        >
+          Annuleren
+        </Button>
+        {errorLine}
+      </div>
     );
   }
 
