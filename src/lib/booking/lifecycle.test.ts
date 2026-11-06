@@ -46,7 +46,12 @@ import { sendBalanceReceivedEmail } from "./balance-received-email";
 import { sendCancellationEmail } from "./cancellation-email";
 import { sendDeclineEmail } from "./decline-email";
 import { isRangeAvailable } from "./availability";
-import { applyTransition, LatePaymentDatesTakenError } from "./lifecycle";
+import {
+  applyTransition,
+  LatePaymentDatesTakenError,
+  type BookingAction,
+} from "./lifecycle";
+import type { DbBookingStatus } from "./machine";
 
 // Booking runs 2027-09-01 → 2027-09-07 (6 nights), far enough out that the
 // schedule never collapses.
@@ -764,6 +769,67 @@ describe("applyTransition — cancel", () => {
     expect(db._set).toHaveBeenCalledTimes(2);
     expect(db._set).toHaveBeenLastCalledWith({ status: "confirmed" });
   });
+});
+
+describe("applyTransition — transition table", () => {
+  type Case = [DbBookingStatus, BookingAction, DbBookingStatus, object?];
+  const validCases: Case[] = [
+    ["requested", "confirm", "on_hold"],
+    ["requested", "decline", "declined"],
+    ["on_hold", "mark_deposit_paid", "deposit_paid", twoStageSnapshot],
+    ["on_hold", "mark_paid", "confirmed"],
+    ["deposit_paid", "mark_balance_paid", "confirmed", twoStageSnapshot],
+    ["on_hold", "cancel", "cancelled"],
+    ["deposit_paid", "cancel", "cancelled"],
+    ["confirmed", "cancel", "cancelled"],
+  ];
+
+  for (const [from, action, to, extra] of validCases) {
+    it(`${from} → ${to} on '${action}'`, async () => {
+      const db = makeMockDb([{ ...baseBooking, ...extra, status: from }]);
+      (getDb as Mock).mockReturnValue(db);
+
+      await applyTransition("bk-1", action);
+
+      expect(db._set).toHaveBeenCalledWith(
+        expect.objectContaining({ status: to }),
+      );
+    });
+  }
+
+  const invalidCases: [DbBookingStatus, BookingAction][] = [
+    ["requested", "mark_paid"],
+    ["requested", "cancel"],
+    ["on_hold", "confirm"],
+    ["on_hold", "decline"],
+    ["on_hold", "mark_balance_paid"],
+    ["deposit_paid", "confirm"],
+    ["deposit_paid", "decline"],
+    ["deposit_paid", "mark_deposit_paid"],
+    ["deposit_paid", "mark_paid"],
+    ["confirmed", "confirm"],
+    ["confirmed", "mark_paid"],
+    ["confirmed", "mark_deposit_paid"],
+    ["confirmed", "mark_balance_paid"],
+    ["confirmed", "decline"],
+    ["declined", "confirm"],
+    ["declined", "cancel"],
+    ["cancelled", "confirm"],
+    ["cancelled", "cancel"],
+  ];
+
+  for (const [from, action] of invalidCases) {
+    it(`rejects '${action}' from '${from}' without writing or emailing`, async () => {
+      const db = makeMockDb([{ ...baseBooking, status: from }]);
+      (getDb as Mock).mockReturnValue(db);
+
+      await expect(applyTransition("bk-1", action)).rejects.toThrow(
+        "Invalid transition",
+      );
+      expect(db.update).not.toHaveBeenCalled();
+      expect(sendBankTransferEmail).not.toHaveBeenCalled();
+    });
+  }
 });
 
 describe("applyTransition — invalid transitions", () => {
