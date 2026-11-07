@@ -21,14 +21,14 @@ function credentials() {
 const MAX_ATTEMPTS = 5;
 
 /**
- * Statuses worth waiting out: 409/423 (project locked by a concurrent
- * operation), 429 (rate limit), 5xx, and 406 (branch/endpoint limit exceeded —
+ * 409/423 (project locked by a concurrent
+ * operation), 429 (rate limit), any 5xx, and 406 (branch/endpoint limit exceeded —
  * sibling `e2e-*` branches are deleted as their runs finish, freeing capacity).
  * Everything else (400/401/403/404) is a credential/config bug: fail fast
  * rather than hide it behind retries.
  */
 export function isRetryable(status: number) {
-  return [406, 409, 423, 429, 500, 502, 503].includes(status);
+  return status >= 500 || [406, 409, 423, 429].includes(status);
 }
 
 /** ~5, 10, 20, 40, 40s, jittered ±25% so parallel runs don't retry in lockstep. */

@@ -14,12 +14,12 @@ function deps(responses: Response[]) {
     if (!next) throw new Error("no more responses");
     return next;
   });
-  const sleep = vi.fn(async () => {});
+  const sleep = vi.fn(async (_ms: number) => {});
   return { fetch: fetchFn, sleep, random: () => 0.5 };
 }
 
 describe("isRetryable", () => {
-  it.each([406, 409, 423, 429, 500, 502, 503])("retries %i", (status) => {
+  it.each([406, 409, 423, 429, 500, 502, 503, 504])("retries %i", (status) => {
     expect(isRetryable(status)).toBe(true);
   });
 
@@ -55,7 +55,8 @@ describe("neonRequest", () => {
       ok: 1,
     });
     expect(d.fetch).toHaveBeenCalledTimes(3);
-    expect(d.sleep).toHaveBeenCalledTimes(2);
+    // random() = 0.5 → un-jittered 5s then 10s: proves retryDelayMs is wired in.
+    expect(d.sleep.mock.calls).toEqual([[5000], [10000]]);
   });
 
   it("fails fast on a credential error and surfaces the Neon body", async () => {
