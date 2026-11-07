@@ -12,6 +12,8 @@ applyWorkerEnv();
 
 export default defineConfig({
   testDir: "./e2e",
+  // `*.test.ts` in e2e/ are Vitest unit tests for the harness itself.
+  testIgnore: /\.test\.ts$/,
   globalSetup: "./e2e/global-setup.ts",
   workers: WORKER_COUNT,
   retries: 1,
