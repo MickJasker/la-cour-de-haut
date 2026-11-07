@@ -33,7 +33,7 @@ The DB client (`src/db/index.ts`) accesses `DATABASE_URL` **lazily**, because `n
 
 - `pnpm dev` — dev server (http://localhost:3000)
 - `pnpm db:generate` — generate a migration from `src/db/schema.ts` changes
-- `pnpm db:migrate` — apply migrations (`drizzle/`) + chained backfill scripts; also runs inside `pnpm build`
+- `pnpm db:migrate` — apply migrations (`drizzle/`) + chained data scripts; also runs inside `pnpm build`. Split into `db:migrate:schema` (`drizzle-kit migrate`) and `db:migrate:data` (content-blocks rich-text migration, gallery backfill, seeds — idempotent, order matters)
 - `pnpm db:push` — push schema directly (prototyping only, skips migration files)
 - `pnpm seed-owner` / `pnpm seed-ical-sources` — seed scripts (`scripts/*.mts`)
 
