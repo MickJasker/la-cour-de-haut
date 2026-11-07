@@ -39,6 +39,23 @@ export function isExpiredHold(
 }
 
 /**
+ * Whether a booking is "dead" and may be hard-deleted from the admin overview:
+ * `declined`, `cancelled`, or an expired hold (ADR-0004). Past *confirmed*
+ * stays are guest/revenue history and stay undeletable. Deletion is record
+ * removal, not a transition — it deliberately lives outside `TRANSITIONS`.
+ */
+export function isDeletableBooking(
+  booking: { status: string; paymentDeadline: string | null },
+  today: string = toUtcDayString(),
+): boolean {
+  return (
+    booking.status === "declined" ||
+    booking.status === "cancelled" ||
+    isExpiredHold(booking, today)
+  );
+}
+
+/**
  * The gîte's own time zone. Checkout happens on the property's clock — not
  * the server's (UTC on Vercel) and not the viewer's — so the one comparison
  * in the booking area that needs a real time of day anchors itself here.
