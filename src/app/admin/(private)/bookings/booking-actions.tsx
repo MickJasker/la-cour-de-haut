@@ -62,8 +62,6 @@ export function BookingActions({
 
   const busy = isPending || isRunning;
 
-  // Dead bookings (declined / cancelled / expired hold) can be hard-deleted.
-  // The server action re-checks eligibility; this only decides the button.
   const deleteButton = (
     <DeleteDialog
       bookingId={bookingId}

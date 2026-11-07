@@ -4,7 +4,6 @@ import type { Mock } from "vitest";
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
-vi.mock("@/lib/booking/machine", () => ({ isDeletableBooking: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("@/lib/auth/session", () => ({ verifySession: vi.fn() }));
 vi.mock("@/lib/booking/lifecycle", () => ({ applyTransition: vi.fn() }));
@@ -12,7 +11,6 @@ vi.mock("@/lib/booking/lifecycle", () => ({ applyTransition: vi.fn() }));
 import { revalidatePath } from "next/cache";
 import { applyTransition } from "@/lib/booking/lifecycle";
 import { getDb } from "@/db";
-import { isDeletableBooking } from "@/lib/booking/machine";
 import {
   cancelBookingAction,
   confirmBookingAction,
@@ -77,6 +75,8 @@ describe.each([
   });
 });
 
+// The real isDeletableBooking runs here (no mock): this proves the action
+// itself applies the guard to the DB row rather than trusting the client.
 describe("deleteBookingAction", () => {
   function mockDb(row: unknown) {
     const where = vi.fn().mockResolvedValue(undefined);
@@ -89,18 +89,25 @@ describe("deleteBookingAction", () => {
     return { del };
   }
 
-  it("deletes an eligible booking and refreshes the admin page", async () => {
-    const { del } = mockDb({ status: "declined", paymentDeadline: null });
-    (isDeletableBooking as Mock).mockReturnValue(true);
+  it.each([
+    ["declined", { status: "declined", paymentDeadline: null }],
+    ["cancelled", { status: "cancelled", paymentDeadline: null }],
+    ["an expired hold", { status: "on_hold", paymentDeadline: "2000-01-01" }],
+  ])("deletes %s and refreshes the admin page", async (_n, row) => {
+    const { del } = mockDb(row);
 
     await expect(deleteBookingAction("bk-1")).resolves.toEqual({ ok: true });
     expect(del).toHaveBeenCalled();
     expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
   });
 
-  it("refuses an ineligible booking without deleting", async () => {
-    const { del } = mockDb({ status: "confirmed", paymentDeadline: null });
-    (isDeletableBooking as Mock).mockReturnValue(false);
+  it.each([
+    ["a live hold", { status: "on_hold", paymentDeadline: "2999-01-01" }],
+    ["requested", { status: "requested", paymentDeadline: null }],
+    ["deposit_paid", { status: "deposit_paid", paymentDeadline: "2000-01-01" }],
+    ["confirmed", { status: "confirmed", paymentDeadline: null }],
+  ])("refuses %s without deleting", async (_n, row) => {
+    const { del } = mockDb(row);
 
     await expect(deleteBookingAction("bk-1")).resolves.toEqual({
       ok: false,
