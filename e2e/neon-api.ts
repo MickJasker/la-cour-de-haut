@@ -18,13 +18,47 @@ function credentials() {
   return { key, project };
 }
 
-async function neonFetch(path: string, init: RequestInit = {}) {
-  const { key, project } = credentials();
+const MAX_ATTEMPTS = 5;
+
+/**
+ * Statuses worth waiting out: 409/423 (project locked by a concurrent
+ * operation), 429 (rate limit), 5xx, and 406 (branch/endpoint limit exceeded —
+ * sibling `e2e-*` branches are deleted as their runs finish, freeing capacity).
+ * Everything else (400/401/403/404) is a credential/config bug: fail fast
+ * rather than hide it behind retries.
+ */
+export function isRetryable(status: number) {
+  return [406, 409, 423, 429, 500, 502, 503].includes(status);
+}
+
+/** ~5, 10, 20, 40, 40s, jittered ±25% so parallel runs don't retry in lockstep. */
+export function retryDelayMs(attempt: number, random = Math.random) {
+  const base = Math.min(5000 * 2 ** attempt, 40_000);
+  return Math.round(base * (0.75 + 0.5 * random()));
+}
+
+interface NeonRequestDeps {
+  fetch: typeof fetch;
+  sleep: (ms: number) => Promise<unknown>;
+  random: () => number;
+}
+
+const defaultDeps: NeonRequestDeps = {
+  fetch: (...args) => fetch(...args),
+  sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+  random: Math.random,
+};
+
+/** Exported for tests; `deps` makes the retry loop deterministic and instant. */
+export async function neonRequest(
+  path: string,
+  init: RequestInit,
+  { key, project }: { key: string; project: string },
+  deps: NeonRequestDeps = defaultDeps,
+) {
   let lastError = "";
-  // Neon locks a branch while an operation is in flight (409/423) and rate
-  // limits bursts (429); retry those with backoff instead of failing the run.
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const res = await fetch(`${API}/projects/${project}${path}`, {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const res = await deps.fetch(`${API}/projects/${project}${path}`, {
       ...init,
       headers: {
         Authorization: `Bearer ${key}`,
@@ -33,13 +67,19 @@ async function neonFetch(path: string, init: RequestInit = {}) {
       },
     });
     if (res.ok) return res.json();
+    // Always keep the Neon error body: it names the actual cause (limit, auth…).
     lastError = `${res.status} ${await res.text()}`;
-    if (![409, 423, 429, 500, 502, 503].includes(res.status)) break;
-    await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+    if (!isRetryable(res.status)) break;
+    if (attempt < MAX_ATTEMPTS - 1)
+      await deps.sleep(retryDelayMs(attempt, deps.random));
   }
   throw new Error(
     `Neon API ${init.method ?? "GET"} ${path} failed: ${lastError}`,
   );
+}
+
+function neonFetch(path: string, init: RequestInit = {}) {
+  return neonRequest(path, init, credentials());
 }
 
 /** Create a read-write branch. Without `parentId` it forks the default branch. */
