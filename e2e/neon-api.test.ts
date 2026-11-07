@@ -14,7 +14,7 @@ function deps(responses: Response[]) {
     if (!next) throw new Error("no more responses");
     return next;
   });
-  const sleep = vi.fn(async (_ms: number) => {});
+  const sleep = vi.fn<(ms: number) => Promise<void>>(async () => {});
   return { fetch: fetchFn, sleep, random: () => 0.5 };
 }
 
