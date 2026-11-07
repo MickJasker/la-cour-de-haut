@@ -327,6 +327,8 @@ export default async function BookingsPage({ searchParams }: PageProps) {
                     <BookingActions
                       bookingId={booking.id}
                       guestName={booking.name}
+                      startDate={booking.startDate}
+                      endDate={booking.endDate}
                       displayStatus={booking.displayStatus}
                       bankDetailsConfigured={bankDetailsOk}
                       paymentCollapsed={booking.paymentCollapsed}

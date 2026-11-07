@@ -9,12 +9,15 @@ import {
   cancelBookingAction,
   type TransitionActionState,
 } from "./actions";
+import { DeleteDialog } from "./delete-dialog";
 import { ConfirmDialog, type ConfirmSchedulePreview } from "./confirm-dialog";
 import type { DisplayStatus } from "@/lib/booking/machine";
 
 type Props = {
   bookingId: string;
   guestName: string;
+  startDate: string;
+  endDate: string;
   displayStatus: DisplayStatus;
   bankDetailsConfigured: boolean;
   /**
@@ -30,6 +33,8 @@ type Props = {
 export function BookingActions({
   bookingId,
   guestName,
+  startDate,
+  endDate,
   displayStatus,
   bankDetailsConfigured,
   paymentCollapsed,
@@ -56,6 +61,17 @@ export function BookingActions({
   );
 
   const busy = isPending || isRunning;
+
+  // Dead bookings (declined / cancelled / expired hold) can be hard-deleted.
+  // The server action re-checks eligibility; this only decides the button.
+  const deleteButton = (
+    <DeleteDialog
+      bookingId={bookingId}
+      guestName={guestName}
+      startDate={startDate}
+      endDate={endDate}
+    />
+  );
 
   if (displayStatus === "requested") {
     return (
@@ -118,6 +134,7 @@ export function BookingActions({
           >
             Annuleren
           </Button>
+          {displayStatus === "expired" && deleteButton}
         </div>
         {errorLine}
       </div>
@@ -163,6 +180,10 @@ export function BookingActions({
         {errorLine}
       </div>
     );
+  }
+
+  if (displayStatus === "declined" || displayStatus === "cancelled") {
+    return deleteButton;
   }
 
   return null;

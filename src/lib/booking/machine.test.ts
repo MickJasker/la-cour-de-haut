@@ -3,6 +3,7 @@ import { addDays, subDays, formatISO } from "date-fns";
 import {
   toDisplayStatus,
   isExpiredHold,
+  isDeletableBooking,
   isPastCheckout,
   type DbBookingStatus,
 } from "./machine";
@@ -366,4 +367,43 @@ describe("toDisplayStatus — lazy 'past' for ended stays", () => {
       ),
     ).toBe("expired");
   });
+});
+
+describe("isDeletableBooking — dead bookings only", () => {
+  const TODAY = "2026-07-11";
+  const YESTERDAY = "2026-07-10";
+  const NEXT = "2026-07-12";
+
+  it.each(["declined", "cancelled"] as const)("allows %s", (status) => {
+    expect(isDeletableBooking({ status, paymentDeadline: null }, TODAY)).toBe(
+      true,
+    );
+  });
+
+  it("allows an on_hold booking whose deadline has passed", () => {
+    expect(
+      isDeletableBooking(
+        { status: "on_hold", paymentDeadline: YESTERDAY },
+        TODAY,
+      ),
+    ).toBe(true);
+  });
+
+  it.each([TODAY, NEXT, null])(
+    "refuses an on_hold booking with deadline %s (still live)",
+    (paymentDeadline) => {
+      expect(
+        isDeletableBooking({ status: "on_hold", paymentDeadline }, TODAY),
+      ).toBe(false);
+    },
+  );
+
+  it.each(["requested", "deposit_paid", "confirmed"] as const)(
+    "refuses %s even with a past deadline",
+    (status) => {
+      expect(
+        isDeletableBooking({ status, paymentDeadline: YESTERDAY }, TODAY),
+      ).toBe(false);
+    },
+  );
 });

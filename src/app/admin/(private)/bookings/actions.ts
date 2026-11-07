@@ -9,6 +9,7 @@ import {
   type BookingAction,
   type TransitionFailure,
 } from "@/lib/booking/lifecycle";
+import { isDeletableBooking } from "@/lib/booking/machine";
 
 export type TransitionActionState = { ok: true } | { ok: false; error: string };
 
@@ -72,4 +73,36 @@ export async function updateOwnerNotesAction(id: string, notes: string) {
     .set({ ownerNotes: notes })
     .where(eq(bookingRequest.id, id));
   revalidatePath("/admin/bookings");
+}
+
+/**
+ * Hard-delete a dead booking (declined / cancelled / expired hold). This is
+ * record removal, not a lifecycle transition (see ADR-0029): no emails, no
+ * feed side effects, hence outside `applyTransition`. Eligibility is re-derived
+ * from the DB row against a fresh `today` — the client's displayed status is
+ * never trusted.
+ */
+export async function deleteBookingAction(
+  id: string,
+): Promise<TransitionActionState> {
+  await verifySession();
+  const db = getDb();
+  const [row] = await db
+    .select({
+      status: bookingRequest.status,
+      paymentDeadline: bookingRequest.paymentDeadline,
+    })
+    .from(bookingRequest)
+    .where(eq(bookingRequest.id, id))
+    .limit(1);
+  if (!row || !isDeletableBooking(row)) {
+    return {
+      ok: false,
+      error:
+        "Deze boeking kan niet verwijderd worden. Alleen afgewezen, geannuleerde of verlopen boekingen kunnen verwijderd worden. Ververs de pagina.",
+    };
+  }
+  await db.delete(bookingRequest).where(eq(bookingRequest.id, id));
+  revalidatePath("/admin/bookings");
+  return { ok: true };
 }

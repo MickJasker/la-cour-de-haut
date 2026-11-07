@@ -4,16 +4,20 @@ import type { Mock } from "vitest";
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("drizzle-orm", () => ({ eq: vi.fn() }));
 vi.mock("@/db", () => ({ getDb: vi.fn() }));
+vi.mock("@/lib/booking/machine", () => ({ isDeletableBooking: vi.fn() }));
 vi.mock("@/db/schema", () => ({ bookingRequest: {} }));
 vi.mock("@/lib/auth/session", () => ({ verifySession: vi.fn() }));
 vi.mock("@/lib/booking/lifecycle", () => ({ applyTransition: vi.fn() }));
 
 import { revalidatePath } from "next/cache";
 import { applyTransition } from "@/lib/booking/lifecycle";
+import { getDb } from "@/db";
+import { isDeletableBooking } from "@/lib/booking/machine";
 import {
   cancelBookingAction,
   confirmBookingAction,
   declineBookingAction,
+  deleteBookingAction,
   markBalancePaidBookingAction,
   markDepositPaidBookingAction,
   markPaidBookingAction,
@@ -70,5 +74,48 @@ describe.each([
 
     await expect(run("bk-1")).rejects.toThrow("db down");
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteBookingAction", () => {
+  function mockDb(row: unknown) {
+    const where = vi.fn().mockResolvedValue(undefined);
+    const del = vi.fn(() => ({ where }));
+    const limit = vi.fn().mockResolvedValue(row ? [row] : []);
+    const select = vi.fn(() => ({
+      from: () => ({ where: () => ({ limit }) }),
+    }));
+    (getDb as Mock).mockReturnValue({ select, delete: del });
+    return { del };
+  }
+
+  it("deletes an eligible booking and refreshes the admin page", async () => {
+    const { del } = mockDb({ status: "declined", paymentDeadline: null });
+    (isDeletableBooking as Mock).mockReturnValue(true);
+
+    await expect(deleteBookingAction("bk-1")).resolves.toEqual({ ok: true });
+    expect(del).toHaveBeenCalled();
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/bookings");
+  });
+
+  it("refuses an ineligible booking without deleting", async () => {
+    const { del } = mockDb({ status: "confirmed", paymentDeadline: null });
+    (isDeletableBooking as Mock).mockReturnValue(false);
+
+    await expect(deleteBookingAction("bk-1")).resolves.toEqual({
+      ok: false,
+      error: expect.stringContaining("niet verwijderd"),
+    });
+    expect(del).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("refuses a missing booking", async () => {
+    const { del } = mockDb(null);
+
+    await expect(deleteBookingAction("nope")).resolves.toMatchObject({
+      ok: false,
+    });
+    expect(del).not.toHaveBeenCalled();
   });
 });
